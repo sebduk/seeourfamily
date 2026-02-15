@@ -1,2 +1,6 @@
-# seeourfamily
-This is a personal work repository only open to the public for Claude access.
+# claude00
+
+This is a sandpit for Claude.ai. No code left here should be trusted as is. 
+I will publish in separate projects packaged that will be share-worthy.
+
+Seb
