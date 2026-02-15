@@ -1,0 +1,14 @@
+# Environment config (contains credentials)
+.env
+
+# Composer dependencies
+/vendor/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp

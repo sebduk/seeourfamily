@@ -1,0 +1,16 @@
+# See Our Family - URL Rewriting
+#
+# Sends all requests to index.php unless the file/directory exists on disk.
+# This enables clean URLs: /tree/123 instead of ?page=tree&id=123
+#
+# Static files (Image/, style.css, favicon.ico) are served directly.
+
+RewriteEngine On
+
+# If the request is for an existing file or directory, serve it directly
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Everything else goes to the front controller
+RewriteRule ^ index.php [L,QSA]

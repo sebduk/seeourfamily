@@ -40,6 +40,30 @@ except ImportError:
     print("  pip install mysql-connector-python")
     sys.exit(1)
 
+try:
+    import bcrypt
+except ImportError:
+    bcrypt = None
+    print("WARNING: bcrypt not installed. Passwords will be hashed with a fallback.")
+    print("  For production use: pip install bcrypt")
+
+
+def hash_password(plain: str) -> str:
+    """Hash a plaintext password using bcrypt (PHP password_hash compatible).
+
+    The old ASP site stored passwords in plaintext and compared with UCase().
+    The new PHP site uses password_verify() which expects bcrypt ($2y$) hashes.
+    """
+    if not plain or plain.strip() == "":
+        return ""
+    if bcrypt is not None:
+        hashed = bcrypt.hashpw(plain.encode("utf-8"), bcrypt.gensalt(rounds=10))
+        # bcrypt returns $2b$, PHP password_verify also accepts $2y$
+        return hashed.decode("utf-8").replace("$2b$", "$2y$", 1)
+    else:
+        # Fallback: store plaintext with a marker so you know to re-hash later
+        return "PLAINTEXT:" + plain
+
 
 # =========================================================================
 # CONFIGURATION - Edit these values for your environment
@@ -215,8 +239,8 @@ def migrate_common_db(cursor, mdb_path):
                 safe_str(row.get("DomainPackage")) or "Starter",
                 safe_str(row.get("DomainURL")),
                 safe_str(row.get("DomainRNDKey")),
-                safe_str(row.get("DomainPwdGuest")),
-                safe_str(row.get("DomainPwdAdmin")),
+                hash_password(safe_str(row.get("DomainPwdGuest")) or ""),
+                hash_password(safe_str(row.get("DomainPwdAdmin")) or ""),
             ))
             new_id = cursor.lastrowid
             old_id = safe_int(row.get("IDDomain"))
@@ -237,7 +261,7 @@ def migrate_common_db(cursor, mdb_path):
                 VALUES (%s, %s, %s, %s, %s)
             """, (
                 safe_str(row.get("UserLogin")) or "unknown",
-                safe_str(row.get("UserPassword")) or "changeme",
+                hash_password(safe_str(row.get("UserPassword")) or "changeme"),
                 safe_str(row.get("UserName")),
                 safe_str(row.get("UserEmail")),
                 safe_bool(row.get("UserIsOnline", "1")),
