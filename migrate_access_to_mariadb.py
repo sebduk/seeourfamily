@@ -174,6 +174,7 @@ def parse_access_date(date_str):
             return datetime.strptime(date_str, fmt).date()
         except ValueError:
             continue
+    print(f"    WARNING: could not parse date: '{date_str}'")
     return None
 
 
@@ -193,7 +194,7 @@ def parse_access_datetime(dt_str):
 
 def compute_date_and_precision(year_val, full_date_val, month_val=None, day_val=None):
     """
-    Combine the old Access DtNaiss (year) + DateNaiss (full date mm/dd/yyyy)
+    Combine the old Access DtNaiss (year) + DateNaiss (full date dd/mm/yyyy)
     into a proper DATE + precision string.
 
     Returns (date_obj_or_None, precision_str_or_None).
@@ -357,6 +358,12 @@ def migrate_family_db(cursor, mdb_path, family_id, family_name):
     if "Personne" in tables:
         rows = mdb_export_table(mdb_path, "Personne")
         print(f"  Personne: {len(rows)} rows")
+        # Show raw date fields from first 3 rows so we can verify the format
+        for i, sample in enumerate(rows[:3]):
+            print(f"    Sample row {i}: DtNaiss={sample.get('DtNaiss')!r}  "
+                  f"DateNaiss={sample.get('DateNaiss')!r}  "
+                  f"DtDec={sample.get('DtDec')!r}  "
+                  f"DateDec={sample.get('DateDec')!r}")
         for row in rows:
             birth_date, birth_prec = compute_date_and_precision(
                 row.get("DtNaiss"), row.get("DateNaiss"))
