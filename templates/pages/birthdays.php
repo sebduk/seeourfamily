@@ -18,9 +18,8 @@ $months = $L['months'] ?? [];
 $daysInMonth = [1=>31,2=>29,3=>31,4=>30,5=>31,6=>30,7=>31,8=>31,9=>30,10=>31,11=>30,12=>31];
 
 // Load people with a known full birthdate (day+month), ordered by month/day/year.
-// Records with only a year (birth_precision='y') are stored as YYYY-01-01
-// and must be excluded — matching the original ASP's WHERE DateNaiss<>null
-// which only matched full dates, not the year-only DtNaiss field.
+// Exclude year-only records (birth_precision='y', stored as YYYY-01-01 placeholders).
+// If birth_precision is NULL (data imported without migration), include the record.
 $stmt = $pdo->prepare(
     "SELECT id, first_name, last_name,
             DAY(birth_date)  AS bday,
@@ -28,7 +27,9 @@ $stmt = $pdo->prepare(
             YEAR(birth_date) AS byear,
             death_date, email
      FROM people
-     WHERE birth_date IS NOT NULL AND birth_precision = 'ymd' AND family_id = ?
+     WHERE birth_date IS NOT NULL
+       AND (birth_precision IS NULL OR birth_precision <> 'y')
+       AND family_id = ?
      ORDER BY MONTH(birth_date), DAY(birth_date), YEAR(birth_date)"
 );
 $stmt->execute([$fid]);
