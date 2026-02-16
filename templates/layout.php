@@ -69,6 +69,9 @@
             <?php endif; ?>
         </div>
         <div class="menu-right">
+            <?php if ($family): ?>
+                [<a href="/home?DomKey=" title="Switch family">&#x21c4;</a>]
+            <?php endif; ?>
             [<a href="/help"><?= $L['menu_help'] ?></a>]
             <?php if ($isLoggedIn): ?>
                 [<a href="/admin"><?= $L['menu_admin'] ?></a>]

@@ -109,7 +109,12 @@ $router = new Router();
 // Family context: ?DomKey=abc123 or ?h=abc123
 $domKey = $_GET['DomKey'] ?? $_GET['h'] ?? null;
 if ($domKey !== null) {
-    $auth->setFamilyByHash($domKey);
+    if ($domKey === '') {
+        // Empty DomKey clears family selection (back to family chooser)
+        unset($_SESSION['family_id'], $_SESSION['role'], $_SESSION['user_id']);
+    } else {
+        $auth->setFamilyByHash($domKey);
+    }
 }
 
 // Language switch: ?Language=FRA
@@ -119,8 +124,14 @@ if (isset($_GET['Language'])) {
 
 // Login form submission (POST)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $router->page() === 'login') {
-    $password = $_POST['password'] ?? '';
-    $auth->login($password);
+    $devLogin = $_POST['dev_login'] ?? '';
+    if ($devLogin !== '' && ($_ENV['APP_DEV'] ?? '') === '1') {
+        // Dev mode: bypass password, set role directly
+        $_SESSION['role'] = $devLogin;
+    } else {
+        $password = $_POST['password'] ?? '';
+        $auth->login($password);
+    }
 }
 
 // Logout
