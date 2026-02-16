@@ -134,7 +134,7 @@ if ($router->page() === 'login' && ($_GET['action'] ?? '') === 'logout') {
 
 $family      = $auth->family();
 $familyTitle = $family
-    ? htmlspecialchars($family['title'] ?? $family['name'], ENT_QUOTES, 'UTF-8')
+    ? htmlspecialchars(fix_utf8($family['title'] ?? $family['name']), ENT_QUOTES, 'UTF-8')
     : 'See Our Family';
 $lang        = $auth->language();
 $labels      = new Labels($lang);
@@ -147,6 +147,29 @@ $isAdmin     = $auth->isAdmin();
 function h(string $s): string
 {
     return htmlspecialchars($s, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+}
+
+/**
+ * Repair double/triple-encoded UTF-8 (mojibake).
+ *
+ * Data migrated from Access .mdb files sometimes ends up double-encoded:
+ * "Généalogie" stored as the bytes for "GÃ©nÃ©alogie".
+ * This recursively reduces encoding levels until the string is clean.
+ */
+function fix_utf8(string $s): string
+{
+    // Nothing to fix if the string is pure ASCII
+    if (!preg_match('/[\x80-\xFF]/', $s)) {
+        return $s;
+    }
+    // Try converting from UTF-8 to latin1 (ISO-8859-1).
+    // If the original was double-encoded, this "unwraps" one layer,
+    // yielding raw bytes that form valid UTF-8.
+    $decoded = @mb_convert_encoding($s, 'ISO-8859-1', 'UTF-8');
+    if ($decoded !== false && $decoded !== $s && mb_check_encoding($decoded, 'UTF-8')) {
+        return fix_utf8($decoded);
+    }
+    return $s;
 }
 
 // =========================================================================

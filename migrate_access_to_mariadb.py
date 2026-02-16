@@ -109,14 +109,26 @@ def mdb_list_tables(mdb_path):
 
 
 def mdb_export_table(mdb_path, table_name):
-    """Export a table from an .mdb file as a list of dicts using mdb-export."""
+    """Export a table from an .mdb file as a list of dicts using mdb-export.
+
+    Access .mdb files typically use CP1252 (Windows-1252) encoding.
+    We read raw bytes and decode as CP1252 to get proper Unicode strings,
+    which mysql.connector then sends to MariaDB as UTF-8.
+    """
     result = subprocess.run(
         ["mdb-export", mdb_path, table_name],
-        capture_output=True, text=True, check=True
+        capture_output=True, check=True
     )
     if not result.stdout.strip():
         return []
-    reader = csv.DictReader(io.StringIO(result.stdout))
+    # Decode as CP1252 (the native Access encoding for Western European data).
+    # If mdb-export already converted to UTF-8, try that first.
+    raw = result.stdout
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError:
+        text = raw.decode("cp1252")
+    reader = csv.DictReader(io.StringIO(text))
     return list(reader)
 
 
@@ -620,6 +632,8 @@ def main():
     if "unix_socket" in config:
         config.pop("host", None)
         config.pop("port", None)
+    # Explicit charset ensures Python↔MariaDB encoding is unambiguous
+    config.setdefault("charset", "utf8mb4")
     conn = mysql.connector.connect(**config)
     cursor = conn.cursor()
 

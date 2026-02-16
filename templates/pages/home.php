@@ -27,7 +27,7 @@ if (!$family) {
         <?php foreach ($families as $f): ?>
             <li>
                 <a href="/home?DomKey=<?= h($f['hash'] ?? '') ?>">
-                    <?= h($f['title'] ?? $f['name']) ?>
+                    <?= h(fix_utf8($f['title'] ?? $f['name'])) ?>
                 </a>
             </li>
         <?php endforeach; ?>
@@ -51,7 +51,7 @@ $stmt->execute([$fid]);
 $info = $stmt->fetch();
 
 if ($info && $info['content']) {
-    echo $info['content'];
+    echo fix_utf8($info['content']);
 } else {
     echo '<h1>' . $familyTitle . '</h1>';
 }
