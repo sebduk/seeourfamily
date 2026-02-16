@@ -27,7 +27,7 @@ if (!$family) {
         <?php foreach ($families as $f): ?>
             <li>
                 <a href="/home?DomKey=<?= h($f['hash'] ?? '') ?>">
-                    <?= h(fix_utf8($f['title'] ?? $f['name'])) ?>
+                    <?= h($f['title'] ?? $f['name']) ?>
                 </a>
             </li>
         <?php endforeach; ?>

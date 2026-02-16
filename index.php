@@ -145,7 +145,7 @@ if ($router->page() === 'login' && ($_GET['action'] ?? '') === 'logout') {
 
 $family      = $auth->family();
 $familyTitle = $family
-    ? htmlspecialchars(fix_utf8($family['title'] ?? $family['name']), ENT_QUOTES, 'UTF-8')
+    ? h($family['title'] ?? $family['name'])
     : 'See Our Family';
 $lang        = $auth->language();
 $labels      = new Labels($lang);
@@ -154,10 +154,11 @@ $page        = $router->page();
 $isLoggedIn  = $auth->isLoggedIn();
 $isAdmin     = $auth->isAdmin();
 
-/** HTML-escape shorthand — available in all templates. */
+/** HTML-escape shorthand — available in all templates.
+ *  Also repairs double/triple-encoded UTF-8 from the Access migration. */
 function h(string $s): string
 {
-    return htmlspecialchars($s, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    return htmlspecialchars(fix_utf8($s), ENT_QUOTES | ENT_HTML5, 'UTF-8');
 }
 
 /**
