@@ -35,7 +35,7 @@ class Database
             $this->host    = $_ENV['DB_HOST']    ?? 'localhost';
             $this->port    = (int)($_ENV['DB_PORT'] ?? 3306);
             $this->name    = $_ENV['DB_NAME']    ?? 'seeourfamily';
-            $this->user    = $_ENV['DB_USER']    ?? 'root';
+            $this->user    = $_ENV['DB_USER']    ?? '';
             $this->pass    = $_ENV['DB_PASS']    ?? '';
             $this->charset = $_ENV['DB_CHARSET'] ?? 'utf8mb4';
         }
