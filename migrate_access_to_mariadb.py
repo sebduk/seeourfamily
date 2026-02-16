@@ -72,7 +72,7 @@ def hash_password(plain: str) -> str:
 MARIADB_CONFIG = {
     "host": "localhost",
     "port": 3306,
-    "user": "root",
+    "user": "",
     "password": "",
     "database": "seeourfamily",
     # Uncomment the next line if your local MySQL/MariaDB uses unix socket auth
