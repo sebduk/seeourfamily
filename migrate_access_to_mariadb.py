@@ -230,15 +230,24 @@ def migrate_common_db(cursor, mdb_path):
     if "Domain" in tables:
         rows = mdb_export_table(mdb_path, "Domain")
         print(f"  Domain: {len(rows)} rows")
+        seen_names = set()
         for row in rows:
             if not safe_bool(row.get("DomainIsOnline", "1")):
                 continue
+            name = safe_str(row.get("DomainName"))
+            if not name or name.strip() == "":
+                print(f"    SKIP: empty DomainName (IDDomain={row.get('IDDomain')})")
+                continue
+            if name in seen_names:
+                print(f"    SKIP: duplicate DomainName '{name}' (IDDomain={row.get('IDDomain')})")
+                continue
+            seen_names.add(name)
             cursor.execute("""
                 INSERT INTO families (name, title, language, date_format, package,
                                      url, hash, guest_password, admin_password, is_online)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 1)
             """, (
-                safe_str(row.get("DomainName")),
+                name,
                 safe_str(row.get("DomainHeadTitle")),
                 safe_str(row.get("DomainLanguage")) or "ENG",
                 safe_str(row.get("DomainDateFormat")) or "dmy",
@@ -252,7 +261,7 @@ def migrate_common_db(cursor, mdb_path):
             old_id = safe_int(row.get("IDDomain"))
             if old_id is not None:
                 domain_id_map[old_id] = new_id
-            print(f"    Family: {row.get('DomainName')} (old ID {old_id} -> new ID {new_id})")
+            print(f"    Family: {name} (old ID {old_id} -> new ID {new_id})")
     else:
         print("  WARNING: No 'Domain' table found in user.mdb")
 
