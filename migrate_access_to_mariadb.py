@@ -75,6 +75,12 @@ MARIADB_CONFIG = {
     "user": "root",
     "password": "",
     "database": "seeourfamily",
+    # Uncomment the next line if your local MySQL/MariaDB uses unix socket auth
+    # (i.e. you can connect by just typing "mysql" with no password).
+    # Common socket paths:
+    #   Linux:  /var/run/mysqld/mysqld.sock
+    #   macOS:  /tmp/mysql.sock
+    "unix_socket": "/var/run/mysqld/mysqld.sock",
 }
 
 # Path to the common user.mdb (Domain, User, LkDomainUser tables)
@@ -581,7 +587,16 @@ def main():
 
     # --- Connect to MariaDB ---
     print("Connecting to MariaDB...")
-    conn = mysql.connector.connect(**MARIADB_CONFIG)
+    config = dict(MARIADB_CONFIG)
+    # Clean up config: remove empty strings (mysql.connector rejects empty user/password)
+    for key in list(config.keys()):
+        if config[key] == "":
+            del config[key]
+    # When using unix_socket, host/port are not needed
+    if "unix_socket" in config:
+        config.pop("host", None)
+        config.pop("port", None)
+    conn = mysql.connector.connect(**config)
     cursor = conn.cursor()
 
     # Disable FK checks during migration
