@@ -156,9 +156,9 @@ $isAdmin     = $auth->isAdmin();
 
 /** HTML-escape shorthand — available in all templates.
  *  Also repairs double/triple-encoded UTF-8 from the Access migration. */
-function h(string $s): string
+function h(?string $s): string
 {
-    return htmlspecialchars(fix_utf8($s), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    return htmlspecialchars(fix_utf8($s ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8');
 }
 
 /**
