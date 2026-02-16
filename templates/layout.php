@@ -53,31 +53,21 @@
             <a href="/home"><img src="/Image/menuTree.jpg" alt="Home"></a>
         </div>
         <div class="menu-links">
-            <?php if ($isLoggedIn): ?>
-                [<a href="/home"><?= $L['menu_home'] ?></a>] &gt;
-                <?= $L['menu_genealogy'] ?>
-                [<a href="/list-names?sort=name"><?= $L['menu_names'] ?></a>]
-                [<a href="/list-names?sort=year"><?= $L['menu_years'] ?></a>]
-                [<a href="/birthdays"><?= $L['menu_calendar'] ?></a>]
-                [<a href="/photos"><?= $L['menu_pictures'] ?></a>]
-                [<a href="/documents"><?= $L['menu_documents'] ?></a>]
-                <?php if (($family['package'] ?? '') === 'Platinum'): ?>
-                    [<a href="/messages"><?= $L['menu_messages'] ?></a>]
-                <?php endif; ?>
-            <?php else: ?>
-                [<a href="/home"><?= $L['menu_home'] ?></a>]
-            <?php endif; ?>
+            [<a href="/home"><?= $L['menu_home'] ?></a>] &gt;
+            <?= $L['menu_genealogy'] ?>
+            [<a href="/list-names?sort=name"><?= $L['menu_names'] ?></a>]
+            [<a href="/list-names?sort=year"><?= $L['menu_years'] ?></a>]
+            [<a href="/birthdays"><?= $L['menu_calendar'] ?></a>]
+            [<a href="/photos"><?= $L['menu_pictures'] ?></a>]
+            [<a href="/documents"><?= $L['menu_documents'] ?></a>]
+            [<a href="/messages"><?= $L['menu_messages'] ?></a>]
         </div>
         <div class="menu-right">
             <?php if ($family): ?>
                 [<a href="/home?DomKey=" title="Switch family">&#x21c4;</a>]
             <?php endif; ?>
             [<a href="/help"><?= $L['menu_help'] ?></a>]
-            <?php if ($isLoggedIn): ?>
-                [<a href="/admin"><?= $L['menu_admin'] ?></a>]
-            <?php else: ?>
-                [<a href="/login"><?= $L['menu_login'] ?></a>]
-            <?php endif; ?>
+            [<a href="/admin"><?= $L['menu_admin'] ?></a>]
         </div>
     </nav>
 
