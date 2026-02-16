@@ -80,7 +80,7 @@ MARIADB_CONFIG = {
     # Common socket paths:
     #   Linux:  /var/run/mysqld/mysqld.sock
     #   macOS:  /tmp/mysql.sock
-    "unix_socket": "/var/run/mysqld/mysqld.sock",
+    "unix_socket": "/tmp/mysql.sock",
 }
 
 # Path to the common user.mdb (Domain, User, LkDomainUser tables)
