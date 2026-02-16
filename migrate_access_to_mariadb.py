@@ -86,15 +86,13 @@ MARIADB_CONFIG = {
 # Path to the common user.mdb (Domain, User, LkDomainUser tables)
 COMMON_MDB = "Data/user.mdb"
 
-# Family .mdb files to migrate.
-# Each entry maps a family name to its .mdb path.
-# The family name must match what's in the Domain table's DomainName field.
-# If you're unsure, run the script with --list-families to see what's in user.mdb.
-FAMILY_MDB_FILES = {
-    # "Tajan": "Data/some-tajan.mdb",
-    # "Ducos": "Data/some-ducos.mdb",
-    # "Moeskops": "Data/some-moeskops.mdb",
-}
+# Families to migrate.  The .mdb filename for each family is read
+# automatically from the DomainDB column in user.mdb's Domain table,
+# and looked up under DATA_DIR.
+# Only families listed here will be imported from user.mdb.
+WANTED_FAMILIES = {"Tajan", "Ducos", "Moeskops", "Arntz", "Gouzon"}
+
+DATA_DIR = "Data"
 
 # =========================================================================
 # MDB READING UTILITIES (uses mdbtools command-line)
@@ -214,23 +212,28 @@ def compute_date_and_precision(year_val, full_date_val, month_val=None, day_val=
 # =========================================================================
 
 
-def migrate_common_db(cursor, mdb_path, wanted_families=None):
+def migrate_common_db(cursor, mdb_path, wanted_families=None, data_dir="Data"):
     """Migrate Domain, User, LkDomainUser from user.mdb.
 
     If wanted_families is provided (a set/list of family names), only
     Domain rows whose DomainName is in that set will be imported.
+
+    Returns (domain_id_map, family_mdb_files):
+        domain_id_map:   {old IDDomain -> new families.id}
+        family_mdb_files: {family_name -> mdb_path}  (built from DomainDB column)
     """
     print(f"\n--- Migrating common DB: {mdb_path} ---")
 
     if not os.path.exists(mdb_path):
         print(f"  WARNING: {mdb_path} not found, skipping common DB migration.")
-        return {}
+        return {}, {}
 
     tables = mdb_list_tables(mdb_path)
     print(f"  Tables found: {tables}")
 
     # --- families (from Domain table) ---
-    domain_id_map = {}  # old IDDomain -> new families.id
+    domain_id_map = {}      # old IDDomain -> new families.id
+    family_mdb_files = {}   # family_name -> path to its .mdb file
     if "Domain" in tables:
         rows = mdb_export_table(mdb_path, "Domain")
         print(f"  Domain: {len(rows)} rows")
@@ -248,6 +251,12 @@ def migrate_common_db(cursor, mdb_path, wanted_families=None):
                 print(f"    SKIP: duplicate '{name}' (IDDomain={row.get('IDDomain')})")
                 continue
             seen_names.add(name)
+
+            # Build the .mdb path from the DomainDB column
+            domain_db = safe_str(row.get("DomainDB"))
+            if domain_db:
+                family_mdb_files[name] = os.path.join(data_dir, domain_db)
+
             cursor.execute("""
                 INSERT INTO families (name, title, language, date_format, package,
                                      url, hash, guest_password, admin_password, is_online)
@@ -267,7 +276,7 @@ def migrate_common_db(cursor, mdb_path, wanted_families=None):
             old_id = safe_int(row.get("IDDomain"))
             if old_id is not None:
                 domain_id_map[old_id] = new_id
-            print(f"    Family: {name} (old ID {old_id} -> new ID {new_id})")
+            print(f"    Family: {name} (old ID {old_id} -> new ID {new_id}, db={domain_db})")
     else:
         print("  WARNING: No 'Domain' table found in user.mdb")
 
@@ -313,7 +322,7 @@ def migrate_common_db(cursor, mdb_path, wanted_families=None):
                     safe_str(row.get("Status")) or "Guest",
                 ))
 
-    return domain_id_map
+    return domain_id_map, family_mdb_files
 
 
 def migrate_family_db(cursor, mdb_path, family_id, family_name):
@@ -627,20 +636,21 @@ def main():
         cursor.execute(f"TRUNCATE TABLE `{table}`")
 
     # --- Step 1: Migrate common DB ---
-    domain_id_map = migrate_common_db(cursor, COMMON_MDB,
-                                      wanted_families=set(FAMILY_MDB_FILES.keys()))
+    # Returns domain_id_map AND the family .mdb paths read from DomainDB column
+    domain_id_map, family_mdb_files = migrate_common_db(
+        cursor, COMMON_MDB,
+        wanted_families=WANTED_FAMILIES,
+        data_dir=DATA_DIR)
 
     # --- Step 2: Build family name -> new family_id lookup ---
     cursor.execute("SELECT id, name FROM families")
     family_name_to_id = {name: fid for fid, name in cursor.fetchall()}
 
     # --- Step 3: Migrate each family DB ---
-    if not FAMILY_MDB_FILES:
-        print("\n*** WARNING: No family .mdb files configured in FAMILY_MDB_FILES. ***")
-        print("*** Edit this script to add your family .mdb file paths.          ***")
-        print("*** Use --list-families to see what's in user.mdb.                ***")
+    if not family_mdb_files:
+        print("\n*** WARNING: No family .mdb files discovered from Domain table. ***")
     else:
-        for family_name, mdb_path in FAMILY_MDB_FILES.items():
+        for family_name, mdb_path in family_mdb_files.items():
             family_id = family_name_to_id.get(family_name)
             if family_id is None:
                 print(f"\n  WARNING: Family '{family_name}' not found in families table. "
