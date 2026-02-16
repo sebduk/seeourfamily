@@ -214,8 +214,12 @@ def compute_date_and_precision(year_val, full_date_val, month_val=None, day_val=
 # =========================================================================
 
 
-def migrate_common_db(cursor, mdb_path):
-    """Migrate Domain, User, LkDomainUser from user.mdb."""
+def migrate_common_db(cursor, mdb_path, wanted_families=None):
+    """Migrate Domain, User, LkDomainUser from user.mdb.
+
+    If wanted_families is provided (a set/list of family names), only
+    Domain rows whose DomainName is in that set will be imported.
+    """
     print(f"\n--- Migrating common DB: {mdb_path} ---")
 
     if not os.path.exists(mdb_path):
@@ -232,14 +236,16 @@ def migrate_common_db(cursor, mdb_path):
         print(f"  Domain: {len(rows)} rows")
         seen_names = set()
         for row in rows:
-            if not safe_bool(row.get("DomainIsOnline", "1")):
-                continue
             name = safe_str(row.get("DomainName"))
             if not name or name.strip() == "":
-                print(f"    SKIP: empty DomainName (IDDomain={row.get('IDDomain')})")
+                continue
+            if wanted_families and name not in wanted_families:
+                continue
+            if not safe_bool(row.get("DomainIsOnline", "1")):
+                print(f"    SKIP: offline '{name}' (IDDomain={row.get('IDDomain')})")
                 continue
             if name in seen_names:
-                print(f"    SKIP: duplicate DomainName '{name}' (IDDomain={row.get('IDDomain')})")
+                print(f"    SKIP: duplicate '{name}' (IDDomain={row.get('IDDomain')})")
                 continue
             seen_names.add(name)
             cursor.execute("""
@@ -621,7 +627,8 @@ def main():
         cursor.execute(f"TRUNCATE TABLE `{table}`")
 
     # --- Step 1: Migrate common DB ---
-    domain_id_map = migrate_common_db(cursor, COMMON_MDB)
+    domain_id_map = migrate_common_db(cursor, COMMON_MDB,
+                                      wanted_families=set(FAMILY_MDB_FILES.keys()))
 
     # --- Step 2: Build family name -> new family_id lookup ---
     cursor.execute("SELECT id, name FROM families")
