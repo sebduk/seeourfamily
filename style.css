@@ -1,148 +1,338 @@
-BODY
-{
-    FONT-SIZE: 8pt;
-    COLOR: #000000;
-    FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif
+/* ============================================================
+ * See Our Family - Shared Stylesheet
+ *
+ * Replaces the original style.css (Verdana 8pt + table-era classes)
+ * and the inline table-based layouts from the ASP site.
+ *
+ * Organised by layout pattern.
+ * ============================================================ */
+
+/* ------- RESET & BASE (preserves original Verdana 8pt look) ------- */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: Verdana, Arial, Helvetica, sans-serif;
+    font-size: 8pt;
+    color: #000;
+    background: #fff;
 }
-P
-{
-    FONT-SIZE: 8pt;
-    COLOR: #000000;
-    FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif
+a        { color: #000; text-decoration: none; }
+a:hover  { text-decoration: underline; }
+h1 { font: bold 18pt "Arial Narrow", "Helvetica Condensed", Swiss, sans-serif; }
+h2 { font: bold 16pt "Arial Narrow", "Helvetica Condensed", Swiss, sans-serif; }
+h3 { font: bold 14pt "Arial Narrow", "Helvetica Condensed", Swiss, sans-serif; }
+h4 { font: bold 12pt "Arial Narrow", "Helvetica Condensed", Swiss, sans-serif; }
+h5 { font: bold 10pt "Arial Narrow", "Helvetica Condensed", Swiss, sans-serif; }
+h6 { font: bold 8pt  "Arial Narrow", "Helvetica Condensed", Swiss, sans-serif; }
+hr { border: none; border-top: 1px solid #666; }
+
+/* Legacy classes (used by old markup and admin pages) */
+.box, .Box   { border: 1px solid #666; font: 8pt Verdana, Arial, Helvetica, sans-serif; }
+.text, .Text  { font: 8pt Verdana, Arial, Helvetica, sans-serif; }
+.Button       { width: 50pt; }
+.Login        { border: 1px solid #666; font: 8pt Verdana, Arial, Helvetica, sans-serif; width: 100pt; }
+.Title        { font: bold 14pt Arial, Helvetica, sans-serif; color: silver; }
+
+
+/* ============================================================
+ * PATTERN 1: CENTERED PAGE WRAPPER
+ * Replaces: <table width="80%" align="center">
+ * Used by:  home, messages, login, help
+ * ============================================================ */
+.page-wrap {
+    max-width: 800px;
+    margin: 0 auto;
 }
-TD
-{
-    FONT-SIZE: 8pt;
-    COLOR: #000000;
-    FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif
+
+
+/* ============================================================
+ * PATTERN 2: MULTI-COLUMN NAME LIST
+ * Replaces: <table> with 3 cols + spacer <td>&nbsp;</td>
+ * Used by:  list-names (lstNomDate.asp)
+ * ============================================================ */
+.name-list {
+    columns: 3 200px;
+    column-gap: 2rem;
 }
-.Text
-{
-    FONT-SIZE: 8pt;
-    COLOR: #000000;
-    FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif
+.name-list-item {
+    break-inside: avoid;
+    padding: 1px 0;
+    white-space: nowrap;
 }
-H1
-{
-    FONT-WEIGHT: bold;
-    FONT-SIZE: 18pt;
-    COLOR: #000000;
-    FONT-FAMILY: Arial Narrow, Helvetica Condensed, Swiss
+.name-list-item img { vertical-align: middle; border: 0; }
+.name-list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid #666;
 }
-H2
-{
-    FONT-WEIGHT: bold;
-    FONT-SIZE: 16pt;
-    COLOR: #000000;
-    FONT-FAMILY: Arial Narrow, Helvetica Condensed, Swiss
+.name-list-footer {
+    text-align: center;
+    padding-top: 0.5rem;
+    margin-top: 0.5rem;
+    border-top: 1px solid #666;
 }
-H3
-{
-    FONT-WEIGHT: bold;
-    FONT-SIZE: 14pt;
-    COLOR: #000000;
-    FONT-FAMILY: Arial Narrow, Helvetica Condensed, Swiss
+
+
+/* ============================================================
+ * PATTERN 3: PHOTO THUMBNAIL GRID
+ * Replaces: <table> with kCol=4, kRow=5, width=100 cells
+ * Used by:  photos (lstPhotos.asp)
+ * ============================================================ */
+.photo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 4px;
+    background: silver;
+    border: 1px solid silver;
+    padding: 4px;
 }
-H4
-{
-    FONT-WEIGHT: bold;
-    FONT-SIZE: 12pt;
-    COLOR: #000000;
-    FONT-FAMILY: Arial Narrow, Helvetica Condensed, Swiss
+.photo-grid .thumb {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: silver;
+    overflow: hidden;
 }
-H5
-{
-    FONT-WEIGHT: bold;
-    FONT-SIZE: 10pt;
-    COLOR: #000000;
-    FONT-FAMILY: Arial Narrow, Helvetica Condensed, Swiss
+.photo-grid .thumb img {
+    max-width: 100%;
+    max-height: 100%;
+    border: 0;
 }
-H6
-{
-    FONT-WEIGHT: bold;
-    FONT-SIZE: 8pt;
-    COLOR: #000000;
-    FONT-FAMILY: Arial Narrow, Helvetica Condensed, Swiss
+.photo-pagination {
+    text-align: center;
+    padding: 4px;
+    background: silver;
+    border: 1px solid silver;
 }
-A
-{
-    COLOR: #000000;
-    TEXT-DECORATION: none
+.photo-folders {
+    text-align: center;
+    padding: 4px;
+    background: silver;
+    border: 1px solid silver;
 }
-A:link
-{
-    COLOR: #000000;
-    TEXT-DECORATION: none
+
+
+/* ============================================================
+ * PATTERN 4: FAMILY TREE (CSS GRID)
+ * Replaces: <table> with colspan=8/4/2 for generations
+ * Used by:  tree (arbre.asp)
+ * ============================================================ */
+.tree-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 0;
+    text-align: center;
+    max-width: 960px;
+    margin: 0 auto;
 }
-A:visited
-{
-    COLOR: #000000;
-    TEXT-DECORATION: none
+.tree-grid .person-cell {
+    padding: 4px 2px;
+    border-top: 1px solid #666;
 }
-A:hover
-{
-    COLOR: #000000;
-    TEXT-DECORATION: underline
+.tree-grid .person-cell a { white-space: nowrap; }
+.tree-gen-2     { grid-column: span 1; }   /* great-grandparents: 8 slots */
+.tree-gen-1     { grid-column: span 2; }   /* grandparents: 4 slots */
+.tree-gen-0     { grid-column: span 4; }   /* parents (level 0): 2 slots */
+.tree-children  { grid-column: 1 / -1; }   /* children row: full width */
+.tree-grid .align-r { text-align: right; }
+.tree-grid .align-l { text-align: left; }
+
+/* Single-person tree (no spouse): 4-column variant */
+.tree-grid-single {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    text-align: center;
+    max-width: 600px;
+    margin: 0 auto;
 }
-A:active
-{
-    COLOR: #000000;
-    TEXT-DECORATION: none
+.tree-grid-single .person-cell { padding: 4px 2px; border-top: 1px solid #666; }
+.tree-single-gen-2 { grid-column: span 1; }
+.tree-single-gen-1 { grid-column: span 2; }
+.tree-single-gen-0 { grid-column: 1 / -1; }
+
+/* Children display (flexbox under the tree grid) */
+.children-row {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding-top: 8px;
 }
-.Button
-{
-    WIDTH: 50pt
+.child-family { text-align: center; }
+.child-family .couple {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
 }
-.Box
-{
-    BORDER-RIGHT: #666666 1pt solid;
-    BORDER-TOP: #666666 1pt solid;
-    FONT-SIZE: 8pt;
-    BORDER-LEFT: #666666 1pt solid;
-    BORDER-BOTTOM: #666666 1pt solid;
-    FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif
+.grandchildren {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    padding-top: 4px;
+    border-top: 1px solid #666;
 }
-.Login
-{
-    BORDER-RIGHT: #666666 1pt solid;
-    BORDER-TOP: #666666 1pt solid;
-    FONT-SIZE: 8pt;
-    BORDER-LEFT: #666666 1pt solid;
-    WIDTH: 100pt;
-    BORDER-BOTTOM: #666666 1pt solid;
-    FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif
+
+/* Tree navigation bar (was arbre.out.asp) */
+.tree-nav {
+    display: flex;
+    gap: 0.5rem;
+    align-items: baseline;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
 }
-.Title
-{
-    FONT-WEIGHT: bold;
-    FONT-SIZE: 14pt;
-    COLOR: silver;
-    FONT-FAMILY: Arial, Helvetica, sans-serif
+.tree-nav strong { margin-right: 0.5rem; }
+.tree-nav .nav-links a { margin: 0 2px; }
+
+/* Multiple marriages */
+.tree-marriages { text-align: center; margin-top: 2rem; }
+
+
+/* ============================================================
+ * PATTERN 5: PERSON BIO (CSS GRID)
+ * Replaces: <table> with colspan=4, width=150 sidebar
+ * Used by:  person (bio.asp)
+ * ============================================================ */
+.bio-header { text-align: center; margin-bottom: 1rem; }
+.bio-nav    { font-weight: bold; margin-bottom: 0.5rem; }
+.bio-section { margin-bottom: 1.5rem; }
+.bio-section h2 { margin-bottom: 0.5rem; }
+
+.bio-item {
+    display: grid;
+    grid-template-columns: 150px 1fr;
+    gap: 0 1rem;
+    margin-bottom: 0.75rem;
 }
-.WizardDropBox
-{
-    BORDER-RIGHT: #666666 1pt solid;
-    BORDER-TOP: #666666 1pt solid;
-    FONT-SIZE: 8pt;
-    BORDER-LEFT: #666666 1pt solid;
-    WIDTH: 100pt;
-    BORDER-BOTTOM: #666666 1pt solid;
-    FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif;
-    BACKGROUND-COLOR: greenyellow
+.bio-item-label   { font-weight: bold; }
+.bio-item-full    { grid-column: 1 / -1; }
+
+.bio-photo-item {
+    display: grid;
+    grid-template-columns: 150px 1fr;
+    gap: 0 1rem;
+    margin-bottom: 0.75rem;
+    align-items: start;
 }
-.Box150
-{
-    BORDER-RIGHT: #666666 1pt solid;
-    BORDER-TOP: #666666 1pt solid;
-    FONT-SIZE: 8pt;
-    BORDER-LEFT: #666666 1pt solid;
-    WIDTH: 150pt;
-    BORDER-BOTTOM: #666666 1pt solid;
-    FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif
+.bio-photo-item .thumb { text-align: center; }
+.bio-photo-item .thumb img { max-width: 150px; max-height: 100px; border: 0; }
+
+.to-top { color: red; }
+
+
+/* ============================================================
+ * PATTERN 6: DATA TABLES
+ * Replaces: <table> with bgcolor, spacer cells
+ * Used by:  documents (lstDocs.asp), birthdays (lstCalendrier.asp)
+ * ============================================================ */
+.data-table {
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+    border-collapse: collapse;
 }
-.Status
-{
-    COLOR: white;
-    BACKGROUND-COLOR: #669900;
-    TEXT-ALIGN: center
+.data-table th {
+    background: #ccc;
+    padding: 4px 8px;
+    text-align: left;
+    font-weight: bold;
+}
+.data-table th a { font-weight: bold; }
+.data-table td   { padding: 4px 8px; vertical-align: top; }
+.data-table tr:nth-child(even) { background: #f5f5f5; }
+
+.doc-icon { text-align: center; width: 30px; }
+.doc-name { font-weight: bold; }
+.doc-meta { color: #666; font-size: 7pt; padding-left: 38px; }
+
+/* Birthday calendar */
+.cal-table {
+    width: 70%;
+    max-width: 900px;
+    margin: 0 auto;
+    border-collapse: collapse;
+    border: 1px solid #666;
+}
+.cal-table th {
+    background: #ccc;
+    padding: 2px 4px;
+    text-align: center;
+    font-weight: bold;
+}
+.cal-table td       { padding: 2px 4px; vertical-align: top; border: 1px solid #ddd; }
+.cal-table .day-num { background: #ccc; text-align: right; width: 25px; }
+.cal-table .today   { background: #999; }
+.cal-note           { text-align: center; margin-top: 0.5rem; }
+
+
+/* ============================================================
+ * SINGLE PHOTO VIEW
+ * ============================================================ */
+.photo-detail     { text-align: center; }
+.photo-detail img { max-width: 100%; height: auto; border: 0; }
+.photo-detail .photo-info   { margin-top: 0.5rem; }
+.photo-detail .photo-people { font-style: italic; margin-top: 0.25rem; }
+
+
+/* ============================================================
+ * LOGIN
+ * ============================================================ */
+.login-form { text-align: center; padding: 2rem 0; }
+.login-form input[type="text"],
+.login-form input[type="password"] {
+    border: 1px solid #666;
+    font: 8pt Verdana, Arial, Helvetica, sans-serif;
+    padding: 2px 4px;
+}
+.login-form input[type="submit"] {
+    border: 1px solid #666;
+    font: 8pt Verdana, Arial, Helvetica, sans-serif;
+    cursor: pointer;
+}
+
+
+/* ============================================================
+ * MESSAGES / FORUM
+ * ============================================================ */
+.forum-section { margin-bottom: 1rem; }
+.forum-header {
+    background: #ccc;
+    padding: 4px 8px;
+    font-weight: bold;
+}
+.forum-header-personal {
+    background: #999;
+    padding: 4px 8px;
+    font-weight: bold;
+}
+.forum-header-personal a,
+.forum-header-personal b { color: #fff; }
+.forum-item        { padding: 4px 8px; }
+.forum-item-header { background: #eee; padding: 4px 8px; font-weight: bold; }
+.forum-form {
+    background: #999;
+    padding: 8px;
+}
+.forum-form label { color: #fff; }
+.forum-form input[type="text"],
+.forum-form textarea,
+.forum-form select { font: 8pt Verdana, Arial, Helvetica, sans-serif; border: 1px solid #666; }
+
+
+/* ============================================================
+ * RESPONSIVE
+ * ============================================================ */
+@media (max-width: 768px) {
+    .name-list { columns: 1; }
+    .bio-item,
+    .bio-photo-item { grid-template-columns: 1fr; }
+    .bio-photo-item .thumb { margin: 0 auto 0.5rem; }
+    .tree-grid,
+    .tree-grid-single { font-size: 7pt; }
+    .cal-table { width: 100%; }
+    .data-table { font-size: 7pt; }
 }
