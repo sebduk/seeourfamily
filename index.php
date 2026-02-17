@@ -106,6 +106,13 @@ $router = new Router();
 // REQUEST HANDLING
 // =========================================================================
 
+// Exit: clear entire session
+if (($_GET['action'] ?? '') === 'exit') {
+    session_destroy();
+    header('Location: /home');
+    exit;
+}
+
 // Family context: ?DomKey=abc123 or ?h=abc123
 $domKey = $_GET['DomKey'] ?? $_GET['h'] ?? null;
 if ($domKey !== null) {

@@ -1,3 +1,11 @@
+<?php
+// Read font/size preferences from cookies (avoids flash of unstyled content)
+$cookieFont = isset($_COOKIE['sof_font']) ? $_COOKIE['sof_font'] : '';
+$cookieSize = isset($_COOKIE['sof_fontsize']) ? (int)$_COOKIE['sof_fontsize'] : 0;
+$bodyStyle = '';
+if ($cookieFont) $bodyStyle .= 'font-family:' . htmlspecialchars($cookieFont, ENT_QUOTES) . ';';
+if ($cookieSize >= 8 && $cookieSize <= 16) $bodyStyle .= 'font-size:' . $cookieSize . 'pt;';
+?>
 <!DOCTYPE html>
 <html lang="<?= h(strtolower(substr($lang, 0, 2))) ?>">
 <head>
@@ -10,15 +18,17 @@
         .layout {
             display: grid;
             grid-template-areas: "menubar" "content" "langbar";
-            grid-template-rows: 20px 1fr 16px;
-            min-height: 100vh;
+            grid-template-rows: auto 1fr auto;
+            height: 100vh;
         }
         .menubar {
             grid-area: menubar; background: silver;
             display: flex; align-items: center;
-            border-bottom: 1px solid #999; overflow: hidden;
+            border-bottom: 1px solid #999;
+            position: sticky; top: 0; z-index: 100;
+            padding: 2px 0;
         }
-        .menubar .logo { width: 35px; height: 20px; flex-shrink: 0; }
+        .menubar .logo { width: 35px; flex-shrink: 0; padding: 0 2px; }
         .menubar .logo img { width: 35px; height: 20px; border: 0; }
         .menubar .menu-links { flex: 1; padding: 0 4px; white-space: nowrap; }
         .menubar .menu-right { text-align: right; padding: 0 4px; white-space: nowrap; }
@@ -28,25 +38,53 @@
         .langbar {
             grid-area: langbar; background: silver;
             display: flex; align-items: center; justify-content: center;
-            font-size: 7pt; border-top: 1px solid #999;
+            font-size: 7pt; border-top: 1px solid #999; padding: 2px 0;
         }
         .langbar a { color: #000; text-decoration: none; margin: 0 3px; }
         .langbar a:hover { text-decoration: underline; }
+
+        /* Settings dropdown */
+        .settings-wrap { position: relative; display: inline-block; }
+        .settings-toggle { cursor: pointer; font-size: 11pt; }
+        .settings-panel {
+            display: none; position: absolute; right: 0; top: 100%;
+            background: #fff; border: 1px solid #999; padding: 8px;
+            min-width: 220px; z-index: 200;
+            box-shadow: 2px 2px 6px rgba(0,0,0,0.2);
+        }
+        .settings-panel.open { display: block; }
+        .settings-section { padding: 6px 0; border-bottom: 1px solid #ddd; }
+        .settings-section:last-child { border-bottom: none; }
+        .settings-section-title { font-weight: bold; margin-bottom: 4px; }
+        .font-btns button {
+            cursor: pointer; border: 1px solid #999; background: #f5f5f5;
+            padding: 2px 6px; margin: 1px;
+        }
+        .font-btns button:hover { background: #ddd; }
+        .font-btns button.active { background: #ccc; font-weight: bold; }
+        .size-btns { display: inline; margin-left: 8px; }
+        .size-btns button {
+            cursor: pointer; border: 1px solid #999; background: #f5f5f5;
+            padding: 2px 8px; margin: 1px; font-weight: bold;
+        }
+        .size-btns button:hover { background: #ddd; }
+        .settings-panel a { color: #000; }
+        .settings-panel a:hover { text-decoration: underline; }
+
         @media (max-width: 768px) {
-            .layout { grid-template-rows: auto 1fr 20px; }
-            .menubar { flex-wrap: wrap; height: auto; padding: 4px 0; }
+            .layout { grid-template-rows: auto 1fr auto; }
+            .menubar { flex-wrap: wrap; padding: 4px 0; }
             .menubar .menu-links, .menubar .menu-right { white-space: normal; }
         }
     </style>
 </head>
-<body>
+<body<?= $bodyStyle ? ' style="' . $bodyStyle . '"' : '' ?>>
 
 <div class="layout">
 
     <!-- ============================================================
-         TOP MENU BAR - replaces Prog/p.menu.asp (20px silver bar)
-         Original: [home] > genealogy by [names][years][birthdays]
-                   [pictures][documents][messages] ... [help][admin]
+         TOP MENU BAR - replaces Prog/p.menu.asp
+         Sticky: stays visible when content scrolls (position: sticky)
          ============================================================ -->
     <nav class="menubar">
         <div class="logo">
@@ -63,17 +101,49 @@
             [<a href="/messages"><?= $L['menu_messages'] ?></a>]
         </div>
         <div class="menu-right">
-            <?php if ($family): ?>
-                [<a href="/home?DomKey=" title="Switch family">&#x21c4;</a>]
-            <?php endif; ?>
             [<a href="/help"><?= $L['menu_help'] ?></a>]
             [<a href="/admin"><?= $L['menu_admin'] ?></a>]
+            <div class="settings-wrap">
+                [<a href="#" class="settings-toggle" onclick="toggleSettings(event)" title="Settings">&#9881;</a>]
+                <div class="settings-panel" id="settingsPanel">
+                    <div class="settings-section">
+                        <div class="settings-section-title">Font</div>
+                        <div class="font-btns">
+                            <button onclick="setFont('Verdana,sans-serif')" style="font-family:Verdana">Verdana</button>
+                            <button onclick="setFont('Arial,sans-serif')" style="font-family:Arial">Arial</button>
+                            <button onclick="setFont('Georgia,serif')" style="font-family:Georgia">Georgia</button>
+                            <button onclick="setFont('&quot;Times New Roman&quot;,serif')" style="font-family:'Times New Roman'">Times</button>
+                            <button onclick="setFont('&quot;Courier New&quot;,monospace')" style="font-family:'Courier New'">Mono</button>
+                        </div>
+                        <div class="settings-section-title" style="margin-top:4px">Size</div>
+                        <div class="size-btns">
+                            <button onclick="changeSize(-1)">A&minus;</button>
+                            <button onclick="changeSize(1)">A+</button>
+                        </div>
+                    </div>
+                    <div class="settings-section">
+                        <div class="settings-section-title">Language</div>
+                        <a href="/<?= h($page) ?>?Language=ENG">English</a> |
+                        <a href="/<?= h($page) ?>?Language=FRA">Fran&ccedil;ais</a> |
+                        <a href="/<?= h($page) ?>?Language=ESP">Espa&ntilde;ol</a><br>
+                        <a href="/<?= h($page) ?>?Language=ITA">Italiano</a> |
+                        <a href="/<?= h($page) ?>?Language=POR">Portugu&ecirc;s</a> |
+                        <a href="/<?= h($page) ?>?Language=DEU">Deutsch</a> |
+                        <a href="/<?= h($page) ?>?Language=NLD">Nederlands</a>
+                    </div>
+                    <div class="settings-section">
+                        <a href="/home?DomKey=">&#x21c4; Switch family</a>
+                    </div>
+                    <div class="settings-section">
+                        <a href="/?action=exit">&#x2716; Exit</a>
+                    </div>
+                </div>
+            </div>
         </div>
     </nav>
 
     <!-- ============================================================
          MAIN CONTENT - replaces the "main" frame
-         Default: Prog/View/intro.asp -> /home
          ============================================================ -->
     <main class="content">
         <?php
@@ -88,7 +158,7 @@
     </main>
 
     <!-- ============================================================
-         BOTTOM LANGUAGE BAR - replaces Prog/p.lang.asp (16px)
+         BOTTOM LANGUAGE BAR - replaces Prog/p.lang.asp
          ============================================================ -->
     <footer class="langbar">
         <a href="/<?= h($page) ?>?Language=ENG">English</a> |
@@ -101,6 +171,54 @@
     </footer>
 
 </div>
+
+<script>
+function setCookie(n, v) {
+    document.cookie = n + '=' + encodeURIComponent(v) + ';path=/;max-age=31536000';
+}
+function getCookie(n) {
+    var m = document.cookie.match(new RegExp('(?:^|; )' + n + '=([^;]*)'));
+    return m ? decodeURIComponent(m[1]) : '';
+}
+
+/* --- Settings panel toggle --- */
+function toggleSettings(e) {
+    e.preventDefault();
+    document.getElementById('settingsPanel').classList.toggle('open');
+}
+document.addEventListener('click', function(e) {
+    var p = document.getElementById('settingsPanel');
+    if (p && p.classList.contains('open') && !e.target.closest('.settings-wrap')) {
+        p.classList.remove('open');
+    }
+});
+
+/* --- Font picker --- */
+function setFont(f) {
+    document.body.style.fontFamily = f;
+    setCookie('sof_font', f);
+    highlightActiveFont();
+}
+function highlightActiveFont() {
+    var current = getComputedStyle(document.body).fontFamily.split(',')[0].replace(/['"]/g, '').trim().toLowerCase();
+    document.querySelectorAll('.font-btns button').forEach(function(btn) {
+        var btnFont = btn.style.fontFamily.split(',')[0].replace(/['"]/g, '').trim().toLowerCase();
+        btn.classList.toggle('active', btnFont === current);
+    });
+}
+
+/* --- Font size --- */
+var DEFAULT_SIZE = 10;
+function changeSize(delta) {
+    var size = parseInt(getCookie('sof_fontsize')) || DEFAULT_SIZE;
+    size = Math.max(8, Math.min(16, size + delta));
+    document.body.style.fontSize = size + 'pt';
+    setCookie('sof_fontsize', size);
+}
+
+/* Highlight active font on load */
+highlightActiveFont();
+</script>
 
 </body>
 </html>

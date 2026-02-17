@@ -11,7 +11,7 @@
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 body {
     font-family: Verdana, Arial, Helvetica, sans-serif;
-    font-size: 8pt;
+    font-size: 10pt;
     color: #000;
     background: #fff;
 }
