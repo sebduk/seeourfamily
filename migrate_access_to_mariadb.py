@@ -162,9 +162,8 @@ def safe_bool(val):
 def parse_access_date(date_str):
     """Parse an Access date string into a Python date, or None.
 
-    European dd/mm/yyyy formats are tried first (this was always a
-    European dataset).  Access/mdb-export outputs '01/00/00 00:00:00'
-    for empty date fields — these are treated as null.
+    mdb-export outputs dates as 'mm/dd/yy HH:MM:SS' (American, 2-digit year).
+    Access zero-dates ('01/00/00 00:00:00') mean null.
     """
     if not date_str or date_str.strip() in ("", "null"):
         return None
@@ -172,29 +171,14 @@ def parse_access_date(date_str):
     # Access zero-date: no actual date stored
     if '/00/' in date_str or date_str.startswith('00/'):
         return None
-    for fmt in ("%d/%m/%Y %H:%M:%S", "%d/%m/%Y", "%d/%m/%y",
+    for fmt in ("%m/%d/%y %H:%M:%S", "%m/%d/%y",
+                "%m/%d/%Y %H:%M:%S", "%m/%d/%Y",
                 "%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
         try:
             return datetime.strptime(date_str, fmt).date()
         except ValueError:
             continue
     print(f"    WARNING: could not parse date: '{date_str}'")
-    return None
-
-
-def parse_access_datetime(dt_str):
-    """Parse an Access datetime string into a Python datetime, or None."""
-    if not dt_str or dt_str.strip() in ("", "null"):
-        return None
-    dt_str = dt_str.strip()
-    if '/00/' in dt_str or dt_str.startswith('00/'):
-        return None
-    for fmt in ("%d/%m/%Y %H:%M:%S", "%d/%m/%Y", "%d/%m/%y",
-                "%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
-        try:
-            return datetime.strptime(dt_str, fmt)
-        except ValueError:
-            continue
     return None
 
 
@@ -399,7 +383,7 @@ def migrate_family_db(cursor, mdb_path, family_id, family_name):
                 safe_str(row.get("Comm")),
                 safe_str(row.get("Link")),
                 safe_int(row.get("LastUpdateWho")),
-                parse_access_datetime(row.get("LastUpdateWhen")),
+                parse_access_date(row.get("LastUpdateWhen")),
             ))
             new_id = cursor.lastrowid
             old_id = safe_int(row.get("IDPersonne"))
@@ -431,7 +415,7 @@ def migrate_family_db(cursor, mdb_path, family_id, family_name):
                 start_prec,
                 safe_str(row.get("LieuCouple")),
                 safe_int(row.get("LastUpdateWho")),
-                parse_access_datetime(row.get("LastUpdateWhen")),
+                parse_access_date(row.get("LastUpdateWhen")),
             ))
             new_id = cursor.lastrowid
             old_id = safe_int(row.get("IDCouple"))
@@ -475,7 +459,7 @@ def migrate_family_db(cursor, mdb_path, family_id, family_name):
                 photo_date,
                 photo_prec,
                 safe_int(row.get("LastUpdateWho")),
-                parse_access_datetime(row.get("LastUpdateWhen")),
+                parse_access_date(row.get("LastUpdateWhen")),
             ))
             new_id = cursor.lastrowid
             old_id = safe_int(row.get("IDPhoto"))
@@ -515,7 +499,7 @@ def migrate_family_db(cursor, mdb_path, family_id, family_name):
                 safe_str(row.get("DtVecu")),
                 safe_str(row.get("Comm")),
                 safe_int(row.get("LastUpdateWho")),
-                parse_access_datetime(row.get("LastUpdateWhen")),
+                parse_access_date(row.get("LastUpdateWhen")),
             ))
             new_id = cursor.lastrowid
             old_id = safe_int(row.get("IDCommentaire"))
@@ -557,7 +541,7 @@ def migrate_family_db(cursor, mdb_path, family_id, family_name):
                 safe_str(row.get("ForumTitle")),
                 safe_bool(row.get("ForumIsOnline", "1")),
                 safe_int(row.get("LastUpdateWho")),
-                parse_access_datetime(row.get("LastUpdateWhen")),
+                parse_access_date(row.get("LastUpdateWhen")),
             ))
             new_id = cursor.lastrowid
             old_id = safe_int(row.get("IDForum"))
@@ -571,7 +555,7 @@ def migrate_family_db(cursor, mdb_path, family_id, family_name):
         for row in rows:
             new_forum_id = forum_id_map.get(safe_int(row.get("IdForum")))
             if new_forum_id:
-                posted = parse_access_datetime(row.get("ForumItemDate"))
+                posted = parse_access_date(row.get("ForumItemDate"))
                 cursor.execute("""
                     INSERT INTO forum_items (forum_id, title, author_name,
                                              author_email, body, posted_at, is_online)
@@ -601,7 +585,7 @@ def migrate_family_db(cursor, mdb_path, family_id, family_name):
                 safe_str(row.get("InfoContent")),
                 safe_bool(row.get("InfoIsOnline", "1")),
                 safe_int(row.get("LastUpdateWho")),
-                parse_access_datetime(row.get("LastUpdateWhen")),
+                parse_access_date(row.get("LastUpdateWhen")),
             ))
 
     print(f"  Done. Migrated: {len(person_id_map)} people, {len(couple_id_map)} couples, "
