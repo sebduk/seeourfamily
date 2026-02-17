@@ -17,8 +17,8 @@ if ($cookieSize >= 8 && $cookieSize <= 16) $bodyStyle .= 'font-size:' . $cookieS
         /* Layout: 3-row grid replacing the old frameset (menu / content / langbar) */
         .layout {
             display: grid;
-            grid-template-areas: "menubar" "content" "langbar";
-            grid-template-rows: auto 1fr auto;
+            grid-template-areas: "menubar" "content";
+            grid-template-rows: auto 1fr;
             height: 100vh;
         }
         .menubar {
@@ -28,19 +28,11 @@ if ($cookieSize >= 8 && $cookieSize <= 16) $bodyStyle .= 'font-size:' . $cookieS
             position: sticky; top: 0; z-index: 100;
             padding: 2px 0;
         }
-        .menubar .logo { flex-shrink: 0; padding: 0 4px; font-size: 13pt; }
         .menubar .menu-links { flex: 1; padding: 0 4px; white-space: nowrap; }
         .menubar .menu-right { text-align: right; padding: 0 4px; white-space: nowrap; }
         .menubar a { color: #000; text-decoration: none; }
         .menubar a:hover { text-decoration: underline; }
         .content { grid-area: content; padding: 20px; overflow-y: auto; }
-        .langbar {
-            grid-area: langbar; background: silver;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 7pt; border-top: 1px solid #999; padding: 2px 0;
-        }
-        .langbar a { color: #000; text-decoration: none; margin: 0 3px; }
-        .langbar a:hover { text-decoration: underline; }
 
         /* Settings dropdown */
         .settings-wrap { position: relative; display: inline-block; }
@@ -72,7 +64,7 @@ if ($cookieSize >= 8 && $cookieSize <= 16) $bodyStyle .= 'font-size:' . $cookieS
         .settings-panel a:hover { text-decoration: underline; }
 
         @media (max-width: 768px) {
-            .layout { grid-template-rows: auto 1fr auto; }
+            .layout { grid-template-rows: auto 1fr; }
             .menubar { flex-wrap: wrap; padding: 4px 0; }
             .menubar .menu-links, .menubar .menu-right { white-space: normal; }
         }
@@ -87,9 +79,6 @@ if ($cookieSize >= 8 && $cookieSize <= 16) $bodyStyle .= 'font-size:' . $cookieS
          Sticky: stays visible when content scrolls (position: sticky)
          ============================================================ -->
     <nav class="menubar">
-        <div class="logo">
-            <a href="/home" title="Home">&#x1F3E0;</a>
-        </div>
         <div class="menu-links">
             [<a href="/home"><?= $L['menu_home'] ?></a>] &gt;
             <?= $L['menu_genealogy'] ?>
@@ -159,19 +148,6 @@ if ($cookieSize >= 8 && $cookieSize <= 16) $bodyStyle .= 'font-size:' . $cookieS
         }
         ?>
     </main>
-
-    <!-- ============================================================
-         BOTTOM LANGUAGE BAR - replaces Prog/p.lang.asp
-         ============================================================ -->
-    <footer class="langbar">
-        <a href="/<?= h($page) ?>?Language=ENG">English</a> |
-        <a href="/<?= h($page) ?>?Language=FRA">Fran&ccedil;ais</a> |
-        <a href="/<?= h($page) ?>?Language=ESP">Espa&ntilde;ol</a> |
-        <a href="/<?= h($page) ?>?Language=ITA">Italiano</a> |
-        <a href="/<?= h($page) ?>?Language=POR">Portugu&ecirc;s</a> |
-        <a href="/<?= h($page) ?>?Language=DEU">Deutsch</a> |
-        <a href="/<?= h($page) ?>?Language=NLD">Nederlands</a>
-    </footer>
 
 </div>
 
