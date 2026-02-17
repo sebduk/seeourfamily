@@ -195,6 +195,18 @@ def compute_date_and_precision(year_val, full_date_val, month_val=None, day_val=
     day = safe_int(day_val)
 
     if full_date:
+        # Fix century: %y gives 2039 for '39' but DtNaiss says 1939
+        if year and full_date.year != year:
+            try:
+                full_date = full_date.replace(year=year)
+            except ValueError:
+                pass
+        # No DtNaiss year available — for a genealogy DB, future dates are wrong
+        elif not year and full_date.year > date.today().year:
+            try:
+                full_date = full_date.replace(year=full_date.year - 100)
+            except ValueError:
+                pass
         return full_date, "ymd"
     if year and month and day:
         try:
