@@ -163,11 +163,15 @@ def parse_access_date(date_str):
     """Parse an Access date string into a Python date, or None.
 
     European dd/mm/yyyy formats are tried first (this was always a
-    European dataset).
+    European dataset).  Access/mdb-export outputs '01/00/00 00:00:00'
+    for empty date fields — these are treated as null.
     """
     if not date_str or date_str.strip() in ("", "null"):
         return None
     date_str = date_str.strip()
+    # Access zero-date: no actual date stored
+    if '/00/' in date_str or date_str.startswith('00/'):
+        return None
     for fmt in ("%d/%m/%Y %H:%M:%S", "%d/%m/%Y", "%d/%m/%y",
                 "%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
         try:
@@ -183,6 +187,8 @@ def parse_access_datetime(dt_str):
     if not dt_str or dt_str.strip() in ("", "null"):
         return None
     dt_str = dt_str.strip()
+    if '/00/' in dt_str or dt_str.startswith('00/'):
+        return None
     for fmt in ("%d/%m/%Y %H:%M:%S", "%d/%m/%Y", "%d/%m/%y",
                 "%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
         try:
