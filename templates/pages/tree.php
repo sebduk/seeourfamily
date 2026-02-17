@@ -24,7 +24,7 @@ $imagePath  = '/Gene/File/' . urlencode($familyName) . '/Image/';
 // =========================================================================
 // HELPER: format a person cell
 // =========================================================================
-function personCell(string $firstName, string $lastName, string $birth, string $death, int $id): string
+function personCell(?string $firstName, ?string $lastName, ?string $birth, ?string $death, int $id): string
 {
     $name = h($firstName) . '&nbsp;' . h($lastName);
     $dates = h($birth) . '-' . h($death);
