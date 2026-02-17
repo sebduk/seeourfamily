@@ -28,8 +28,7 @@ if ($cookieSize >= 8 && $cookieSize <= 16) $bodyStyle .= 'font-size:' . $cookieS
             position: sticky; top: 0; z-index: 100;
             padding: 2px 0;
         }
-        .menubar .logo { width: 35px; flex-shrink: 0; padding: 0 2px; }
-        .menubar .logo img { width: 35px; height: 20px; border: 0; }
+        .menubar .logo { flex-shrink: 0; padding: 0 4px; font-size: 13pt; }
         .menubar .menu-links { flex: 1; padding: 0 4px; white-space: nowrap; }
         .menubar .menu-right { text-align: right; padding: 0 4px; white-space: nowrap; }
         .menubar a { color: #000; text-decoration: none; }
@@ -45,7 +44,8 @@ if ($cookieSize >= 8 && $cookieSize <= 16) $bodyStyle .= 'font-size:' . $cookieS
 
         /* Settings dropdown */
         .settings-wrap { position: relative; display: inline-block; }
-        .settings-toggle { cursor: pointer; font-size: 11pt; }
+        .settings-toggle { cursor: pointer; font-size: 14pt; }
+        .help-icon { font-size: 13pt; }
         .settings-panel {
             display: none; position: absolute; right: 0; top: 100%;
             background: #fff; border: 1px solid #999; padding: 8px;
@@ -88,7 +88,7 @@ if ($cookieSize >= 8 && $cookieSize <= 16) $bodyStyle .= 'font-size:' . $cookieS
          ============================================================ -->
     <nav class="menubar">
         <div class="logo">
-            <a href="/home"><img src="/Image/menuTree.jpg" alt="Home"></a>
+            <a href="/home" title="Home">&#x1F3E0;</a>
         </div>
         <div class="menu-links">
             [<a href="/home"><?= $L['menu_home'] ?></a>] &gt;
@@ -101,10 +101,9 @@ if ($cookieSize >= 8 && $cookieSize <= 16) $bodyStyle .= 'font-size:' . $cookieS
             [<a href="/messages"><?= $L['menu_messages'] ?></a>]
         </div>
         <div class="menu-right">
-            [<a href="/help"><?= $L['menu_help'] ?></a>]
-            [<a href="/admin"><?= $L['menu_admin'] ?></a>]
+            <a href="/help" class="help-icon" title="Help">&#x2753;</a>
             <div class="settings-wrap">
-                [<a href="#" class="settings-toggle" onclick="toggleSettings(event)" title="Settings">&#9881;</a>]
+                <a href="#" class="settings-toggle" onclick="toggleSettings(event)" title="Settings">&#9881;</a>
                 <div class="settings-panel" id="settingsPanel">
                     <div class="settings-section">
                         <div class="settings-section-title">Font</div>
@@ -118,6 +117,7 @@ if ($cookieSize >= 8 && $cookieSize <= 16) $bodyStyle .= 'font-size:' . $cookieS
                         <div class="settings-section-title" style="margin-top:4px">Size</div>
                         <div class="size-btns">
                             <button onclick="changeSize(-1)">A&minus;</button>
+                            <button onclick="resetSize()">A</button>
                             <button onclick="changeSize(1)">A+</button>
                         </div>
                     </div>
@@ -130,6 +130,9 @@ if ($cookieSize >= 8 && $cookieSize <= 16) $bodyStyle .= 'font-size:' . $cookieS
                         <a href="/<?= h($page) ?>?Language=POR">Portugu&ecirc;s</a> |
                         <a href="/<?= h($page) ?>?Language=DEU">Deutsch</a> |
                         <a href="/<?= h($page) ?>?Language=NLD">Nederlands</a>
+                    </div>
+                    <div class="settings-section">
+                        <a href="/admin">&#x2699; <?= $L['menu_admin'] ?></a>
                     </div>
                     <div class="settings-section">
                         <a href="/home?DomKey=">&#x21c4; Switch family</a>
@@ -214,6 +217,10 @@ function changeSize(delta) {
     size = Math.max(8, Math.min(16, size + delta));
     document.body.style.fontSize = size + 'pt';
     setCookie('sof_fontsize', size);
+}
+function resetSize() {
+    document.body.style.fontSize = DEFAULT_SIZE + 'pt';
+    setCookie('sof_fontsize', DEFAULT_SIZE);
 }
 
 /* Highlight active font on load */
