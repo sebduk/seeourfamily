@@ -1,4 +1,7 @@
 <?php
+// Current request path (preserves /tree/21 etc.) for language-switch links
+$currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+
 // Read font/size preferences from cookies (avoids flash of unstyled content)
 $cookieFont = isset($_COOKIE['sof_font']) ? $_COOKIE['sof_font'] : '';
 $cookieSize = isset($_COOKIE['sof_fontsize']) ? (int)$_COOKIE['sof_fontsize'] : 0;
@@ -112,13 +115,13 @@ if ($cookieSize >= 8 && $cookieSize <= 16) $bodyStyle .= 'font-size:' . $cookieS
                     </div>
                     <div class="settings-section">
                         <div class="settings-section-title">Language</div>
-                        <a href="/<?= h($page) ?>?Language=ENG">English</a> |
-                        <a href="/<?= h($page) ?>?Language=FRA">Fran&ccedil;ais</a> |
-                        <a href="/<?= h($page) ?>?Language=ESP">Espa&ntilde;ol</a><br>
-                        <a href="/<?= h($page) ?>?Language=ITA">Italiano</a> |
-                        <a href="/<?= h($page) ?>?Language=POR">Portugu&ecirc;s</a> |
-                        <a href="/<?= h($page) ?>?Language=DEU">Deutsch</a> |
-                        <a href="/<?= h($page) ?>?Language=NLD">Nederlands</a>
+                        <a href="<?= h($currentPath) ?>?Language=ENG">English</a> |
+                        <a href="<?= h($currentPath) ?>?Language=FRA">Fran&ccedil;ais</a> |
+                        <a href="<?= h($currentPath) ?>?Language=ESP">Espa&ntilde;ol</a><br>
+                        <a href="<?= h($currentPath) ?>?Language=ITA">Italiano</a> |
+                        <a href="<?= h($currentPath) ?>?Language=POR">Portugu&ecirc;s</a> |
+                        <a href="<?= h($currentPath) ?>?Language=DEU">Deutsch</a> |
+                        <a href="<?= h($currentPath) ?>?Language=NLD">Nederlands</a>
                     </div>
                     <div class="settings-section">
                         <a href="/admin">&#x2699; <?= $L['menu_admin'] ?></a>
