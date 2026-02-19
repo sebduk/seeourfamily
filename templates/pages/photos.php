@@ -17,7 +17,7 @@ $pdo = $db->pdo();
 $familyName = $family['name'] ?? '';
 $imagePath  = '/Gene/File/' . urlencode($familyName) . '/Image/';
 
-$perPage = 20;  // 4 cols x 5 rows in original
+$perPage = 78;
 $start   = max(0, (int)($_GET['start'] ?? 0));
 $folder  = $_GET['folder'] ?? null;
 
