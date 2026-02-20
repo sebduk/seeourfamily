@@ -13,3 +13,17 @@ Thumbs.db
 .vscode/
 *.swp
 __pycache__/
+
+Data/0-empty.mdb
+Data/1-tajan.mdb
+Data/2-moeskops.mdb
+Data/23-gouzon.mdb
+Data/25-arntz.mdb
+Data/26-ducos.mdb
+Data/29-demo.mdb
+Data/29-demo.safe.mdb
+Data/3-dunn.mdb
+Data/30-buenrostro.mdb
+Data/4-derita.mdb
+Gene
+
