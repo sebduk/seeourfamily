@@ -215,17 +215,17 @@ if ($hasSpouse):
 <div class="tree-grid">
     <!-- Generation -2 (great-grandparents): 8 cells -->
     <?php for ($i = 1; $i <= 8; $i++): ?>
-        <div class="person-cell tree-gen-2 <?= ($i % 2 !== 0) ? 'align-r' : '' ?>"><?= renderSlot($i) ?></div>
+        <div class="person-cell tree-gen-2 <?= ($i % 2 !== 0) ? 'align-r' : 'align-l' ?>"><?= renderSlot($i) ?></div>
     <?php endfor; ?>
 
     <!-- Generation -1 (grandparents): 4 cells spanning 2 each -->
     <?php for ($i = 11; $i <= 14; $i++): ?>
-        <div class="person-cell tree-gen-1 <?= ($i % 2 !== 0) ? 'align-r' : '' ?>"><?= renderSlot($i) ?></div>
+        <div class="person-cell tree-gen-1 <?= ($i % 2 !== 0) ? 'align-r' : 'align-l' ?>"><?= renderSlot($i) ?></div>
     <?php endfor; ?>
 
     <!-- Generation 0 (central couple): 2 cells spanning 4 each -->
     <div class="person-cell tree-gen-0 align-r"><b><?= renderSlot(21) ?></b></div>
-    <div class="person-cell tree-gen-0"><b><?= renderSlot(22) ?></b></div>
+    <div class="person-cell tree-gen-0 align-l"><b><?= renderSlot(22) ?></b></div>
 
     <!-- Children row -->
     <div class="person-cell tree-children">
@@ -289,11 +289,11 @@ if ($hasSpouse):
 <!-- 4-column grid: single person tree -->
 <div class="tree-grid-single">
     <?php for ($i = 1; $i <= 4; $i++): ?>
-        <div class="person-cell tree-single-gen-2 <?= ($i % 2 !== 0) ? 'align-r' : '' ?>"><?= renderSlot($i) ?></div>
+        <div class="person-cell tree-single-gen-2 <?= ($i % 2 !== 0) ? 'align-r' : 'align-l' ?>"><?= renderSlot($i) ?></div>
     <?php endfor; ?>
 
     <?php for ($i = 11; $i <= 12; $i++): ?>
-        <div class="person-cell tree-single-gen-1 <?= ($i % 2 !== 0) ? 'align-r' : '' ?>"><?= renderSlot($i) ?></div>
+        <div class="person-cell tree-single-gen-1 <?= ($i % 2 !== 0) ? 'align-r' : 'align-l' ?>"><?= renderSlot($i) ?></div>
     <?php endfor; ?>
 
     <div class="person-cell tree-single-gen-0"><b><?= renderSlot(21) ?></b></div>
