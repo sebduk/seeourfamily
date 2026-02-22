@@ -81,7 +81,8 @@ function findParentCouple(PDO $pdo, int $fid, int $personId): array|false
 
 /**
  * Render ancestors recursively for a given person.
- * Both parents are direct ancestors — both shown in bold.
+ * Ancestors are rendered ABOVE the couple (recurse first, display after)
+ * so the tree visually grows upward. No bold — only the root person is bold.
  */
 function renderAncestors(PDO $pdo, int $fid, int $personId): void
 {
@@ -90,15 +91,17 @@ function renderAncestors(PDO $pdo, int $fid, int $personId): void
 
     echo '<div class="desc-children">';
     echo '<div class="desc-couple">';
-    echo '<div class="desc-pair">';
-    echo '<span><b>' . ascPersonCell($couple['p1_fn'], $couple['p1_ln'], $couple['p1_birth'], $couple['p1_death'], (int)$couple['p1_id']) . '</b></span>';
-    echo '<span class="desc-sep">&amp;</span>';
-    echo '<span><b>' . ascPersonCell($couple['p2_fn'], $couple['p2_ln'], $couple['p2_birth'], $couple['p2_death'], (int)$couple['p2_id']) . '</b></span>';
-    echo '</div>';
 
-    // Recurse for each parent
+    // Recurse FIRST so ancestors appear above
     renderAncestors($pdo, $fid, (int)$couple['p1_id']);
     renderAncestors($pdo, $fid, (int)$couple['p2_id']);
+
+    // Then display this couple
+    echo '<div class="desc-pair">';
+    echo '<span>' . ascPersonCell($couple['p1_fn'], $couple['p1_ln'], $couple['p1_birth'], $couple['p1_death'], (int)$couple['p1_id']) . '</span>';
+    echo '<span class="desc-sep">&amp;</span>';
+    echo '<span>' . ascPersonCell($couple['p2_fn'], $couple['p2_ln'], $couple['p2_birth'], $couple['p2_death'], (int)$couple['p2_id']) . '</span>';
+    echo '</div>';
 
     echo '</div>';
     echo '</div>';
@@ -123,9 +126,9 @@ function renderAncestors(PDO $pdo, int $fid, int $personId): void
 ?>
 <div class="desc-tree">
     <div class="desc-couple desc-root">
+        <?php renderAncestors($pdo, $fid, $personId); ?>
         <div class="desc-single">
             <b><?= ascPersonCell($person['first_name'], $person['last_name'], $person['birth'], $person['death'], (int)$person['id']) ?></b>
         </div>
-        <?php renderAncestors($pdo, $fid, $personId); ?>
     </div>
 </div>
