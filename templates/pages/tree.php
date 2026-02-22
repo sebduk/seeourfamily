@@ -175,7 +175,7 @@ if ($coupleId) {
     <span class="nav-links">|
         <a href="/tree/<?= $personId ?>"><?= $L['classic'] ?></a> .
         <a href="/tree/<?= $personId ?>?dir=asc&amp;style=horizontal"><?= $L['horizontal'] ?></a> .
-        <a href="/tree/<?= $personId ?>?dir=asc&amp;style=vertical"><?= $L['vertical'] ?></a> .
+        <a href="/ascendants/<?= $personId ?>"><?= $L['vertical'] ?></a> .
         <a href="/tree/<?= $personId ?>?dir=asc&amp;style=table"><?= $L['table'] ?></a> .
         <a href="/tree/<?= $personId ?>?dir=asc&amp;style=excel"><?= $L['excel'] ?></a>
     </span>
