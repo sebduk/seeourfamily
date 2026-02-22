@@ -82,3 +82,20 @@ $people = $stmt->fetchAll();
         </div>
     <?php endif; ?>
 </div>
+
+<script>
+// Scale small images up to 2x their natural size, capped at 80vh
+(function() {
+    var img = document.querySelector('.photo-detail img');
+    if (!img) return;
+    function scaleUp() {
+        var maxH = window.innerHeight * 0.8;
+        var scale = Math.min(2, maxH / img.naturalHeight);
+        if (scale > 1) {
+            img.style.width = Math.round(img.naturalWidth * scale) + 'px';
+            img.style.height = Math.round(img.naturalHeight * scale) + 'px';
+        }
+    }
+    if (img.complete) scaleUp(); else img.addEventListener('load', scaleUp);
+})();
+</script>

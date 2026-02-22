@@ -273,7 +273,7 @@ hr { border: none; border-top: 1px solid #666; }
  * SINGLE PHOTO VIEW
  * ============================================================ */
 .photo-detail     { text-align: center; }
-.photo-detail img { max-width: 100%; height: auto; border: 0; }
+.photo-detail img { max-width: 100%; max-height: 80vh; border: 0; image-rendering: smooth; }
 .photo-detail .photo-info   { margin-top: 0.5rem; }
 .photo-detail .photo-people { font-style: italic; margin-top: 0.25rem; }
 
