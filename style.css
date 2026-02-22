@@ -159,10 +159,11 @@ hr { border: none; border-top: 1px solid #666; }
     display: flex;
     justify-content: center;
     gap: 1rem;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     padding-top: 8px;
+    overflow-x: auto;
 }
-.child-family { text-align: center; }
+.child-family { text-align: center; flex-shrink: 0; }
 .child-family .couple {
     display: flex;
     gap: 0.5rem;
@@ -172,7 +173,7 @@ hr { border: none; border-top: 1px solid #666; }
     display: flex;
     justify-content: center;
     gap: 0.5rem;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     padding-top: 4px;
     border-top: 1px solid #666;
 }
