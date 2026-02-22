@@ -29,31 +29,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $msg = 'Photo deleted.';
         $id = 0;
     } elseif ($todo === 'upload' && !empty($_FILES['photo_file']['name'])) {
-        // File upload
+        // File upload — allowlist only
+        $allowedExt = ['jpg', 'jpeg', 'gif', 'png', 'mp3', 'mp4', 'avi', 'pdf'];
         $ext = strtolower(pathinfo($_FILES['photo_file']['name'], PATHINFO_EXTENSION));
-        $denied = ['exe', 'bat', 'asp', 'php', 'sh'];
-        if (in_array($ext, $denied)) {
-            $msg = 'File type not allowed.';
+        if (!in_array($ext, $allowedExt, true)) {
+            $msg = 'File type not allowed. Accepted: ' . implode(', ', $allowedExt);
+        } elseif ($_FILES['photo_file']['error'] !== UPLOAD_ERR_OK) {
+            $msg = 'Upload error (code ' . $_FILES['photo_file']['error'] . ').';
         } else {
-            $fileName = basename($_FILES['photo_file']['name']);
-            $folder = $val('folder') ? trim($val('folder'), '/') . '/' : '';
-            $targetDir = $imageDir . $folder;
-            if (!is_dir($targetDir)) @mkdir($targetDir, 0755, true);
-            $target = $targetDir . $fileName;
-            if (move_uploaded_file($_FILES['photo_file']['tmp_name'], $target)) {
-                $dbName = $folder . $fileName;
-                $pdo->prepare(
-                    'INSERT INTO photos (family_id, file_name, photo_date) VALUES (?, ?, NULL)'
-                )->execute([$fid, $dbName]);
-                $id = (int)$pdo->lastInsertId();
-                $msg = 'Photo uploaded. Now edit its details below.';
+            // Verify actual file content matches extension
+            $finfo = new finfo(FILEINFO_MIME_TYPE);
+            $mime = $finfo->file($_FILES['photo_file']['tmp_name']);
+            $allowedMime = [
+                'image/jpeg', 'image/gif', 'image/png',
+                'audio/mpeg', 'video/mp4', 'video/x-msvideo', 'video/avi',
+                'application/pdf',
+            ];
+            if (!in_array($mime, $allowedMime, true)) {
+                $msg = 'File content does not match an allowed type (detected: ' . h($mime) . ').';
             } else {
-                $msg = 'Upload failed.';
+                $fileName = basename($_FILES['photo_file']['name']);
+                // Sanitize: strip anything that isn't alphanumeric, dash, underscore, dot
+                $fileName = preg_replace('/[^a-zA-Z0-9._-]/', '_', $fileName);
+                $folder = $val('folder') ? trim($val('folder'), '/') . '/' : '';
+                $targetDir = $imageDir . $folder;
+                if (!is_dir($targetDir)) @mkdir($targetDir, 0755, true);
+                $target = $targetDir . $fileName;
+                if (move_uploaded_file($_FILES['photo_file']['tmp_name'], $target)) {
+                    $dbName = $folder . $fileName;
+                    $pdo->prepare(
+                        'INSERT INTO photos (family_id, file_name, photo_date) VALUES (?, ?, NULL)'
+                    )->execute([$fid, $dbName]);
+                    $id = (int)$pdo->lastInsertId();
+                    $msg = 'Photo uploaded. Now edit its details below.';
+                } else {
+                    $msg = 'Upload failed.';
+                }
             }
         }
     } elseif ($todo === 'add' || $todo === 'update') {
+        $newFileName = $val('file_name');
+        // On update: preserve original extension — only the basename can change
+        if ($todo === 'update' && $newFileName !== null && $id > 0) {
+            $origStmt = $pdo->prepare('SELECT file_name FROM photos WHERE id = ? AND family_id = ?');
+            $origStmt->execute([$id, $fid]);
+            $origFile = $origStmt->fetchColumn();
+            if ($origFile) {
+                $origExt = strtolower(pathinfo($origFile, PATHINFO_EXTENSION));
+                $newExt  = strtolower(pathinfo($newFileName, PATHINFO_EXTENSION));
+                if ($newExt !== $origExt) {
+                    // Force original extension back
+                    $newFileName = pathinfo($newFileName, PATHINFO_FILENAME) . '.' . $origExt;
+                }
+            }
+        }
         $fields = [
-            'file_name'       => $val('file_name'),
+            'file_name'       => $newFileName,
             'description'     => $val('description'),
             'photo_date'      => $val('photo_date'),
             'photo_precision' => $val('photo_precision'),
@@ -139,7 +170,7 @@ $linkedIds = array_column($linkedPeople, 'id');
         <?php if (!$photo): ?>
         <form method="post" action="/admin/photos" enctype="multipart/form-data" class="admin-form" style="margin-bottom:1rem">
             <input type="hidden" name="todo" value="upload">
-            <div class="form-row"><label>Upload Photo</label><input type="file" name="photo_file" accept="image/*"></div>
+            <div class="form-row"><label>Upload Photo</label><input type="file" name="photo_file" accept=".jpg,.jpeg,.gif,.png,.mp3,.mp4,.avi,.pdf"></div>
             <div class="form-row"><label>Folder (optional)</label><input type="text" name="folder" size="20"></div>
             <div class="form-actions"><input type="submit" value="Upload"></div>
         </form>
