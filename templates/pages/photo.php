@@ -4,7 +4,7 @@
  * Single photo detail page.
  *
  * Replaces Prog/View/photo.asp.
- * Simple centered layout (.photo-detail) replaces <center>.
+ * Shows photo with hover-reveal face tags and linked people.
  *
  * Available from index.php: $db, $auth, $router, $family, $L, $isLoggedIn
  */
@@ -56,12 +56,28 @@ $stmt = $pdo->prepare(
 );
 $stmt->execute([$photoId]);
 $people = $stmt->fetchAll();
+
+// Face tags
+$stmt = $pdo->prepare(
+    'SELECT pt.person_id, pt.x_pct, pt.y_pct, p.first_name, p.last_name
+     FROM photo_tags pt
+     JOIN people p ON pt.person_id = p.id
+     WHERE pt.photo_id = ?'
+);
+$stmt->execute([$photoId]);
+$tags = $stmt->fetchAll();
 ?>
 
 <div class="photo-detail">
-    <a href="javascript:history.back();">
+    <div class="photo-tags-container">
         <img src="<?= h($imagePath . $photo['file_name']) ?>" alt="">
-    </a>
+        <?php foreach ($tags as $tag): ?>
+        <a class="photo-tag" href="/person/<?= $tag['person_id'] ?>"
+           style="left:<?= $tag['x_pct'] ?>%;top:<?= $tag['y_pct'] ?>%">
+            <?= h($tag['first_name']) ?> <?= h($tag['last_name']) ?>
+        </a>
+        <?php endforeach; ?>
+    </div>
 
     <?php if ($photo['description']): ?>
         <div class="photo-info"><?= nl2br(h($photo['description'])) ?></div>
@@ -86,7 +102,7 @@ $people = $stmt->fetchAll();
 <script>
 // Scale small images up to 2x their natural size, capped at 80vh
 (function() {
-    var img = document.querySelector('.photo-detail img');
+    var img = document.querySelector('.photo-tags-container img');
     if (!img) return;
     function scaleUp() {
         var maxH = window.innerHeight * 0.8;

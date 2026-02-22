@@ -1,10 +1,11 @@
 <?php
 
 /**
- * Admin: Photos CRUD.
+ * Admin: Photos CRUD + face tagging.
  *
  * Replaces Prog/Admin/photoIndex+List+Page+Upload.asp.
  * Handles image files (.jpg, .gif, .png).
+ * Tagging stores x/y as percentages of image dimensions.
  */
 
 if (!$isAdmin) { echo '<p>Admin access required.</p>'; return; }
@@ -24,6 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $val  = fn(string $k) => (isset($_POST[$k]) && $_POST[$k] !== '') ? $_POST[$k] : null;
 
     if ($todo === 'delete' && $id > 0) {
+        $pdo->prepare('DELETE FROM photo_tags WHERE photo_id = ?')->execute([$id]);
         $pdo->prepare('DELETE FROM photo_person_link WHERE photo_id = ?')->execute([$id]);
         $pdo->prepare('DELETE FROM photos WHERE id = ? AND family_id = ?')->execute([$id, $fid]);
         $msg = 'Photo deleted.';
@@ -78,7 +80,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $origExt = strtolower(pathinfo($origFile, PATHINFO_EXTENSION));
                 $newExt  = strtolower(pathinfo($newFileName, PATHINFO_EXTENSION));
                 if ($newExt !== $origExt) {
-                    // Force original extension back
                     $newFileName = pathinfo($newFileName, PATHINFO_FILENAME) . '.' . $origExt;
                 }
             }
@@ -113,6 +114,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $ins->execute([$id, (int)$pid, $sortIdx + 1]);
             }
         }
+
+        // Save tags
+        if ($id > 0) {
+            $pdo->prepare('DELETE FROM photo_tags WHERE photo_id = ?')->execute([$id]);
+            $tagsJson = $_POST['tags_json'] ?? '[]';
+            $tags = json_decode($tagsJson, true) ?: [];
+            $tagStmt = $pdo->prepare(
+                'INSERT INTO photo_tags (photo_id, person_id, x_pct, y_pct) VALUES (?, ?, ?, ?)'
+            );
+            foreach ($tags as $tag) {
+                if (!empty($tag['person_id'])) {
+                    $tagStmt->execute([$id, (int)$tag['person_id'], (float)$tag['x'], (float)$tag['y']]);
+                }
+            }
+        }
     }
 }
 
@@ -131,6 +147,7 @@ $photosList = $stmt->fetchAll();
 // Edit record
 $photo = null;
 $linkedPeople = [];
+$existingTags = [];
 if ($editId > 0) {
     $stmt = $pdo->prepare('SELECT * FROM photos WHERE id = ? AND family_id = ?');
     $stmt->execute([$editId, $fid]);
@@ -142,7 +159,19 @@ if ($editId > 0) {
     );
     $stmt->execute([$editId]);
     $linkedPeople = $stmt->fetchAll();
+
+    // Load existing tags
+    $stmt = $pdo->prepare('SELECT person_id, x_pct, y_pct FROM photo_tags WHERE photo_id = ?');
+    $stmt->execute([$editId]);
+    $existingTags = $stmt->fetchAll();
 }
+
+// Build a lookup: person_id => {x, y}
+$tagMap = [];
+foreach ($existingTags as $t) {
+    $tagMap[(int)$t['person_id']] = ['x' => (float)$t['x_pct'], 'y' => (float)$t['y_pct']];
+}
+$taggedIds = array_keys($tagMap);
 
 $allPeople = $pdo->prepare('SELECT id, first_name, last_name FROM people WHERE family_id = ? ORDER BY last_name, first_name');
 $allPeople->execute([$fid]);
@@ -178,12 +207,35 @@ $linkedIds = array_column($linkedPeople, 'id');
         <?php endif; ?>
 
         <!-- Edit/Add form -->
-        <form method="post" action="/admin/photos" class="admin-form" onsubmit="selectAllLinked()">
+        <form method="post" action="/admin/photos" class="admin-form" id="photoForm" onsubmit="return onSubmit()">
             <input type="hidden" name="id" value="<?= $photo ? $photo['id'] : '' ?>">
             <input type="hidden" name="todo" value="<?= $photo ? 'update' : 'add' ?>">
+            <input type="hidden" name="tags_json" id="tagsJson" value="">
 
             <?php if ($photo): ?>
-            <div style="margin-bottom:8px"><img src="<?= h($imagePath . $photo['file_name']) ?>" style="max-width:300px;max-height:200px"></div>
+            <!-- Taggable image -->
+            <div class="tag-container" id="tagContainer">
+                <img id="tagImg" src="<?= h($imagePath . $photo['file_name']) ?>">
+            </div>
+            <p class="tag-instruction" id="tagInstruction">Click a name below, then click the photo to place their tag. Click a tag dot to remove it.</p>
+
+            <!-- Tag people chips -->
+            <div class="tag-people" id="tagPeople">
+                <?php foreach ($linkedPeople as $p):
+                    $pid = (int)$p['id'];
+                    $isTagged = in_array($pid, $taggedIds);
+                    $tx = $isTagged ? $tagMap[$pid]['x'] : '';
+                    $ty = $isTagged ? $tagMap[$pid]['y'] : '';
+                ?>
+                <span class="tag-chip <?= $isTagged ? 'tagged' : '' ?>"
+                      data-id="<?= $pid ?>"
+                      data-x="<?= $tx ?>"
+                      data-y="<?= $ty ?>">
+                    <span class="tag-indicator"><?= $isTagged ? '&#9679;' : '&#9675;' ?></span>
+                    <?= h($p['last_name'] . ' ' . $p['first_name']) ?>
+                </span>
+                <?php endforeach; ?>
+            </div>
             <?php endif; ?>
 
             <div class="form-row"><label>File Name</label><input type="text" name="file_name" size="40" value="<?= h($photo['file_name'] ?? '') ?>"></div>
@@ -206,11 +258,138 @@ $linkedIds = array_column($linkedPeople, 'id');
         </form>
 
         <script>
-        function addPerson(){const a=document.getElementById('allList'),l=document.getElementById('linkedList');for(const o of[...a.selectedOptions])l.add(o)}
-        function removePerson(){const a=document.getElementById('allList'),l=document.getElementById('linkedList');for(const o of[...l.selectedOptions])a.add(o)}
-        function moveUp(){const s=document.getElementById('linkedList');for(const o of[...s.selectedOptions])if(o.previousElementSibling)s.insertBefore(o,o.previousElementSibling)}
-        function moveDown(){const s=document.getElementById('linkedList');for(const o of[...s.selectedOptions].reverse())if(o.nextElementSibling)s.insertBefore(o.nextElementSibling,o)}
-        function selectAllLinked(){for(const o of document.getElementById('linkedList').options)o.selected=true}
+        // ---- Tag state ----
+        var tags = {};          // {personId: {x, y}}
+        var selectedId = null;  // currently highlighted person for tagging
+
+        // Init from server data
+        document.querySelectorAll('.tag-chip').forEach(function(chip) {
+            var x = parseFloat(chip.dataset.x);
+            var y = parseFloat(chip.dataset.y);
+            if (!isNaN(x) && !isNaN(y)) {
+                tags[chip.dataset.id] = {x: x, y: y};
+                renderDot(chip.dataset.id, x, y);
+            }
+        });
+
+        // ---- Tag chip click: select person ----
+        var tagPeople = document.getElementById('tagPeople');
+        if (tagPeople) tagPeople.addEventListener('click', function(e) {
+            var chip = e.target.closest('.tag-chip');
+            if (!chip) return;
+            document.querySelectorAll('.tag-chip').forEach(function(c) { c.classList.remove('active'); });
+            chip.classList.add('active');
+            selectedId = chip.dataset.id;
+        });
+
+        // ---- Image click: place tag ----
+        var tagImg = document.getElementById('tagImg');
+        if (tagImg) tagImg.addEventListener('click', function(e) {
+            if (!selectedId) return;
+            var rect = this.getBoundingClientRect();
+            var x = ((e.clientX - rect.left) / rect.width * 100);
+            var y = ((e.clientY - rect.top) / rect.height * 100);
+            x = Math.round(x * 100) / 100;
+            y = Math.round(y * 100) / 100;
+            removeDot(selectedId);
+            tags[selectedId] = {x: x, y: y};
+            renderDot(selectedId, x, y);
+            updateChip(selectedId, true);
+            // Deselect
+            document.querySelectorAll('.tag-chip').forEach(function(c) { c.classList.remove('active'); });
+            selectedId = null;
+        });
+
+        // ---- Render / remove dots ----
+        function renderDot(personId, x, y) {
+            removeDot(personId);
+            var container = document.getElementById('tagContainer');
+            if (!container) return;
+            var chip = document.querySelector('.tag-chip[data-id="' + personId + '"]');
+            var name = chip ? chip.textContent.replace(/^[\u25CB\u25CF]\s*/, '').trim() : '';
+            var dot = document.createElement('div');
+            dot.className = 'tag-dot';
+            dot.dataset.person = personId;
+            dot.style.left = x + '%';
+            dot.style.top = y + '%';
+            var label = document.createElement('span');
+            label.className = 'tag-dot-label';
+            label.textContent = name;
+            dot.appendChild(label);
+            dot.addEventListener('click', function(ev) {
+                ev.stopPropagation();
+                delete tags[personId];
+                removeDot(personId);
+                updateChip(personId, false);
+            });
+            container.appendChild(dot);
+        }
+
+        function removeDot(personId) {
+            var dot = document.querySelector('.tag-dot[data-person="' + personId + '"]');
+            if (dot) dot.remove();
+        }
+
+        function updateChip(personId, isTagged) {
+            var chip = document.querySelector('.tag-chip[data-id="' + personId + '"]');
+            if (!chip) return;
+            chip.classList.toggle('tagged', isTagged);
+            var ind = chip.querySelector('.tag-indicator');
+            if (ind) ind.innerHTML = isTagged ? '&#9679;' : '&#9675;';
+        }
+
+        // ---- Dual-list functions ----
+        function addPerson() {
+            var a = document.getElementById('allList'), l = document.getElementById('linkedList');
+            var tp = document.getElementById('tagPeople');
+            for (var o of [...a.selectedOptions]) {
+                // Add tag chip if editing a photo
+                if (tp && !document.querySelector('.tag-chip[data-id="' + o.value + '"]')) {
+                    var chip = document.createElement('span');
+                    chip.className = 'tag-chip';
+                    chip.dataset.id = o.value;
+                    chip.dataset.x = '';
+                    chip.dataset.y = '';
+                    chip.innerHTML = '<span class="tag-indicator">&#9675;</span> ' + o.textContent;
+                    tp.appendChild(chip);
+                }
+                l.add(o);
+            }
+        }
+
+        function removePerson() {
+            var a = document.getElementById('allList'), l = document.getElementById('linkedList');
+            for (var o of [...l.selectedOptions]) {
+                // Remove tag and chip
+                var pid = o.value;
+                delete tags[pid];
+                removeDot(pid);
+                var chip = document.querySelector('.tag-chip[data-id="' + pid + '"]');
+                if (chip) chip.remove();
+                a.add(o);
+            }
+        }
+
+        function moveUp() {
+            var s = document.getElementById('linkedList');
+            for (var o of [...s.selectedOptions]) if (o.previousElementSibling) s.insertBefore(o, o.previousElementSibling);
+        }
+        function moveDown() {
+            var s = document.getElementById('linkedList');
+            for (var o of [...s.selectedOptions].reverse()) if (o.nextElementSibling) s.insertBefore(o.nextElementSibling, o);
+        }
+
+        function onSubmit() {
+            // Select all linked people (so they get submitted)
+            for (var o of document.getElementById('linkedList').options) o.selected = true;
+            // Serialize tags to JSON
+            var arr = [];
+            for (var pid in tags) {
+                arr.push({person_id: parseInt(pid), x: tags[pid].x, y: tags[pid].y});
+            }
+            document.getElementById('tagsJson').value = JSON.stringify(arr);
+            return true;
+        }
         </script>
     </div>
 </div>

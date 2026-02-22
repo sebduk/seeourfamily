@@ -187,6 +187,21 @@ CREATE TABLE `photo_person_link` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
+-- photo_tags: face/position tags on photos (coordinates as percentages for resize safety)
+CREATE TABLE `photo_tags` (
+  `id`              INT            NOT NULL AUTO_INCREMENT,
+  `photo_id`        INT            NOT NULL,
+  `person_id`       INT            NOT NULL,
+  `x_pct`           DECIMAL(5,2)   NOT NULL COMMENT '0.00–100.00 from left',
+  `y_pct`           DECIMAL(5,2)   NOT NULL COMMENT '0.00–100.00 from top',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_photo_person` (`photo_id`, `person_id`),
+  KEY `idx_pt_photo` (`photo_id`),
+  CONSTRAINT `fk_pt_photo`  FOREIGN KEY (`photo_id`)  REFERENCES `photos` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_pt_person` FOREIGN KEY (`person_id`) REFERENCES `people` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
 -- comments: events, anecdotes, biographical notes attached to people
 CREATE TABLE `comments` (
   `id`              INT          NOT NULL AUTO_INCREMENT,

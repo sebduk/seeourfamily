@@ -277,6 +277,56 @@ hr { border: none; border-top: 1px solid #666; }
 .photo-detail .photo-info   { margin-top: 0.5rem; }
 .photo-detail .photo-people { font-style: italic; margin-top: 0.25rem; }
 
+/* Visitor: hover-reveal face tags */
+.photo-tags-container { position: relative; display: inline-block; }
+.photo-tags-container img { max-width: 100%; max-height: 80vh; border: 0; image-rendering: smooth; }
+.photo-tag {
+    position: absolute; transform: translate(-50%, -100%);
+    background: rgba(0,0,0,0.75); color: #fff;
+    padding: 2px 8px; border-radius: 3px;
+    white-space: nowrap; font-size: 0.85em;
+    text-decoration: none;
+    opacity: 0; transition: opacity 0.2s;
+    pointer-events: none;
+}
+.photo-tags-container:hover .photo-tag { opacity: 1; pointer-events: auto; }
+.photo-tag:hover { background: rgba(0,0,0,0.95); color: #fff; text-decoration: none; }
+
+/* ============================================================
+ * PHOTO TAGGING (Admin)
+ * ============================================================ */
+.tag-container { position: relative; display: inline-block; margin-bottom: 4px; }
+.tag-container img { max-width: 100%; max-height: 80vh; cursor: crosshair; image-rendering: smooth; }
+.tag-dot {
+    position: absolute; width: 22px; height: 22px;
+    border-radius: 50%; background: rgba(0,180,0,0.6);
+    border: 2px solid #fff; transform: translate(-50%, -50%);
+    cursor: pointer; z-index: 10;
+}
+.tag-dot:hover { background: rgba(220,0,0,0.7); }
+.tag-dot-label {
+    display: none; position: absolute; bottom: 100%; left: 50%;
+    transform: translateX(-50%); margin-bottom: 4px;
+    background: rgba(0,0,0,0.85); color: #fff;
+    padding: 2px 6px; border-radius: 3px;
+    white-space: nowrap; font-size: 0.8em;
+    pointer-events: none;
+}
+.tag-dot:hover .tag-dot-label { display: block; }
+
+.tag-instruction { color: #666; font-size: 0.9em; margin: 4px 0 8px; }
+.tag-people { margin: 4px 0 12px; }
+.tag-chip {
+    display: inline-block; padding: 3px 10px; margin: 2px;
+    border: 1px solid #ccc; border-radius: 14px; cursor: pointer;
+    font-size: 0.9em; user-select: none;
+}
+.tag-chip:hover { background: #f0f0f0; }
+.tag-chip.active { background: #d0e8ff; border-color: #69c; }
+.tag-chip .tag-indicator { font-weight: bold; }
+.tag-chip.tagged .tag-indicator { color: #0a0; }
+.tag-chip:not(.tagged) .tag-indicator { color: #aaa; }
+
 
 /* ============================================================
  * LOGIN
