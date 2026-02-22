@@ -413,6 +413,12 @@ hr { border: none; border-top: 1px solid #666; }
 .admin-sidebar .sidebar-links a { font-weight: bold; }
 .admin-main { padding: 0; }
 
+/* Tag status dots in photo sidebar */
+.tag-status-dot { font-size: 8px; }
+.tag-status-green { color: #2e7d32; }
+.tag-status-yellow { color: #f9a825; }
+.tag-status-red { color: #c62828; }
+
 /* Admin navigation bar (replaces admin menu.asp) */
 .admin-nav {
     background: #ccc;

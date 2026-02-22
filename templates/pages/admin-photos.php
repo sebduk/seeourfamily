@@ -134,12 +134,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $editId = (int)($id ?? $_GET['id'] ?? 0);
 
-// List (image files only)
+// List (image files only) with tag status
 $stmt = $pdo->prepare(
-    "SELECT id, file_name, photo_date FROM photos
-     WHERE family_id = ?
-       AND (LOWER(RIGHT(file_name, 3)) IN ('jpg','gif','png') OR LOWER(RIGHT(file_name, 4)) = 'jpeg')
-     ORDER BY photo_date, file_name"
+    "SELECT p.id, p.file_name, p.photo_date,
+            COUNT(DISTINCT ppl.person_id) AS linked_count,
+            COUNT(DISTINCT pt.person_id)  AS tagged_count
+     FROM photos p
+     LEFT JOIN photo_person_link ppl ON ppl.photo_id = p.id
+     LEFT JOIN photo_tags pt ON pt.photo_id = p.id
+     WHERE p.family_id = ?
+       AND (LOWER(RIGHT(p.file_name, 3)) IN ('jpg','gif','png') OR LOWER(RIGHT(p.file_name, 4)) = 'jpeg')
+     GROUP BY p.id, p.file_name, p.photo_date
+     ORDER BY p.photo_date, p.file_name"
 );
 $stmt->execute([$fid]);
 $photosList = $stmt->fetchAll();
@@ -189,8 +195,18 @@ $linkedIds = array_column($linkedPeople, 'id');
             <a href="/admin/photos">Add / Upload</a>
         </div>
         <hr>
-        <?php foreach ($photosList as $p): ?>
-            <a href="/admin/photos?id=<?= $p['id'] ?>"><?= h(pathinfo($p['file_name'], PATHINFO_FILENAME)) ?></a>
+        <?php foreach ($photosList as $p):
+            $linked = (int)$p['linked_count'];
+            $tagged = (int)$p['tagged_count'];
+            if ($linked > 0 && $tagged >= $linked) {
+                $dotClass = 'tag-status-green';
+            } elseif ($tagged > 0) {
+                $dotClass = 'tag-status-yellow';
+            } else {
+                $dotClass = 'tag-status-red';
+            }
+        ?>
+            <a href="/admin/photos?id=<?= $p['id'] ?>"><span class="tag-status-dot <?= $dotClass ?>">&#9679;</span> <?= h(pathinfo($p['file_name'], PATHINFO_FILENAME)) ?></a>
         <?php endforeach; ?>
     </div>
 
