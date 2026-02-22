@@ -159,7 +159,7 @@ if ($editId > 0) {
     $stmt->execute([$editId, $fid]);
     $photo = $stmt->fetch();
     $stmt = $pdo->prepare(
-        'SELECT p.id, p.first_name, p.last_name FROM people p
+        'SELECT p.id, p.first_name, p.last_name, YEAR(p.birth_date) AS birth_year FROM people p
          JOIN photo_person_link ppl ON ppl.person_id = p.id
          WHERE ppl.photo_id = ? ORDER BY ppl.sort_order'
     );
@@ -179,10 +179,17 @@ foreach ($existingTags as $t) {
 }
 $taggedIds = array_keys($tagMap);
 
-$allPeople = $pdo->prepare('SELECT id, first_name, last_name FROM people WHERE family_id = ? ORDER BY last_name, first_name');
+$allPeople = $pdo->prepare('SELECT id, first_name, last_name, YEAR(birth_date) AS birth_year FROM people WHERE family_id = ? ORDER BY last_name, first_name');
 $allPeople->execute([$fid]);
 $allPeopleList = $allPeople->fetchAll();
 $linkedIds = array_column($linkedPeople, 'id');
+
+/** Format person name with optional birth year */
+$pname = function(array $p): string {
+    $n = $p['last_name'] . ' ' . $p['first_name'];
+    if (!empty($p['birth_year'])) $n .= ' (' . $p['birth_year'] . ')';
+    return $n;
+};
 ?>
 
 <?php require __DIR__ . '/../_admin-nav.php'; ?>
@@ -248,7 +255,7 @@ $linkedIds = array_column($linkedPeople, 'id');
                       data-x="<?= $tx ?>"
                       data-y="<?= $ty ?>">
                     <span class="tag-indicator"><?= $isTagged ? '&#9679;' : '&#9675;' ?></span>
-                    <?= h($p['last_name'] . ' ' . $p['first_name']) ?>
+                    <?= h($pname($p)) ?>
                 </span>
                 <?php endforeach; ?>
             </div>
@@ -261,9 +268,9 @@ $linkedIds = array_column($linkedPeople, 'id');
 
             <div class="form-row"><label>People</label>
                 <div class="dual-list">
-                    <div><b>All</b><br><select id="allList" size="10" multiple><?php foreach ($allPeopleList as $p): ?><?php if (!in_array($p['id'], $linkedIds)): ?><option value="<?= $p['id'] ?>"><?= h($p['last_name'] . ' ' . $p['first_name']) ?></option><?php endif; ?><?php endforeach; ?></select></div>
+                    <div><b>All</b><br><select id="allList" size="10" multiple><?php foreach ($allPeopleList as $p): ?><?php if (!in_array($p['id'], $linkedIds)): ?><option value="<?= $p['id'] ?>"><?= h($pname($p)) ?></option><?php endif; ?><?php endforeach; ?></select></div>
                     <div class="dual-buttons"><button type="button" onclick="addPerson()">&gt;&gt;</button><button type="button" onclick="removePerson()">&lt;&lt;</button><button type="button" onclick="moveUp()">Up</button><button type="button" onclick="moveDown()">Down</button></div>
-                    <div><b>Linked</b><br><select id="linkedList" name="linked_people[]" size="10" multiple><?php foreach ($linkedPeople as $p): ?><option value="<?= $p['id'] ?>"><?= h($p['last_name'] . ' ' . $p['first_name']) ?></option><?php endforeach; ?></select></div>
+                    <div><b>Linked</b><br><select id="linkedList" name="linked_people[]" size="10" multiple><?php foreach ($linkedPeople as $p): ?><option value="<?= $p['id'] ?>"><?= h($pname($p)) ?></option><?php endforeach; ?></select></div>
                 </div>
             </div>
 
