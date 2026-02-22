@@ -94,7 +94,16 @@ function findChildren(PDO $pdo, int $fid, int $coupleId): array
 }
 
 /**
+ * Wrap a person cell in <b> if they are the direct descendant.
+ */
+function descBold(string $cell, bool $isDirect): string
+{
+    return $isDirect ? '<b>' . $cell . '</b>' : $cell;
+}
+
+/**
  * Render descendants recursively starting from a couple.
+ * Every child is a direct descendant; their spouse is not.
  */
 function renderDescendants(PDO $pdo, int $fid, int $coupleId): void
 {
@@ -109,20 +118,21 @@ function renderDescendants(PDO $pdo, int $fid, int $coupleId): void
         if (!empty($couples)) {
             // Child has spouse(s): show each couple and recurse
             foreach ($couples as $couple) {
+                $p1Direct = ((int)$couple['p1_id'] === $childId);
                 echo '<div class="desc-couple">';
                 echo '<div class="desc-pair">';
-                echo '<span>' . descPersonCell($couple['p1_fn'], $couple['p1_ln'], $couple['p1_birth'], $couple['p1_death'], (int)$couple['p1_id']) . '</span>';
+                echo '<span>' . descBold(descPersonCell($couple['p1_fn'], $couple['p1_ln'], $couple['p1_birth'], $couple['p1_death'], (int)$couple['p1_id']), $p1Direct) . '</span>';
                 echo '<span class="desc-sep">&amp;</span>';
-                echo '<span>' . descPersonCell($couple['p2_fn'], $couple['p2_ln'], $couple['p2_birth'], $couple['p2_death'], (int)$couple['p2_id']) . '</span>';
+                echo '<span>' . descBold(descPersonCell($couple['p2_fn'], $couple['p2_ln'], $couple['p2_birth'], $couple['p2_death'], (int)$couple['p2_id']), !$p1Direct) . '</span>';
                 echo '</div>';
                 renderDescendants($pdo, $fid, (int)$couple['couple_id']);
                 echo '</div>';
             }
         } else {
-            // Child has no spouse: show them alone
+            // Child has no spouse: always a direct descendant
             echo '<div class="desc-couple">';
             echo '<div class="desc-single">';
-            echo descPersonCell($child['first_name'], $child['last_name'], $child['birth'], $child['death'], $childId);
+            echo '<b>' . descPersonCell($child['first_name'], $child['last_name'], $child['birth'], $child['death'], $childId) . '</b>';
             echo '</div>';
             echo '</div>';
         }
@@ -150,13 +160,15 @@ function renderDescendants(PDO $pdo, int $fid, int $coupleId): void
 $couples = findCouples($pdo, $fid, $personId);
 
 if (!empty($couples)):
-    foreach ($couples as $couple): ?>
+    foreach ($couples as $couple):
+        $p1Direct = ((int)$couple['p1_id'] === $personId);
+    ?>
 <div class="desc-tree">
     <div class="desc-couple desc-root">
         <div class="desc-pair">
-            <span><b><?= descPersonCell($couple['p1_fn'], $couple['p1_ln'], $couple['p1_birth'], $couple['p1_death'], (int)$couple['p1_id']) ?></b></span>
+            <span><?= descBold(descPersonCell($couple['p1_fn'], $couple['p1_ln'], $couple['p1_birth'], $couple['p1_death'], (int)$couple['p1_id']), $p1Direct) ?></span>
             <span class="desc-sep">&amp;</span>
-            <span><b><?= descPersonCell($couple['p2_fn'], $couple['p2_ln'], $couple['p2_birth'], $couple['p2_death'], (int)$couple['p2_id']) ?></b></span>
+            <span><?= descBold(descPersonCell($couple['p2_fn'], $couple['p2_ln'], $couple['p2_birth'], $couple['p2_death'], (int)$couple['p2_id']), !$p1Direct) ?></span>
         </div>
         <?php renderDescendants($pdo, $fid, (int)$couple['couple_id']); ?>
     </div>
