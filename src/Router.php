@@ -29,6 +29,7 @@ class Router
     private const PAGES = [
         'home',
         'tree',
+        'descendants',
         'person',
         'list-names',
         'birthdays',

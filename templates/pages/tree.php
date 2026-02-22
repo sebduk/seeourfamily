@@ -184,7 +184,7 @@ if ($coupleId) {
     <strong>&nbsp;</strong>
     <?= $L['full_descendance'] ?>
     <span class="nav-links">|
-        <a href="/tree/<?= $personId ?>"><?= $L['classic'] ?></a> .
+        <a href="/descendants/<?= $personId ?>"><?= $L['classic'] ?></a> .
         <a href="/tree/<?= $personId ?>?dir=desc&amp;style=horizontal"><?= $L['horizontal'] ?></a> .
         <a href="/tree/<?= $personId ?>?dir=desc&amp;style=vertical"><?= $L['vertical'] ?></a> .
         <a href="/tree/<?= $personId ?>?dir=desc&amp;style=table"><?= $L['table'] ?></a> .

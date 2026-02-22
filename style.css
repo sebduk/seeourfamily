@@ -191,6 +191,25 @@ hr { border: none; border-top: 1px solid #666; }
 /* Multiple marriages */
 .tree-marriages { text-align: center; margin-top: 2rem; }
 
+/* Descendants tree (nested indented layout) */
+.desc-tree { max-width: 960px; margin: 0 auto; }
+.desc-couple { padding: 2px 0; }
+.desc-root > .desc-pair,
+.desc-root > .desc-single { font-size: 1.1em; }
+.desc-pair {
+    display: flex;
+    gap: 0.3rem;
+    align-items: baseline;
+    flex-wrap: wrap;
+}
+.desc-sep { color: #666; }
+.desc-single { padding: 1px 0; }
+.desc-children {
+    margin-left: 2rem;
+    padding-left: 0.75rem;
+    border-left: 1px solid #ccc;
+}
+
 
 /* ============================================================
  * PATTERN 5: PERSON BIO (CSS GRID)
