@@ -148,7 +148,7 @@ $pname = function(array $p): string {
 
 // Sidebar filters
 $filterPerson = (int)($_GET['person'] ?? 0);
-$sortBy       = ($_GET['sort'] ?? '') === 'year' ? 'year' : 'name';
+$sortBy       = in_array($_GET['sort'] ?? '', ['path', 'year'], true) ? $_GET['sort'] : 'name';
 
 // Build query string helper (preserves filter/sort when navigating)
 $qs = function(array $extra = []): string {
@@ -169,17 +169,23 @@ $sql = "SELECT p.id, p.file_name, p.photo_date,
         FROM photos p
         LEFT JOIN photo_person_link ppl ON ppl.photo_id = p.id
         LEFT JOIN photo_tags pt ON pt.photo_id = p.id";
-$where = " WHERE p.family_id = ?
+$sql .= " WHERE p.family_id = ?
            AND (LOWER(RIGHT(p.file_name, 3)) IN ('jpg','gif','png') OR LOWER(RIGHT(p.file_name, 4)) = 'jpeg')";
 $params = [$fid];
 
 if ($filterPerson > 0) {
-    $sql .= " JOIN photo_person_link ppl_f ON ppl_f.photo_id = p.id AND ppl_f.person_id = ?";
+    $sql .= " AND EXISTS (SELECT 1 FROM photo_person_link ppl_f WHERE ppl_f.photo_id = p.id AND ppl_f.person_id = ?)";
     $params[] = $filterPerson;
 }
 
-$sql .= $where . " GROUP BY p.id, p.file_name, p.photo_date";
-$sql .= $sortBy === 'year' ? " ORDER BY p.photo_date DESC, p.file_name" : " ORDER BY p.file_name, p.photo_date";
+$sql .= " GROUP BY p.id, p.file_name, p.photo_date";
+if ($sortBy === 'year') {
+    $sql .= " ORDER BY p.photo_date DESC, p.file_name";
+} elseif ($sortBy === 'path') {
+    $sql .= " ORDER BY p.file_name, p.photo_date";
+} else {
+    $sql .= " ORDER BY SUBSTRING_INDEX(p.file_name, '/', -1), p.photo_date";
+}
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
@@ -235,7 +241,8 @@ $linkedIds = array_column($linkedPeople, 'id');
                 <?php endforeach; ?>
             </select>
             <select name="sort" onchange="this.form.submit()">
-                <option value="name"<?= $sortBy === 'name' ? ' selected' : '' ?>>Sort: name</option>
+                <option value="name"<?= $sortBy === 'name' ? ' selected' : '' ?>>Sort: filename</option>
+                <option value="path"<?= $sortBy === 'path' ? ' selected' : '' ?>>Sort: path</option>
                 <option value="year"<?= $sortBy === 'year' ? ' selected' : '' ?>>Sort: year</option>
             </select>
         </form>
@@ -252,14 +259,15 @@ $linkedIds = array_column($linkedPeople, 'id');
                 $dotClass = 'tag-status-red';
             }
         ?>
-            <a href="/admin/photos?id=<?= $p['id'] ?><?= h(substr($qs(), 1) ? '&' . substr($qs(), 1) : '') ?>"><span class="tag-status-dot <?= $dotClass ?>">&#9679;</span> <?= h(pathinfo($p['file_name'], PATHINFO_FILENAME)) ?></a>
+            <?php $displayName = preg_replace('/\.[^.]+$/', '', $p['file_name']); ?>
+            <a href="/admin/photos?id=<?= $p['id'] ?><?= h(substr($qs(), 1) ? '&' . substr($qs(), 1) : '') ?>"><span class="tag-status-dot <?= $dotClass ?>">&#9679;</span> <?= h($displayName) ?></a>
         <?php endforeach; ?>
     </div>
 
     <div class="admin-main">
         <!-- Upload form -->
         <?php if (!$photo): ?>
-        <form method="post" action="/admin/photos" enctype="multipart/form-data" class="admin-form" style="margin-bottom:1rem">
+        <form method="post" action="/admin/photos<?= $qs() ?>" enctype="multipart/form-data" class="admin-form" style="margin-bottom:1rem">
             <input type="hidden" name="todo" value="upload">
             <div class="form-row"><label>Upload Photo</label><input type="file" name="photo_file" accept=".jpg,.jpeg,.gif,.png,.mp3,.mp4,.avi,.pdf"></div>
             <div class="form-row"><label>Folder (optional)</label><input type="text" name="folder" size="20"></div>
@@ -269,7 +277,7 @@ $linkedIds = array_column($linkedPeople, 'id');
         <?php endif; ?>
 
         <!-- Edit/Add form -->
-        <form method="post" action="/admin/photos" class="admin-form" id="photoForm" onsubmit="return onSubmit()">
+        <form method="post" action="/admin/photos<?= $qs() ?>" class="admin-form" id="photoForm" onsubmit="return onSubmit()">
             <input type="hidden" name="id" value="<?= $photo ? $photo['id'] : '' ?>">
             <input type="hidden" name="todo" value="<?= $photo ? 'update' : 'add' ?>">
             <input type="hidden" name="tags_json" id="tagsJson" value="">
