@@ -489,6 +489,9 @@ hr { border: none; border-top: 1px solid #666; }
 /* Admin status message */
 .admin-msg { padding: 4px 8px; background: #dfd; margin-bottom: 0.5rem; }
 .admin-err { padding: 4px 8px; background: #fdd; margin-bottom: 0.5rem; }
+.admin-warnings { padding: 4px 8px; background: #fff3cd; border: 1px solid #ffc107; margin-bottom: 0.5rem; font-size: 8pt; }
+.admin-warnings ul { margin: 2px 0 0 1.2em; padding: 0; }
+.admin-warnings li { margin: 1px 0; }
 
 
 /* ============================================================

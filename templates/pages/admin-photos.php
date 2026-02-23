@@ -134,6 +134,112 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $editId = (int)($id ?? $_GET['id'] ?? 0);
 
+// ---- Maintenance: thumbnails & database sync ----
+$warnings = [];
+$imageExts = ['jpg', 'jpeg', 'gif', 'png'];
+
+// Recursively collect all image files from disk
+$diskFiles = [];
+if (is_dir($imageDir)) {
+    $it = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($imageDir, FilesystemIterator::SKIP_DOTS)
+    );
+    foreach ($it as $fi) {
+        if (!$fi->isFile()) continue;
+        $ext = strtolower(pathinfo($fi->getFilename(), PATHINFO_EXTENSION));
+        if (!in_array($ext, $imageExts, true)) continue;
+        $rel = ltrim(substr($fi->getPathname(), strlen($imageDir)), '/\\');
+        $diskFiles[] = $rel;
+    }
+}
+
+// Split into source images and thumbnails
+$sourceFiles = [];
+$tnFiles     = [];
+foreach ($diskFiles as $f) {
+    if (preg_match('/\.tn\.\w+$/i', $f)) {
+        $tnFiles[] = $f;
+    } else {
+        $sourceFiles[] = $f;
+    }
+}
+
+// 1. Create missing thumbnails (100px max dimension)
+foreach ($sourceFiles as $srcRel) {
+    $tnRel  = preg_replace('/\.(\w+)$/', '.tn.$1', $srcRel);
+    $srcAbs = $imageDir . $srcRel;
+    $tnAbs  = $imageDir . $tnRel;
+    if (file_exists($tnAbs)) {
+        // Verify size is correct (max 100px)
+        $tnSize = @getimagesize($tnAbs);
+        if ($tnSize && $tnSize[0] <= 100 && $tnSize[1] <= 100) continue;
+        // Oversized thumbnail — recreate it
+    }
+    $ext = strtolower(pathinfo($srcRel, PATHINFO_EXTENSION));
+    $src = null;
+    if ($ext === 'jpg' || $ext === 'jpeg') $src = @imagecreatefromjpeg($srcAbs);
+    elseif ($ext === 'png')                $src = @imagecreatefrompng($srcAbs);
+    elseif ($ext === 'gif')                $src = @imagecreatefromgif($srcAbs);
+    if (!$src) {
+        $warnings[] = 'Could not read image: ' . $srcRel;
+        continue;
+    }
+    $w = imagesx($src); $h = imagesy($src);
+    $max = 100;
+    if ($w >= $h) { $nw = min($w, $max); $nh = (int)round($h * $nw / $w); }
+    else          { $nh = min($h, $max); $nw = (int)round($w * $nh / $h); }
+    $tn = imagecreatetruecolor(max($nw, 1), max($nh, 1));
+    if ($ext === 'png' || $ext === 'gif') {
+        imagealphablending($tn, false);
+        imagesavealpha($tn, true);
+        imagefilledrectangle($tn, 0, 0, $nw, $nh, imagecolorallocatealpha($tn, 0, 0, 0, 127));
+    }
+    imagecopyresampled($tn, $src, 0, 0, 0, 0, $nw, $nh, $w, $h);
+    $tnDir = dirname($tnAbs);
+    if (!is_dir($tnDir)) @mkdir($tnDir, 0755, true);
+    if ($ext === 'jpg' || $ext === 'jpeg') imagejpeg($tn, $tnAbs, 85);
+    elseif ($ext === 'png')                imagepng($tn, $tnAbs);
+    elseif ($ext === 'gif')                imagegif($tn, $tnAbs);
+    imagedestroy($src);
+    imagedestroy($tn);
+    $warnings[] = 'Created thumbnail: ' . $tnRel;
+}
+
+// 2. Flag orphan thumbnails (no matching source image)
+$srcSet = array_flip($sourceFiles);
+foreach ($tnFiles as $tnRel) {
+    $srcRel = preg_replace('/\.tn\.(\w+)$/i', '.$1', $tnRel);
+    if (!isset($srcSet[$srcRel])) {
+        $warnings[] = 'Orphan thumbnail (no source image): ' . $tnRel;
+    }
+}
+
+// 3. Database sync — compare disk files with DB entries
+$dbStmt = $pdo->prepare('SELECT file_name FROM photos WHERE family_id = ?');
+$dbStmt->execute([$fid]);
+$dbFiles   = array_column($dbStmt->fetchAll(), 'file_name');
+$dbFileSet = array_flip($dbFiles);
+$srcFileSet = array_flip($sourceFiles);
+
+// Files on disk not in DB → add
+$insStmt = $pdo->prepare('INSERT INTO photos (family_id, file_name, photo_date) VALUES (?, ?, NULL)');
+foreach ($sourceFiles as $srcRel) {
+    if (!isset($dbFileSet[$srcRel])) {
+        $insStmt->execute([$fid, $srcRel]);
+        $warnings[] = 'Added to database: ' . $srcRel;
+    }
+}
+
+// DB entries whose file is missing on disk → flag
+foreach ($dbFiles as $dbFile) {
+    $ext = strtolower(pathinfo($dbFile, PATHINFO_EXTENSION));
+    if (!in_array($ext, $imageExts, true)) continue;
+    if (preg_match('/\.tn\.\w+$/i', $dbFile)) continue;
+    if (!isset($srcFileSet[$dbFile])) {
+        $warnings[] = 'Orphan DB entry (file missing): ' . $dbFile;
+    }
+}
+
 // All people (needed for sidebar filter and dual-list)
 $allPeople = $pdo->prepare('SELECT id, first_name, last_name, YEAR(birth_date) AS birth_year FROM people WHERE family_id = ? ORDER BY last_name, first_name');
 $allPeople->execute([$fid]);
@@ -171,7 +277,8 @@ $sql = "SELECT p.id, p.file_name, p.photo_date,
         LEFT JOIN photo_person_link ppl ON ppl.photo_id = p.id
         LEFT JOIN photo_tags pt ON pt.photo_id = p.id";
 $sql .= " WHERE p.family_id = ?
-           AND (LOWER(RIGHT(p.file_name, 3)) IN ('jpg','gif','png') OR LOWER(RIGHT(p.file_name, 4)) = 'jpeg')";
+           AND (LOWER(RIGHT(p.file_name, 3)) IN ('jpg','gif','png') OR LOWER(RIGHT(p.file_name, 4)) = 'jpeg')
+           AND LOWER(p.file_name) NOT LIKE '%.tn.%'";
 $params = [$fid];
 
 if ($filterPerson > 0) {
@@ -234,6 +341,12 @@ $linkedIds = array_column($linkedPeople, 'id');
 
 <?php require __DIR__ . '/../_admin-nav.php'; ?>
 <?php if ($msg): ?><div class="admin-msg"><?= h($msg) ?></div><?php endif; ?>
+<?php if ($warnings): ?>
+<div class="admin-warnings">
+    <b>Maintenance log:</b>
+    <ul><?php foreach ($warnings as $w): ?><li><?= h($w) ?></li><?php endforeach; ?></ul>
+</div>
+<?php endif; ?>
 
 <div class="admin-layout">
     <div class="admin-sidebar">
