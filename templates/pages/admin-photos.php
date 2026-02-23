@@ -149,7 +149,7 @@ $pname = function(array $p): string {
 // Sidebar filters
 $filterPerson = (int)($_GET['person'] ?? 0);
 $filterTagged = in_array($_GET['tagged'] ?? '', ['done', 'partial', 'none'], true) ? $_GET['tagged'] : '';
-$sortBy       = in_array($_GET['sort'] ?? '', ['path', 'year'], true) ? $_GET['sort'] : 'name';
+$sortBy       = in_array($_GET['sort'] ?? '', ['name', 'year'], true) ? $_GET['sort'] : 'path';
 
 // Build query string helper (preserves filter/sort when navigating)
 $qs = function(array $extra = []): string {
@@ -257,9 +257,9 @@ $linkedIds = array_column($linkedPeople, 'id');
                 <option value="none"<?= $filterTagged === 'none' ? ' selected' : '' ?>>Tags: none</option>
             </select>
             <select name="sort" onchange="this.form.submit()">
-                <option value="name"<?= $sortBy === 'name' ? ' selected' : '' ?>>Sort: filename</option>
                 <option value="path"<?= $sortBy === 'path' ? ' selected' : '' ?>>Sort: path</option>
-                <option value="year"<?= $sortBy === 'year' ? ' selected' : '' ?>>Sort: year</option>
+                <option value="name"<?= $sortBy === 'name' ? ' selected' : '' ?>>Sort: filename</option>
+                <option value="year"<?= $sortBy === 'year' ? ' selected' : '' ?>>Sort: date</option>
             </select>
         </form>
 
