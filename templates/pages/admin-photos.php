@@ -148,12 +148,13 @@ $pname = function(array $p): string {
 
 // Sidebar filters
 $filterPerson = (int)($_GET['person'] ?? 0);
+$filterTagged = in_array($_GET['tagged'] ?? '', ['done', 'partial', 'none'], true) ? $_GET['tagged'] : '';
 $sortBy       = in_array($_GET['sort'] ?? '', ['path', 'year'], true) ? $_GET['sort'] : 'name';
 
 // Build query string helper (preserves filter/sort when navigating)
 $qs = function(array $extra = []): string {
     $params = [];
-    foreach (['person', 'sort'] as $k) {
+    foreach (['person', 'tagged', 'sort'] as $k) {
         if (!empty($_GET[$k])) $params[$k] = $_GET[$k];
     }
     $params = array_merge($params, $extra);
@@ -179,6 +180,15 @@ if ($filterPerson > 0) {
 }
 
 $sql .= " GROUP BY p.id, p.file_name, p.photo_date";
+
+if ($filterTagged === 'done') {
+    $sql .= " HAVING COUNT(DISTINCT ppl.person_id) > 0 AND COUNT(DISTINCT pt.person_id) >= COUNT(DISTINCT ppl.person_id)";
+} elseif ($filterTagged === 'partial') {
+    $sql .= " HAVING COUNT(DISTINCT pt.person_id) > 0 AND COUNT(DISTINCT pt.person_id) < COUNT(DISTINCT ppl.person_id)";
+} elseif ($filterTagged === 'none') {
+    $sql .= " HAVING COUNT(DISTINCT pt.person_id) = 0";
+}
+
 if ($sortBy === 'year') {
     $sql .= " ORDER BY p.photo_date DESC, p.file_name";
 } elseif ($sortBy === 'path') {
@@ -239,6 +249,12 @@ $linkedIds = array_column($linkedPeople, 'id');
                 <?php foreach ($allPeopleList as $fp): ?>
                 <option value="<?= $fp['id'] ?>"<?= $filterPerson === (int)$fp['id'] ? ' selected' : '' ?>><?= h($pname($fp)) ?></option>
                 <?php endforeach; ?>
+            </select>
+            <select name="tagged" onchange="this.form.submit()">
+                <option value=""<?= $filterTagged === '' ? ' selected' : '' ?>>Tags: all</option>
+                <option value="done"<?= $filterTagged === 'done' ? ' selected' : '' ?>>Tags: done</option>
+                <option value="partial"<?= $filterTagged === 'partial' ? ' selected' : '' ?>>Tags: partial</option>
+                <option value="none"<?= $filterTagged === 'none' ? ' selected' : '' ?>>Tags: none</option>
             </select>
             <select name="sort" onchange="this.form.submit()">
                 <option value="name"<?= $sortBy === 'name' ? ' selected' : '' ?>>Sort: filename</option>
