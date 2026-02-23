@@ -200,8 +200,7 @@ foreach ($sourceFiles as $srcRel) {
     if ($ext === 'jpg' || $ext === 'jpeg') imagejpeg($tn, $tnAbs, 85);
     elseif ($ext === 'png')                imagepng($tn, $tnAbs);
     elseif ($ext === 'gif')                imagegif($tn, $tnAbs);
-    imagedestroy($src);
-    imagedestroy($tn);
+    $src = $tn = null;
     $warnings[] = 'Created thumbnail: ' . $tnRel;
 }
 
