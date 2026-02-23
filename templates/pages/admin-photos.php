@@ -134,20 +134,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $editId = (int)($id ?? $_GET['id'] ?? 0);
 
+// All people (needed for sidebar filter and dual-list)
+$allPeople = $pdo->prepare('SELECT id, first_name, last_name, YEAR(birth_date) AS birth_year FROM people WHERE family_id = ? ORDER BY last_name, first_name');
+$allPeople->execute([$fid]);
+$allPeopleList = $allPeople->fetchAll();
+
+/** Format person name with optional birth year */
+$pname = function(array $p): string {
+    $n = $p['last_name'] . ' ' . $p['first_name'];
+    if (!empty($p['birth_year'])) $n .= ' (' . $p['birth_year'] . ')';
+    return $n;
+};
+
+// Sidebar filters
+$filterPerson = (int)($_GET['person'] ?? 0);
+$sortBy       = ($_GET['sort'] ?? '') === 'year' ? 'year' : 'name';
+
+// Build query string helper (preserves filter/sort when navigating)
+$qs = function(array $extra = []): string {
+    $params = [];
+    foreach (['person', 'sort'] as $k) {
+        if (!empty($_GET[$k])) $params[$k] = $_GET[$k];
+    }
+    $params = array_merge($params, $extra);
+    // Remove empty values
+    $params = array_filter($params, fn($v) => $v !== '' && $v !== 0 && $v !== '0');
+    return $params ? '?' . http_build_query($params) : '';
+};
+
 // List (image files only) with tag status
-$stmt = $pdo->prepare(
-    "SELECT p.id, p.file_name, p.photo_date,
-            COUNT(DISTINCT ppl.person_id) AS linked_count,
-            COUNT(DISTINCT pt.person_id)  AS tagged_count
-     FROM photos p
-     LEFT JOIN photo_person_link ppl ON ppl.photo_id = p.id
-     LEFT JOIN photo_tags pt ON pt.photo_id = p.id
-     WHERE p.family_id = ?
-       AND (LOWER(RIGHT(p.file_name, 3)) IN ('jpg','gif','png') OR LOWER(RIGHT(p.file_name, 4)) = 'jpeg')
-     GROUP BY p.id, p.file_name, p.photo_date
-     ORDER BY p.photo_date, p.file_name"
-);
-$stmt->execute([$fid]);
+$sql = "SELECT p.id, p.file_name, p.photo_date,
+               COUNT(DISTINCT ppl.person_id) AS linked_count,
+               COUNT(DISTINCT pt.person_id)  AS tagged_count
+        FROM photos p
+        LEFT JOIN photo_person_link ppl ON ppl.photo_id = p.id
+        LEFT JOIN photo_tags pt ON pt.photo_id = p.id";
+$where = " WHERE p.family_id = ?
+           AND (LOWER(RIGHT(p.file_name, 3)) IN ('jpg','gif','png') OR LOWER(RIGHT(p.file_name, 4)) = 'jpeg')";
+$params = [$fid];
+
+if ($filterPerson > 0) {
+    $sql .= " JOIN photo_person_link ppl_f ON ppl_f.photo_id = p.id AND ppl_f.person_id = ?";
+    $params[] = $filterPerson;
+}
+
+$sql .= $where . " GROUP BY p.id, p.file_name, p.photo_date";
+$sql .= $sortBy === 'year' ? " ORDER BY p.photo_date DESC, p.file_name" : " ORDER BY p.file_name, p.photo_date";
+
+$stmt = $pdo->prepare($sql);
+$stmt->execute($params);
 $photosList = $stmt->fetchAll();
 
 // Edit record
@@ -178,18 +213,7 @@ foreach ($existingTags as $t) {
     $tagMap[(int)$t['person_id']] = ['x' => (float)$t['x_pct'], 'y' => (float)$t['y_pct']];
 }
 $taggedIds = array_keys($tagMap);
-
-$allPeople = $pdo->prepare('SELECT id, first_name, last_name, YEAR(birth_date) AS birth_year FROM people WHERE family_id = ? ORDER BY last_name, first_name');
-$allPeople->execute([$fid]);
-$allPeopleList = $allPeople->fetchAll();
 $linkedIds = array_column($linkedPeople, 'id');
-
-/** Format person name with optional birth year */
-$pname = function(array $p): string {
-    $n = $p['last_name'] . ' ' . $p['first_name'];
-    if (!empty($p['birth_year'])) $n .= ' (' . $p['birth_year'] . ')';
-    return $n;
-};
 ?>
 
 <?php require __DIR__ . '/../_admin-nav.php'; ?>
@@ -199,8 +223,23 @@ $pname = function(array $p): string {
     <div class="admin-sidebar">
         <div class="section-title">Pictures</div>
         <div class="sidebar-links">
-            <a href="/admin/photos">Add / Upload</a>
+            <a href="/admin/photos<?= $qs() ?>">Add / Upload</a>
         </div>
+
+        <!-- Filter & sort -->
+        <form method="get" action="/admin/photos" class="sidebar-filter">
+            <select name="person" onchange="this.form.submit()">
+                <option value="">All people</option>
+                <?php foreach ($allPeopleList as $fp): ?>
+                <option value="<?= $fp['id'] ?>"<?= $filterPerson === (int)$fp['id'] ? ' selected' : '' ?>><?= h($pname($fp)) ?></option>
+                <?php endforeach; ?>
+            </select>
+            <select name="sort" onchange="this.form.submit()">
+                <option value="name"<?= $sortBy === 'name' ? ' selected' : '' ?>>Sort: name</option>
+                <option value="year"<?= $sortBy === 'year' ? ' selected' : '' ?>>Sort: year</option>
+            </select>
+        </form>
+
         <hr>
         <?php foreach ($photosList as $p):
             $linked = (int)$p['linked_count'];
@@ -213,7 +252,7 @@ $pname = function(array $p): string {
                 $dotClass = 'tag-status-red';
             }
         ?>
-            <a href="/admin/photos?id=<?= $p['id'] ?>"><span class="tag-status-dot <?= $dotClass ?>">&#9679;</span> <?= h(pathinfo($p['file_name'], PATHINFO_FILENAME)) ?></a>
+            <a href="/admin/photos?id=<?= $p['id'] ?><?= h(substr($qs(), 1) ? '&' . substr($qs(), 1) : '') ?>"><span class="tag-status-dot <?= $dotClass ?>">&#9679;</span> <?= h(pathinfo($p['file_name'], PATHINFO_FILENAME)) ?></a>
         <?php endforeach; ?>
     </div>
 

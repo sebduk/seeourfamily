@@ -419,6 +419,10 @@ hr { border: none; border-top: 1px solid #666; }
 .tag-status-yellow { color: #f9a825; }
 .tag-status-red { color: #c62828; }
 
+/* Sidebar filter/sort controls */
+.sidebar-filter { margin: 0.4rem 0; }
+.sidebar-filter select { width: 100%; font-size: 7pt; margin-bottom: 2px; }
+
 /* Admin navigation bar (replaces admin menu.asp) */
 .admin-nav {
     background: #ccc;
