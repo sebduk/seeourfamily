@@ -22,9 +22,14 @@ use PDO;
  *
  * Files are served through /media/{uuid} which performs auth + family_id
  * checks before streaming bytes. Thumbnails are served via /media/{uuid}?tn=1.
+ * Video/audio poster images are served via /media/{uuid}?poster=1.
  */
 class Media
 {
+    private const VIDEO_EXT = ['mp4', 'avi', 'webm', 'mov'];
+    private const AUDIO_EXT = ['mp3', 'ogg', 'wav'];
+    private const IMAGE_EXT = ['jpg', 'jpeg', 'gif', 'png', 'webp'];
+
     private string $mediaDir;
     private string $legacyDir;
 
@@ -39,6 +44,46 @@ class Media
     public function mediaDir(): string
     {
         return $this->mediaDir;
+    }
+
+    /** Check if a MIME type or extension represents video. */
+    public static function isVideo(?string $mimeOrExt): bool
+    {
+        if ($mimeOrExt === null) return false;
+        if (str_starts_with($mimeOrExt, 'video/')) return true;
+        return in_array(strtolower($mimeOrExt), self::VIDEO_EXT, true);
+    }
+
+    /** Check if a MIME type or extension represents audio. */
+    public static function isAudio(?string $mimeOrExt): bool
+    {
+        if ($mimeOrExt === null) return false;
+        if (str_starts_with($mimeOrExt, 'audio/')) return true;
+        return in_array(strtolower($mimeOrExt), self::AUDIO_EXT, true);
+    }
+
+    /** Check if a MIME type or extension represents an image. */
+    public static function isImage(?string $mimeOrExt): bool
+    {
+        if ($mimeOrExt === null) return false;
+        if (str_starts_with($mimeOrExt, 'image/')) return true;
+        return in_array(strtolower($mimeOrExt), self::IMAGE_EXT, true);
+    }
+
+    /** Detect MIME type from a photo row (mime_type column, or fall back to extension). */
+    public static function mimeFromRow(array $row): string
+    {
+        if (!empty($row['mime_type'])) return $row['mime_type'];
+        $name = $row['stored_filename'] ?? $row['file_name'] ?? '';
+        $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+        $map = [
+            'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'gif' => 'image/gif',
+            'png' => 'image/png', 'webp' => 'image/webp',
+            'mp4' => 'video/mp4', 'avi' => 'video/x-msvideo', 'webm' => 'video/webm',
+            'mp3' => 'audio/mpeg', 'ogg' => 'audio/ogg', 'wav' => 'audio/wav',
+            'pdf' => 'application/pdf',
+        ];
+        return $map[$ext] ?? 'application/octet-stream';
     }
 
     /**
@@ -192,8 +237,11 @@ class Media
     /**
      * Serve a media file by UUID. Sends HTTP headers and streams bytes.
      * Returns false if not found / not authorized.
+     *
+     * Options: thumbnail=true serves .tn thumbnail, poster=true serves
+     * the poster image (looked up via poster_uuid) for video/audio files.
      */
-    public function serve(string $uuid, ?int $familyId, string $familyName = '', bool $thumbnail = false): bool
+    public function serve(string $uuid, ?int $familyId, string $familyName = '', bool $thumbnail = false, bool $poster = false): bool
     {
         $pdo = $this->db->pdo();
         $sql = 'SELECT * FROM photos WHERE uuid = ?';
@@ -210,6 +258,11 @@ class Media
             return false;
         }
 
+        // Poster request: redirect to serving the poster image
+        if ($poster && !empty($row['poster_uuid'])) {
+            return $this->serve($row['poster_uuid'], $familyId, $familyName, $thumbnail);
+        }
+
         // Resolve path
         $path = $thumbnail
             ? ($this->thumbnailPath($row, $familyName) ?? $this->diskPath($row, $familyName))
@@ -220,18 +273,37 @@ class Media
         }
 
         // Determine MIME type
-        $mime = $row['mime_type'];
-        if (!$mime) {
-            $finfo = new \finfo(FILEINFO_MIME_TYPE);
-            $mime = $finfo->file($path);
-        }
+        $mime = $row['mime_type'] ?: self::mimeFromRow($row);
 
-        // Cache headers (media doesn't change often)
-        header('Content-Type: ' . $mime);
-        header('Content-Length: ' . filesize($path));
+        $size = filesize($path);
         header('Cache-Control: private, max-age=86400');
 
-        // Stream the file
+        // Range request support for video/audio streaming
+        if (self::isVideo($mime) || self::isAudio($mime)) {
+            header('Accept-Ranges: bytes');
+            if (isset($_SERVER['HTTP_RANGE'])) {
+                $range = $_SERVER['HTTP_RANGE'];
+                if (preg_match('/bytes=(\d+)-(\d*)/', $range, $m)) {
+                    $start = (int)$m[1];
+                    $end = ($m[2] !== '') ? (int)$m[2] : $size - 1;
+                    $end = min($end, $size - 1);
+                    $length = $end - $start + 1;
+                    http_response_code(206);
+                    header('Content-Type: ' . $mime);
+                    header("Content-Range: bytes $start-$end/$size");
+                    header('Content-Length: ' . $length);
+                    $fp = fopen($path, 'rb');
+                    fseek($fp, $start);
+                    echo fread($fp, $length);
+                    fclose($fp);
+                    return true;
+                }
+            }
+        }
+
+        // Full file serving
+        header('Content-Type: ' . $mime);
+        header('Content-Length: ' . $size);
         readfile($path);
         return true;
     }

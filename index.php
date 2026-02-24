@@ -152,7 +152,8 @@ if ($router->specialRoute() === 'media') {
     $familyId   = $auth->familyId();
     $familyName = $auth->family()['name'] ?? '';
     $thumbnail  = isset($_GET['tn']);
-    if (!$media->serve($mediaUuid, $familyId, $familyName, $thumbnail)) {
+    $poster     = isset($_GET['poster']);
+    if (!$media->serve($mediaUuid, $familyId, $familyName, $thumbnail, $poster)) {
         http_response_code(404);
         echo 'Not found';
     }

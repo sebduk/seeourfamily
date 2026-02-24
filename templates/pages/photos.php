@@ -21,15 +21,16 @@ $perPage = 78;
 $start   = max(0, (int)($_GET['start'] ?? 0));
 $folderId = isset($_GET['folder']) ? (int)$_GET['folder'] : null;
 
-// Image filter: matches both legacy file_name and new stored_filename entries
-$imageFilter = "(
-    (p.file_name IS NOT NULL AND (LOWER(RIGHT(p.file_name, 3)) IN ('jpg','gif','png') OR LOWER(RIGHT(p.file_name, 4)) = 'jpeg'))
+// Media filter: images + video + audio (matches both legacy file_name and new stored_filename)
+$mediaFilter = "(
+    (p.file_name IS NOT NULL
+        AND (LOWER(RIGHT(p.file_name, 3)) IN ('jpg','gif','png','mp4','avi','mp3','ogg','wav') OR LOWER(RIGHT(p.file_name, 4)) IN ('jpeg','webm')))
     OR (p.stored_filename IS NOT NULL AND p.file_name IS NULL
-        AND (LOWER(RIGHT(p.stored_filename, 3)) IN ('jpg','gif','png') OR LOWER(RIGHT(p.stored_filename, 4)) = 'jpeg'))
+        AND (LOWER(RIGHT(p.stored_filename, 3)) IN ('jpg','gif','png','mp4','avi','mp3','ogg','wav') OR LOWER(RIGHT(p.stored_filename, 4)) IN ('jpeg','webm')))
 )";
 
 // Count total photos
-$countSql = "SELECT COUNT(*) FROM photos p WHERE p.family_id = ? AND $imageFilter";
+$countSql = "SELECT COUNT(*) FROM photos p WHERE p.family_id = ? AND $mediaFilter";
 $countParams = [$fid];
 if ($folderId !== null) {
     if ($folderId === 0) {
@@ -45,9 +46,9 @@ $totalPhotos = (int)$stmt->fetchColumn();
 $totalPages = max(1, (int)ceil($totalPhotos / $perPage));
 
 // Load current page of photos
-$sql = "SELECT p.id, p.uuid, p.file_name, p.original_filename, p.stored_filename, p.description, p.photo_date
+$sql = "SELECT p.id, p.uuid, p.file_name, p.original_filename, p.stored_filename, p.description, p.photo_date, p.mime_type, p.poster_uuid
         FROM photos p
-        WHERE p.family_id = ? AND $imageFilter";
+        WHERE p.family_id = ? AND $mediaFilter";
 $params = [$fid];
 if ($folderId !== null) {
     if ($folderId === 0) {
@@ -77,7 +78,7 @@ $fStmt->execute([$fid, 'image']);
 $folders = $fStmt->fetchAll();
 
 // Also count unfiled photos
-$unfStmt = $pdo->prepare("SELECT COUNT(*) FROM photos p WHERE p.family_id = ? AND p.folder_id IS NULL AND $imageFilter");
+$unfStmt = $pdo->prepare("SELECT COUNT(*) FROM photos p WHERE p.family_id = ? AND p.folder_id IS NULL AND $mediaFilter");
 $unfStmt->execute([$fid]);
 $unfiledCount = (int)$unfStmt->fetchColumn();
 
@@ -114,9 +115,19 @@ $folderQs = $folderId !== null ? '&amp;folder=' . $folderId : '';
 <div class="photo-grid">
     <?php foreach ($photos as $photo):
         $alt = pathinfo($photo['original_filename'] ?? $photo['file_name'] ?? '', PATHINFO_FILENAME);
+        $mime = \SeeOurFamily\Media::mimeFromRow($photo);
+        $isVid = \SeeOurFamily\Media::isVideo($mime);
+        $isAud = \SeeOurFamily\Media::isAudio($mime);
     ?>
-        <a class="thumb" href="/photo/<?= h($photo['uuid']) ?>" title="<?= h($alt) ?>">
-            <img src="/media/<?= h($photo['uuid']) ?>?tn=1" alt="<?= h($alt) ?>">
+        <a class="thumb" href="/photo/<?= h($photo['uuid']) ?>" title="<?= h($alt) ?>"<?= ($isVid || $isAud) ? ' style="position:relative"' : '' ?>>
+            <?php if (($isVid || $isAud) && !empty($photo['poster_uuid'])): ?>
+                <img src="/media/<?= h($photo['uuid']) ?>?poster=1&amp;tn=1" alt="<?= h($alt) ?>">
+            <?php elseif ($isVid || $isAud): ?>
+                <span style="display:flex;align-items:center;justify-content:center;width:100px;height:75px;background:#333;color:#fff;font-size:2rem"><?= $isVid ? '&#9654;' : '&#9835;' ?></span>
+            <?php else: ?>
+                <img src="/media/<?= h($photo['uuid']) ?>?tn=1" alt="<?= h($alt) ?>">
+            <?php endif; ?>
+            <?php if ($isVid): ?><span style="position:absolute;bottom:2px;right:2px;background:rgba(0,0,0,.6);color:#fff;font-size:.7rem;padding:1px 4px;border-radius:2px">&#9654;</span><?php endif; ?>
         </a>
     <?php endforeach; ?>
 </div>

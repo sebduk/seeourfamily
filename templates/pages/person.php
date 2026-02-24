@@ -82,32 +82,34 @@ $stmt = $pdo->prepare(
 $stmt->execute([$personId, $fid]);
 $comments = $stmt->fetchAll();
 
-// Pictures (image extensions)
+// Pictures (images + video + audio)
 $stmt = $pdo->prepare(
     "SELECT ph.* FROM photos ph
      JOIN photo_person_link ppl ON ppl.photo_id = ph.id
      WHERE ppl.person_id = ? AND ph.family_id = ?
        AND (
-         (ph.file_name IS NOT NULL AND (LOWER(RIGHT(ph.file_name, 3)) IN ('jpg','gif','png') OR LOWER(RIGHT(ph.file_name, 4)) = 'jpeg'))
+         (ph.file_name IS NOT NULL
+           AND (LOWER(RIGHT(ph.file_name, 3)) IN ('jpg','gif','png','mp4','avi','mp3','ogg','wav') OR LOWER(RIGHT(ph.file_name, 4)) IN ('jpeg','webm')))
          OR (ph.stored_filename IS NOT NULL AND ph.file_name IS NULL
-           AND (LOWER(RIGHT(ph.stored_filename, 3)) IN ('jpg','gif','png') OR LOWER(RIGHT(ph.stored_filename, 4)) = 'jpeg'))
+           AND (LOWER(RIGHT(ph.stored_filename, 3)) IN ('jpg','gif','png','mp4','avi','mp3','ogg','wav') OR LOWER(RIGHT(ph.stored_filename, 4)) IN ('jpeg','webm')))
        )
      ORDER BY ph.photo_date, COALESCE(ph.original_filename, ph.file_name)"
 );
 $stmt->execute([$personId, $fid]);
 $pictures = $stmt->fetchAll();
 
-// Documents (non-image files)
+// Documents (non-image, non-video, non-audio files)
 $stmt = $pdo->prepare(
     "SELECT ph.* FROM photos ph
      JOIN photo_person_link ppl ON ppl.photo_id = ph.id
      WHERE ppl.person_id = ? AND ph.family_id = ?
        AND (
-         (ph.file_name IS NOT NULL AND LOWER(RIGHT(ph.file_name, 3)) NOT IN ('jpg','gif','png')
-           AND LOWER(RIGHT(ph.file_name, 4)) <> 'jpeg')
+         (ph.file_name IS NOT NULL
+           AND LOWER(RIGHT(ph.file_name, 3)) NOT IN ('jpg','gif','png','mp4','avi','mp3','ogg','wav')
+           AND LOWER(RIGHT(ph.file_name, 4)) NOT IN ('jpeg','webm'))
          OR (ph.stored_filename IS NOT NULL AND ph.file_name IS NULL
-           AND LOWER(RIGHT(ph.stored_filename, 3)) NOT IN ('jpg','gif','png')
-           AND LOWER(RIGHT(ph.stored_filename, 4)) <> 'jpeg')
+           AND LOWER(RIGHT(ph.stored_filename, 3)) NOT IN ('jpg','gif','png','mp4','avi','mp3','ogg','wav')
+           AND LOWER(RIGHT(ph.stored_filename, 4)) NOT IN ('jpeg','webm'))
        )
      ORDER BY ph.photo_date, COALESCE(ph.original_filename, ph.file_name)"
 );
@@ -206,12 +208,21 @@ $docs = $stmt->fetchAll();
         $stmt->execute([$pic['id'], $personId]);
         $others = $stmt->fetchAll();
 
-        // Thumbnail: check for .tn. variant
-        $tnName = preg_replace('/\.(\w+)$/', '.tn.$1', $pic['file_name']);
+        $picMime = \SeeOurFamily\Media::mimeFromRow($pic);
+        $picIsVid = \SeeOurFamily\Media::isVideo($picMime);
+        $picIsAud = \SeeOurFamily\Media::isAudio($picMime);
     ?>
     <div class="bio-photo-item">
         <div class="thumb">
-            <a href="/photo/<?= h($pic['uuid']) ?>"><img src="/media/<?= h($pic['uuid']) ?>?tn=1" alt=""></a>
+            <?php if ($picIsVid || $picIsAud): ?>
+                <?php if (!empty($pic['poster_uuid'])): ?>
+                    <a href="/photo/<?= h($pic['uuid']) ?>"><img src="/media/<?= h($pic['uuid']) ?>?poster=1&amp;tn=1" alt=""></a>
+                <?php else: ?>
+                    <a href="/photo/<?= h($pic['uuid']) ?>" style="display:flex;align-items:center;justify-content:center;width:100px;height:75px;background:#333;color:#fff;font-size:2rem;text-decoration:none"><?= $picIsVid ? '&#9654;' : '&#9835;' ?></a>
+                <?php endif; ?>
+            <?php else: ?>
+                <a href="/photo/<?= h($pic['uuid']) ?>"><img src="/media/<?= h($pic['uuid']) ?>?tn=1" alt=""></a>
+            <?php endif; ?>
         </div>
         <div>
             <?= formatPhotoDate($pic['photo_date'], $pic['photo_precision'] ?? 'y', $months) ?>

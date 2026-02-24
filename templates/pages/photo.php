@@ -29,6 +29,9 @@ if (!$photo) {
 }
 
 $photoId = (int)$photo['id']; // integer for internal JOINs
+$photoMime = \SeeOurFamily\Media::mimeFromRow($photo);
+$isVideoFile = \SeeOurFamily\Media::isVideo($photoMime);
+$isAudioFile = \SeeOurFamily\Media::isAudio($photoMime);
 
 // Date formatting
 $dateStr = '';
@@ -70,6 +73,23 @@ $tags = $stmt->fetchAll();
 ?>
 
 <div class="photo-detail">
+    <?php if ($isVideoFile): ?>
+    <div class="media-player">
+        <video controls preload="metadata" style="max-width:100%;max-height:80vh"
+            <?php if (!empty($photo['poster_uuid'])): ?> poster="/media/<?= h($photo['uuid']) ?>?poster=1"<?php endif; ?>>
+            <source src="/media/<?= h($photo['uuid']) ?>" type="<?= h($photoMime) ?>">
+        </video>
+    </div>
+    <?php elseif ($isAudioFile): ?>
+    <div class="media-player">
+        <?php if (!empty($photo['poster_uuid'])): ?>
+            <img src="/media/<?= h($photo['uuid']) ?>?poster=1" alt="" style="max-width:100%;max-height:60vh;display:block;margin-bottom:.5rem">
+        <?php endif; ?>
+        <audio controls preload="metadata" style="width:100%">
+            <source src="/media/<?= h($photo['uuid']) ?>" type="<?= h($photoMime) ?>">
+        </audio>
+    </div>
+    <?php else: ?>
     <div class="photo-tags-container">
         <img src="/media/<?= h($photo['uuid']) ?>" alt="">
         <?php foreach ($tags as $tag): ?>
@@ -79,6 +99,7 @@ $tags = $stmt->fetchAll();
         </a>
         <?php endforeach; ?>
     </div>
+    <?php endif; ?>
 
     <?php if ($photo['description']): ?>
         <div class="photo-info"><?= nl2br(h($photo['description'])) ?></div>
@@ -100,6 +121,7 @@ $tags = $stmt->fetchAll();
     <?php endif; ?>
 </div>
 
+<?php if (!$isVideoFile && !$isAudioFile): ?>
 <script>
 // Scale small images up to 2x their natural size, capped at 80vh
 (function() {
@@ -116,3 +138,4 @@ $tags = $stmt->fetchAll();
     if (img.complete) scaleUp(); else img.addEventListener('load', scaleUp);
 })();
 </script>
+<?php endif; ?>

@@ -22,13 +22,14 @@ $folderId = isset($_GET['folder']) ? (int)$_GET['folder'] : null;
 $sortCol = $_GET['s'] ?? '2';
 $sortDir = $_GET['o'] ?? 'u';
 
-// Non-image filter
+// Non-image, non-video, non-audio filter (true documents only)
 $docFilter = "(
-    (file_name IS NOT NULL AND LOWER(RIGHT(file_name, 3)) NOT IN ('jpg','gif','png')
-      AND LOWER(RIGHT(file_name, 4)) <> 'jpeg')
+    (file_name IS NOT NULL
+      AND LOWER(RIGHT(file_name, 3)) NOT IN ('jpg','gif','png','mp4','avi','mp3','ogg','wav')
+      AND LOWER(RIGHT(file_name, 4)) NOT IN ('jpeg','webm'))
     OR (stored_filename IS NOT NULL AND file_name IS NULL
-      AND LOWER(RIGHT(stored_filename, 3)) NOT IN ('jpg','gif','png')
-      AND LOWER(RIGHT(stored_filename, 4)) <> 'jpeg')
+      AND LOWER(RIGHT(stored_filename, 3)) NOT IN ('jpg','gif','png','mp4','avi','mp3','ogg','wav')
+      AND LOWER(RIGHT(stored_filename, 4)) NOT IN ('jpeg','webm'))
 )";
 
 $sql = "SELECT id, uuid, file_name, original_filename, stored_filename, description, photo_date, file_size, created_at

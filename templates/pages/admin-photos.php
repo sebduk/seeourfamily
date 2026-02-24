@@ -94,6 +94,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
+        // Handle poster image upload for video/audio
+        if ($id > 0 && !empty($_FILES['poster_file']['name'])) {
+            $posterResult = $media->storeUpload($_FILES['poster_file'], $fid);
+            if ($posterResult !== null) {
+                // Create a hidden photo row for the poster image
+                $pdo->prepare(
+                    'INSERT INTO photos (family_id, stored_filename, original_filename, mime_type, file_size)
+                     VALUES (?, ?, ?, ?, ?)'
+                )->execute([$fid, $posterResult['stored_filename'], $posterResult['original_filename'], $posterResult['mime_type'], $posterResult['file_size']]);
+                $posterPhotoId = (int)$pdo->lastInsertId();
+                // Get the UUID of the new poster photo
+                $puStmt = $pdo->prepare('SELECT uuid FROM photos WHERE id = ?');
+                $puStmt->execute([$posterPhotoId]);
+                $posterUuid = $puStmt->fetchColumn();
+                // Set poster_uuid on the video/audio row
+                $pdo->prepare('UPDATE photos SET poster_uuid = ? WHERE id = ? AND family_id = ?')
+                    ->execute([$posterUuid, $id, $fid]);
+            }
+        } elseif ($id > 0 && isset($_POST['remove_poster']) && $_POST['remove_poster'] === '1') {
+            $pdo->prepare('UPDATE photos SET poster_uuid = NULL WHERE id = ? AND family_id = ?')
+                ->execute([$id, $fid]);
+        }
+
         // Save tags
         if ($id > 0) {
             $pdo->prepare('DELETE FROM photo_tags WHERE photo_id = ?')->execute([$id]);
@@ -181,10 +204,11 @@ $sql = "SELECT p.id, p.uuid, p.file_name, p.original_filename, p.photo_date,
         LEFT JOIN photo_tags pt ON pt.photo_id = p.id";
 $sql .= " WHERE p.family_id = ?
            AND (
-             (p.file_name IS NOT NULL AND (LOWER(RIGHT(p.file_name, 3)) IN ('jpg','gif','png') OR LOWER(RIGHT(p.file_name, 4)) = 'jpeg')
+             (p.file_name IS NOT NULL
+               AND (LOWER(RIGHT(p.file_name, 3)) IN ('jpg','gif','png','mp4','avi','mp3','ogg','wav') OR LOWER(RIGHT(p.file_name, 4)) IN ('jpeg','webm'))
                AND LOWER(p.file_name) NOT LIKE '%.tn.%')
              OR (p.stored_filename IS NOT NULL AND p.file_name IS NULL
-               AND (LOWER(RIGHT(p.stored_filename, 3)) IN ('jpg','gif','png') OR LOWER(RIGHT(p.stored_filename, 4)) = 'jpeg'))
+               AND (LOWER(RIGHT(p.stored_filename, 3)) IN ('jpg','gif','png','mp4','avi','mp3','ogg','wav') OR LOWER(RIGHT(p.stored_filename, 4)) IN ('jpeg','webm')))
            )";
 $params = [$fid];
 
@@ -244,6 +268,10 @@ foreach ($existingTags as $t) {
 }
 $taggedIds = array_keys($tagMap);
 $linkedIds = array_column($linkedPeople, 'id');
+
+$photoMime = $photo ? \SeeOurFamily\Media::mimeFromRow($photo) : '';
+$isVideoFile = \SeeOurFamily\Media::isVideo($photoMime);
+$isAudioFile = \SeeOurFamily\Media::isAudio($photoMime);
 ?>
 
 <?php require __DIR__ . '/../_admin-nav.php'; ?>
@@ -312,12 +340,30 @@ $linkedIds = array_column($linkedPeople, 'id');
         <?php endif; ?>
 
         <!-- Edit/Add form -->
-        <form method="post" action="/admin/photos<?= $qs() ?>" class="admin-form" id="photoForm" onsubmit="return onSubmit()">
+        <form method="post" action="/admin/photos<?= $qs() ?>" class="admin-form" id="photoForm" onsubmit="return onSubmit()" enctype="multipart/form-data">
             <input type="hidden" name="id" value="<?= $photo ? $photo['id'] : '' ?>">
             <input type="hidden" name="todo" value="<?= $photo ? 'update' : 'add' ?>">
             <input type="hidden" name="tags_json" id="tagsJson" value="">
 
-            <?php if ($photo): ?>
+            <?php if ($photo && $isVideoFile): ?>
+            <!-- Video player preview -->
+            <div class="media-preview">
+                <video controls preload="metadata" style="max-width:100%;max-height:70vh"
+                    <?php if (!empty($photo['poster_uuid'])): ?> poster="/media/<?= h($photo['uuid']) ?>?poster=1"<?php endif; ?>>
+                    <source src="/media/<?= h($photo['uuid']) ?>" type="<?= h($photoMime) ?>">
+                </video>
+            </div>
+            <?php elseif ($photo && $isAudioFile): ?>
+            <!-- Audio player preview -->
+            <div class="media-preview">
+                <?php if (!empty($photo['poster_uuid'])): ?>
+                    <img src="/media/<?= h($photo['uuid']) ?>?poster=1" style="max-width:300px;display:block;margin-bottom:.5rem" alt="Poster">
+                <?php endif; ?>
+                <audio controls preload="metadata" style="width:100%">
+                    <source src="/media/<?= h($photo['uuid']) ?>" type="<?= h($photoMime) ?>">
+                </audio>
+            </div>
+            <?php elseif ($photo): ?>
             <!-- Taggable image -->
             <div class="tag-container" id="tagContainer">
                 <img id="tagImg" src="/media/<?= h($photo['uuid']) ?>">
@@ -359,6 +405,18 @@ $linkedIds = array_column($linkedPeople, 'id');
                     <?php endforeach; ?>
                 </select>
             </div>
+
+            <?php if ($photo && ($isVideoFile || $isAudioFile)): ?>
+            <div class="form-row"><label>Poster Image</label>
+                <div>
+                    <?php if (!empty($photo['poster_uuid'])): ?>
+                        <img src="/media/<?= h($photo['uuid']) ?>?poster=1&amp;tn=1" alt="Current poster" style="max-height:80px;vertical-align:middle">
+                        <label><input type="checkbox" name="remove_poster" value="1"> Remove poster</label><br>
+                    <?php endif; ?>
+                    <input type="file" name="poster_file" accept=".jpg,.jpeg,.gif,.png">
+                </div>
+            </div>
+            <?php endif; ?>
 
             <div class="form-row"><label>People</label>
                 <div class="dual-list">
