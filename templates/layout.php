@@ -123,15 +123,23 @@ if ($cookieSize >= 8 && $cookieSize <= 16) $bodyStyle .= 'font-size:' . $cookieS
                         <a href="<?= h($currentPath) ?>?Language=DEU">Deutsch</a> |
                         <a href="<?= h($currentPath) ?>?Language=NLD">Nederlands</a>
                     </div>
+                    <?php if ($isAdmin): ?>
                     <div class="settings-section">
                         <a href="/admin">&#x2699; <?= $L['menu_admin'] ?></a>
                     </div>
+                    <?php endif; ?>
+                    <?php if ($isLoggedIn): ?>
                     <div class="settings-section">
-                        <a href="/home?DomKey=">&#x21c4; Switch family</a>
+                        <?php if ($userName): ?>
+                            <small style="color:#666;"><?= h($userName) ?></small><br>
+                        <?php endif; ?>
+                        <a href="/?action=logout">&#x2716; Logout</a>
                     </div>
+                    <?php else: ?>
                     <div class="settings-section">
-                        <a href="/?action=exit">&#x2716; Exit</a>
+                        <a href="/login">&#x1F511; <?= $L['menu_login'] ?></a>
                     </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>

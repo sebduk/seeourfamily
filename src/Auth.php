@@ -51,6 +51,29 @@ class Auth
         return false;
     }
 
+    /** Set the active family by ID (used after login when user picks a family). */
+    public function setFamilyById(int $familyId): bool
+    {
+        $stmt = $this->db->pdo()->prepare(
+            'SELECT id FROM families WHERE id = ? AND is_online = 1'
+        );
+        $stmt->execute([$familyId]);
+        $row = $stmt->fetch();
+        if ($row) {
+            $_SESSION['family_id'] = (int)$row['id'];
+            // If user is logged in, resolve their role for this family
+            $userId = $this->userId();
+            if ($userId !== null) {
+                $role = $this->resolveUserRole($userId, (int)$row['id']);
+                if ($role !== null) {
+                    $_SESSION['role'] = $role;
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+
     public function familyId(): ?int
     {
         return isset($_SESSION['family_id']) ? (int)$_SESSION['family_id'] : null;
@@ -75,18 +98,49 @@ class Auth
     // -----------------------------------------------------------------
 
     /**
-     * Attempt login with a password.
+     * Login with username and password.
+     *
+     * Checks the users table for a matching login + hashed password.
+     * On success, stores user_id in session and returns an array of
+     * families the user has access to (with their roles).
+     *
+     * @return array|null Array of families on success, null on failure.
+     *   Each entry: ['family_id' => int, 'role' => string, 'name' => string, 'title' => string]
+     */
+    public function loginUser(string $login, string $password): ?array
+    {
+        $login = trim($login);
+        if ($login === '' || $password === '') {
+            return null;
+        }
+
+        $stmt = $this->db->pdo()->prepare(
+            'SELECT id, password FROM users WHERE login = ? AND is_online = 1'
+        );
+        $stmt->execute([$login]);
+        $user = $stmt->fetch();
+
+        if (!$user || !password_verify($password, $user['password'])) {
+            return null;
+        }
+
+        // User authenticated — store in session
+        $_SESSION['user_id'] = (int)$user['id'];
+
+        // Get all families this user can access
+        return $this->userFamilies((int)$user['id']);
+    }
+
+    /**
+     * Legacy login: authenticate with just a password against the active family.
      *
      * The old ASP site had two password tiers stored on the family record:
      *   - guest_password  -> grants "Guest" role (view only)
      *   - admin_password  -> grants "Admin" role (edit)
      *
-     * After migration, these are hashed with password_hash().
-     * We also support user-table logins for multi-family users.
-     *
      * Returns the role string on success, or null on failure.
      */
-    public function login(string $password): ?string
+    public function loginFamilyPassword(string $password): ?string
     {
         $family = $this->family();
         if ($family === null) {
@@ -105,29 +159,42 @@ class Auth
             return 'Guest';
         }
 
-        // Try user-table login (login field = username, password field = hashed)
-        $stmt = $this->db->pdo()->prepare(
-            'SELECT u.id, u.password, ufl.role
-             FROM users u
-             JOIN user_family_link ufl ON ufl.user_id = u.id
-             WHERE u.login = ? AND ufl.family_id = ? AND u.is_online = 1 AND ufl.is_online = 1'
-        );
-        $stmt->execute([$password, $family['id']]);
-        // Note: old system used a single password field; this checks if the
-        // submitted value matches the login or verifies against hashed password
-        $row = $stmt->fetch();
-        if ($row && password_verify($password, $row['password'])) {
-            $_SESSION['user_id'] = (int)$row['id'];
-            $_SESSION['role'] = $row['role'];
-            return $row['role'];
-        }
-
         return null;
+    }
+
+    /**
+     * Get all families a user has access to (with roles).
+     *
+     * @return array Each entry: ['family_id', 'role', 'name', 'title']
+     */
+    public function userFamilies(int $userId): array
+    {
+        $stmt = $this->db->pdo()->prepare(
+            'SELECT f.id AS family_id, ufl.role, f.name, f.title
+             FROM user_family_link ufl
+             JOIN families f ON f.id = ufl.family_id
+             WHERE ufl.user_id = ? AND ufl.is_online = 1 AND f.is_online = 1
+             ORDER BY f.name'
+        );
+        $stmt->execute([$userId]);
+        return $stmt->fetchAll();
+    }
+
+    /** Look up the role a user has for a specific family. */
+    private function resolveUserRole(int $userId, int $familyId): ?string
+    {
+        $stmt = $this->db->pdo()->prepare(
+            'SELECT role FROM user_family_link
+             WHERE user_id = ? AND family_id = ? AND is_online = 1'
+        );
+        $stmt->execute([$userId, $familyId]);
+        $row = $stmt->fetch();
+        return $row ? $row['role'] : null;
     }
 
     public function logout(): void
     {
-        unset($_SESSION['user_id'], $_SESSION['role']);
+        unset($_SESSION['user_id'], $_SESSION['role'], $_SESSION['family_id']);
     }
 
     public function userId(): ?int
@@ -140,16 +207,35 @@ class Auth
         return $_SESSION['role'] ?? null;
     }
 
+    /** True if the user has an active role (authenticated via user login or family password). */
     public function isLoggedIn(): bool
     {
-        // TODO: restore proper auth — for now treat everyone as logged in
-        return true;
+        return $this->role() !== null;
     }
 
+    /** True if role is Admin or Owner. */
     public function isAdmin(): bool
     {
-        // TODO: restore proper auth
-        return true;
+        $role = $this->role();
+        return $role === 'Admin' || $role === 'Owner';
+    }
+
+    /** Get the logged-in user's display name. */
+    public function userName(): ?string
+    {
+        $uid = $this->userId();
+        if ($uid === null) {
+            return null;
+        }
+        $stmt = $this->db->pdo()->prepare(
+            'SELECT name, login FROM users WHERE id = ? AND is_online = 1'
+        );
+        $stmt->execute([$uid]);
+        $row = $stmt->fetch();
+        if (!$row) {
+            return null;
+        }
+        return $row['name'] ?: $row['login'];
     }
 
     // -----------------------------------------------------------------

@@ -14,26 +14,43 @@
  */
 
 if (!$family) {
-    // No family selected — show family chooser
-    // (Old ASP handled this via domain.asp / frameDom.asp)
-    $stmt = $db->pdo()->query(
-        'SELECT id, name, title, hash FROM families WHERE is_online = 1 ORDER BY name'
-    );
-    $families = $stmt->fetchAll();
-    ?>
-    <h2>Welcome to See Our Family</h2>
-    <p>Select a family to view:</p>
-    <ul>
-        <?php foreach ($families as $f): ?>
-            <li>
-                <a href="/home?DomKey=<?= h($f['hash'] ?? '') ?>">
-                    <?= h($f['title'] ?? $f['name']) ?>
-                </a>
-            </li>
-        <?php endforeach; ?>
-    </ul>
-    <?php
-    return;
+    if (!$isLoggedIn) {
+        // Not logged in and no family context — redirect to login
+        header('Location: /login');
+        exit;
+    }
+    // Logged in but no family selected — show family chooser
+    $uid = $auth->userId();
+    if ($uid !== null) {
+        $userFamilies = $auth->userFamilies($uid);
+        if (count($userFamilies) === 1) {
+            // Single family — auto-select
+            $auth->setFamilyById((int)$userFamilies[0]['family_id']);
+            header('Location: /home');
+            exit;
+        }
+        ?>
+        <h2>Welcome to See Our Family</h2>
+        <p>Select a family to view:</p>
+        <ul>
+            <?php foreach ($userFamilies as $f): ?>
+                <li>
+                    <form action="/login" method="post" style="display:inline;">
+                        <input type="hidden" name="select_family_id" value="<?= (int)$f['family_id'] ?>">
+                        <button type="submit" style="background:none; border:none; color:#00c; cursor:pointer; text-decoration:underline; font-size:inherit;">
+                            <?= h($f['title'] ?? $f['name']) ?>
+                        </button>
+                        <small style="color:#666;">(<?= h($f['role']) ?>)</small>
+                    </form>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+        <?php
+        return;
+    }
+    // Fallback: no user_id in session (legacy family-password login without family set)
+    header('Location: /login');
+    exit;
 }
 
 // Family is selected — replicate intro.asp behavior

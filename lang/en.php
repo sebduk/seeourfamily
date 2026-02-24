@@ -56,8 +56,9 @@ return [
     'pictures_all'    => 'View all pictures',
 
     // Login
-    'login_message' => 'Login to broaden the menu and gain access to the update functions.<br>(you will be automatically logged off if you close your browser)',
+    'login_message' => 'Log in to access your family tree.',
     'password'      => 'Password',
+    'btn_login'     => 'Login',
 
     // Documents list (Prog/View/lstDocs.asp)
     'file_name'    => 'File Name',

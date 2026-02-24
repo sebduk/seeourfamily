@@ -129,37 +129,84 @@ if (isset($_GET['Language'])) {
     $auth->setLanguage($_GET['Language']);
 }
 
+// Logout (before login handling so ?action=logout clears state first)
+if (($_GET['action'] ?? '') === 'logout') {
+    $auth->logout();
+    header('Location: /login');
+    exit;
+}
+
 // Login form submission (POST)
+$loginError = '';
+$loginFamilies = null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $router->page() === 'login') {
     $devLogin = $_POST['dev_login'] ?? '';
     if ($devLogin !== '' && ($_ENV['APP_DEV'] ?? '') === '1') {
         // Dev mode: bypass password, set role directly
         $_SESSION['role'] = $devLogin;
-    } else {
-        $password = $_POST['password'] ?? '';
-        $auth->login($password);
+        header('Location: /home');
+        exit;
+    }
+
+    $loginField = trim($_POST['login'] ?? '');
+    $passwordField = $_POST['password'] ?? '';
+
+    if ($loginField !== '') {
+        // User-table login (username + password)
+        $families = $auth->loginUser($loginField, $passwordField);
+        if ($families === null) {
+            $loginError = 'invalid';
+        } elseif (count($families) === 1) {
+            // Single family — set it and redirect
+            $auth->setFamilyById((int)$families[0]['family_id']);
+            header('Location: /home');
+            exit;
+        } elseif (count($families) > 1) {
+            // Multiple families — show chooser (handled in login template)
+            $loginFamilies = $families;
+        } else {
+            // User exists but has no family access
+            $loginError = 'no_family';
+        }
+    } elseif ($passwordField !== '') {
+        // Legacy family-password login (password only, family must be set)
+        $role = $auth->loginFamilyPassword($passwordField);
+        if ($role !== null) {
+            header('Location: /home');
+            exit;
+        }
+        $loginError = 'invalid';
     }
 }
 
-// Logout
-if ($router->page() === 'login' && ($_GET['action'] ?? '') === 'logout') {
-    $auth->logout();
+// Family selection after login (user picks from their list)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($router->page() === 'login') && isset($_POST['select_family_id'])) {
+    $selFamilyId = (int)$_POST['select_family_id'];
+    $userId = $auth->userId();
+    if ($userId !== null) {
+        $auth->setFamilyById($selFamilyId);
+        header('Location: /home');
+        exit;
+    }
+}
+
+// Route protection: redirect to login if accessing protected pages without auth
+$publicPages = ['login', 'home'];
+$page = $router->page();
+if (!$auth->isLoggedIn() && !in_array($page, $publicPages, true)) {
+    header('Location: /login');
+    exit;
+}
+
+// Admin route protection
+if (str_starts_with($page, 'admin') && !$auth->isAdmin()) {
+    header('Location: /login');
+    exit;
 }
 
 // =========================================================================
-// TEMPLATE VARIABLES
+// HELPER FUNCTIONS (must be defined before template variables use them)
 // =========================================================================
-
-$family      = $auth->family();
-$familyTitle = $family
-    ? h($family['title'] ?? $family['name'])
-    : 'See Our Family';
-$lang        = $auth->language();
-$labels      = new Labels($lang);
-$L           = $labels->all();
-$page        = $router->page();
-$isLoggedIn  = $auth->isLoggedIn();
-$isAdmin     = $auth->isAdmin();
 
 /** HTML-escape shorthand — available in all templates.
  *  Also repairs double/triple-encoded UTF-8 from the Access migration. */
@@ -190,6 +237,21 @@ function fix_utf8(string $s): string
     }
     return $s;
 }
+
+// =========================================================================
+// TEMPLATE VARIABLES
+// =========================================================================
+
+$family      = $auth->family();
+$familyTitle = $family
+    ? h($family['title'] ?? $family['name'])
+    : 'See Our Family';
+$lang        = $auth->language();
+$labels      = new Labels($lang);
+$L           = $labels->all();
+$isLoggedIn  = $auth->isLoggedIn();
+$isAdmin     = $auth->isAdmin();
+$userName    = $auth->userName();
 
 // =========================================================================
 // RENDER
