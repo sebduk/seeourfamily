@@ -162,8 +162,10 @@ if ($cookieSize >= 8 && $cookieSize <= 16) $bodyStyle .= 'font-size:' . $cookieS
         if (file_exists($pageFile)) {
             require $pageFile;
         } else {
-            echo '<h2>' . h($page) . '</h2>';
-            echo '<p>This page is not yet implemented.</p>';
+            http_response_code(404);
+            echo '<h2>Page Not Found</h2>';
+            echo '<p>The requested page could not be found.</p>';
+            echo '<p><a href="/home">Return to home page</a></p>';
         }
         ?>
     </main>

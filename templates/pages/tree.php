@@ -194,6 +194,301 @@ if ($coupleId) {
 
 <?php
 // =========================================================================
+// ALTERNATE VIEW MODES: horizontal, table, excel
+// =========================================================================
+$style = $_GET['style'] ?? '';
+$dir   = $_GET['dir']   ?? '';
+
+if ($style !== '' && in_array($style, ['horizontal', 'table', 'excel'], true)):
+
+// ---- Recursive data builders -------------------------------------------
+
+/**
+ * Collect all ancestors of a person into a flat array keyed by generation.
+ * $result[gen][] = ['id'=>, 'first_name'=>, 'last_name'=>, 'birth'=>, 'death'=>, 'pos'=>]
+ * pos = position within generation (0-based, binary tree order)
+ */
+function collectAncestors(PDO $pdo, int $fid, int $personId, int $gen, int $pos, array &$result, int $maxDepth = 12): void
+{
+    if ($gen > $maxDepth) return;
+    $stmt = $pdo->prepare(
+        'SELECT p.couple_id, c.id AS cid,
+                p1.id AS p1_id, p1.first_name AS p1_fn, p1.last_name AS p1_ln,
+                IFNULL(DATE_FORMAT(p1.birth_date, "%Y"), "") AS p1_birth,
+                IFNULL(DATE_FORMAT(p1.death_date, "%Y"), "") AS p1_death,
+                p2.id AS p2_id, p2.first_name AS p2_fn, p2.last_name AS p2_ln,
+                IFNULL(DATE_FORMAT(p2.birth_date, "%Y"), "") AS p2_birth,
+                IFNULL(DATE_FORMAT(p2.death_date, "%Y"), "") AS p2_death
+         FROM people p
+         JOIN couples c  ON c.id = p.couple_id AND c.family_id = ?
+         JOIN people  p1 ON c.person1_id = p1.id
+         JOIN people  p2 ON c.person2_id = p2.id
+         WHERE p.id = ? AND p.family_id = ?'
+    );
+    $stmt->execute([$fid, $personId, $fid]);
+    $row = $stmt->fetch();
+    if (!$row) return;
+
+    $fatherPos = $pos * 2;
+    $motherPos = $pos * 2 + 1;
+    $result[$gen][$fatherPos] = ['id' => (int)$row['p1_id'], 'first_name' => $row['p1_fn'], 'last_name' => $row['p1_ln'], 'birth' => $row['p1_birth'], 'death' => $row['p1_death']];
+    $result[$gen][$motherPos] = ['id' => (int)$row['p2_id'], 'first_name' => $row['p2_fn'], 'last_name' => $row['p2_ln'], 'birth' => $row['p2_birth'], 'death' => $row['p2_death']];
+
+    collectAncestors($pdo, $fid, (int)$row['p1_id'], $gen + 1, $fatherPos, $result, $maxDepth);
+    collectAncestors($pdo, $fid, (int)$row['p2_id'], $gen + 1, $motherPos, $result, $maxDepth);
+}
+
+/**
+ * Collect all descendants of a person into a nested tree.
+ * Returns array of children, each with 'person', 'spouse', 'children' keys.
+ */
+function collectDescendants(PDO $pdo, int $fid, int $personId, int $depth = 0, int $maxDepth = 12): array
+{
+    if ($depth > $maxDepth) return [];
+    $couples = [];
+    $stmt = $pdo->prepare(
+        'SELECT c.id AS couple_id,
+                p1.id AS p1_id, p1.first_name AS p1_fn, p1.last_name AS p1_ln,
+                IFNULL(DATE_FORMAT(p1.birth_date, "%Y"), "") AS p1_birth,
+                IFNULL(DATE_FORMAT(p1.death_date, "%Y"), "") AS p1_death,
+                p2.id AS p2_id, p2.first_name AS p2_fn, p2.last_name AS p2_ln,
+                IFNULL(DATE_FORMAT(p2.birth_date, "%Y"), "") AS p2_birth,
+                IFNULL(DATE_FORMAT(p2.death_date, "%Y"), "") AS p2_death
+         FROM couples c
+         JOIN people p1 ON c.person1_id = p1.id
+         JOIN people p2 ON c.person2_id = p2.id
+         WHERE (c.person1_id = ? OR c.person2_id = ?) AND c.family_id = ?
+         ORDER BY c.start_date'
+    );
+    $stmt->execute([$personId, $personId, $fid]);
+    $coupleRows = $stmt->fetchAll();
+
+    foreach ($coupleRows as $cr) {
+        $spouseId = ((int)$cr['p1_id'] === $personId) ? (int)$cr['p2_id'] : (int)$cr['p1_id'];
+        $spouse = ((int)$cr['p1_id'] === $personId)
+            ? ['id' => (int)$cr['p2_id'], 'first_name' => $cr['p2_fn'], 'last_name' => $cr['p2_ln'], 'birth' => $cr['p2_birth'], 'death' => $cr['p2_death']]
+            : ['id' => (int)$cr['p1_id'], 'first_name' => $cr['p1_fn'], 'last_name' => $cr['p1_ln'], 'birth' => $cr['p1_birth'], 'death' => $cr['p1_death']];
+
+        $children = [];
+        $cStmt = $pdo->prepare(
+            'SELECT id, first_name, last_name,
+                    IFNULL(DATE_FORMAT(birth_date, "%Y"), "") AS birth,
+                    IFNULL(DATE_FORMAT(death_date, "%Y"), "") AS death
+             FROM people WHERE couple_id = ? AND family_id = ? ORDER BY couple_sort'
+        );
+        $cStmt->execute([(int)$cr['couple_id'], $fid]);
+        $childRows = $cStmt->fetchAll();
+
+        foreach ($childRows as $child) {
+            $grandDesc = collectDescendants($pdo, $fid, (int)$child['id'], $depth + 1, $maxDepth);
+            $children[] = ['person' => $child, 'descendants' => $grandDesc];
+        }
+        $couples[] = ['spouse' => $spouse, 'children' => $children];
+    }
+    return $couples;
+}
+
+/**
+ * Flatten descendants into generation rows for table/excel views.
+ * Each row: [gen, name, birth, death, id]
+ */
+function flattenDescendants(array $descendants, int $gen, array &$rows, array $personRow): void
+{
+    foreach ($descendants as $coupleInfo) {
+        foreach ($coupleInfo['children'] as $child) {
+            $p = $child['person'];
+            $rows[] = [$gen, $p['first_name'] . ' ' . $p['last_name'], $p['birth'], $p['death'], (int)$p['id']];
+            flattenDescendants($child['descendants'], $gen + 1, $rows, $p);
+        }
+    }
+}
+
+// ---- Build the data ----------------------------------------------------
+
+$rootPerson = $struct[21]; // Central person (always in slot 21)
+
+if ($dir === 'asc') {
+    $ancestors = [];
+    collectAncestors($pdo, $fid, $personId, 1, 0, $ancestors);
+    $maxGen = !empty($ancestors) ? max(array_keys($ancestors)) : 0;
+} else {
+    $descTree = collectDescendants($pdo, $fid, $personId);
+}
+
+// ---- Excel / CSV export ------------------------------------------------
+if ($style === 'excel'):
+    header('Content-Type: text/csv; charset=utf-8');
+    $direction = ($dir === 'asc') ? 'ascendants' : 'descendants';
+    header('Content-Disposition: attachment; filename="' . $direction . '_' . $personId . '.csv"');
+    $out = fopen('php://output', 'w');
+    fputcsv($out, ['Generation', 'Name', 'Birth', 'Death', 'ID']);
+
+    if ($dir === 'asc') {
+        fputcsv($out, [0, $rootPerson['first_name'] . ' ' . $rootPerson['last_name'], $rootPerson['birth'], $rootPerson['death'], $rootPerson['id']]);
+        for ($g = 1; $g <= $maxGen; $g++) {
+            if (!isset($ancestors[$g])) continue;
+            ksort($ancestors[$g]);
+            foreach ($ancestors[$g] as $a) {
+                fputcsv($out, [$g, $a['first_name'] . ' ' . $a['last_name'], $a['birth'], $a['death'], $a['id']]);
+            }
+        }
+    } else {
+        fputcsv($out, [0, $rootPerson['first_name'] . ' ' . $rootPerson['last_name'], $rootPerson['birth'], $rootPerson['death'], $rootPerson['id']]);
+        $rows = [];
+        flattenDescendants($descTree, 1, $rows, $rootPerson);
+        foreach ($rows as $r) { fputcsv($out, $r); }
+    }
+    fclose($out);
+    exit; // CSV output — skip all further rendering
+
+// ---- Horizontal view ---------------------------------------------------
+elseif ($style === 'horizontal'):
+    if ($dir === 'asc'):
+        // Pedigree chart: person on left, ancestors branching right via rowspan
+        $totalRows = ($maxGen > 0) ? pow(2, $maxGen) : 1;
+?>
+<table class="data-table" style="border-collapse:collapse;">
+<?php for ($row = 0; $row < $totalRows; $row++): ?>
+<tr>
+<?php
+    // Column 0 (generation 0): the person — only on the middle row
+    if ($row === 0):
+        echo '<td rowspan="' . $totalRows . '" style="padding:4px 8px; vertical-align:middle; border-right:1px solid #ccc;">';
+        echo '<b>' . personCell($rootPerson['first_name'], $rootPerson['last_name'], $rootPerson['birth'], $rootPerson['death'], $rootPerson['id']) . '</b>';
+        echo '</td>';
+    endif;
+
+    // Columns 1..maxGen: each generation
+    for ($g = 1; $g <= $maxGen; $g++):
+        $slotsAtGen = pow(2, $g);
+        $rowsPerSlot = $totalRows / $slotsAtGen;
+        // This cell appears only once per slot
+        if ($row % $rowsPerSlot === 0):
+            $pos = (int)($row / $rowsPerSlot);
+            echo '<td rowspan="' . (int)$rowsPerSlot . '" style="padding:4px 8px; vertical-align:middle; border-right:1px solid #ccc; font-size:' . max(7, 10 - $g) . 'pt;">';
+            if (isset($ancestors[$g][$pos])) {
+                $a = $ancestors[$g][$pos];
+                echo personCell($a['first_name'], $a['last_name'], $a['birth'], $a['death'], $a['id']);
+            } else {
+                echo unknownCell();
+            }
+            echo '</td>';
+        endif;
+    endfor;
+?>
+</tr>
+<?php endfor; ?>
+</table>
+<?php
+    else: // desc horizontal
+        // Descendant tree as indented nested list
+        function renderDescHorizontal(array $descendants, int $depth = 1): void {
+            if (empty($descendants)) return;
+            echo '<table style="border-collapse:collapse; margin-left:' . ($depth > 1 ? '20' : '0') . 'px;">';
+            foreach ($descendants as $coupleInfo) {
+                if (!empty($coupleInfo['spouse'])):
+                    $s = $coupleInfo['spouse'];
+                    echo '<tr><td style="padding:2px 6px; color:#666; font-size:9pt;">';
+                    echo '&amp; ' . personCell($s['first_name'], $s['last_name'], $s['birth'], $s['death'], $s['id']);
+                    echo '</td></tr>';
+                endif;
+                foreach ($coupleInfo['children'] as $child) {
+                    $p = $child['person'];
+                    echo '<tr><td style="padding:2px 6px;">';
+                    echo personCell($p['first_name'], $p['last_name'], $p['birth'], $p['death'], (int)$p['id']);
+                    echo '</td></tr>';
+                    if (!empty($child['descendants'])):
+                        echo '<tr><td>';
+                        renderDescHorizontal($child['descendants'], $depth + 1);
+                        echo '</td></tr>';
+                    endif;
+                }
+            }
+            echo '</table>';
+        }
+?>
+<table style="border-collapse:collapse;">
+<tr><td style="padding:4px 8px;">
+    <b><?= personCell($rootPerson['first_name'], $rootPerson['last_name'], $rootPerson['birth'], $rootPerson['death'], $rootPerson['id']) ?></b>
+</td></tr>
+<tr><td>
+    <?php renderDescHorizontal($descTree); ?>
+</td></tr>
+</table>
+<?php
+    endif;
+
+// ---- Table view --------------------------------------------------------
+elseif ($style === 'table'):
+    if ($dir === 'asc'):
+?>
+<table class="data-table">
+<thead>
+<tr><th>Gen</th><th colspan="<?= ($maxGen > 0) ? pow(2, $maxGen) : 1 ?>"><?= $L['full_ascendance'] ?></th></tr>
+</thead>
+<tbody>
+<tr>
+    <td>0</td>
+    <td colspan="<?= ($maxGen > 0) ? pow(2, $maxGen) : 1 ?>">
+        <b><?= personCell($rootPerson['first_name'], $rootPerson['last_name'], $rootPerson['birth'], $rootPerson['death'], $rootPerson['id']) ?></b>
+    </td>
+</tr>
+<?php for ($g = 1; $g <= $maxGen; $g++):
+    $slotsAtGen = pow(2, $g);
+    $colSpan = max(1, (int)(pow(2, $maxGen) / $slotsAtGen));
+?>
+<tr>
+    <td><?= $g ?></td>
+    <?php for ($pos = 0; $pos < $slotsAtGen; $pos++): ?>
+    <td colspan="<?= $colSpan ?>" style="font-size:<?= max(7, 10 - $g) ?>pt;">
+        <?php if (isset($ancestors[$g][$pos])):
+            $a = $ancestors[$g][$pos];
+            echo personCell($a['first_name'], $a['last_name'], $a['birth'], $a['death'], $a['id']);
+        else:
+            echo unknownCell();
+        endif; ?>
+    </td>
+    <?php endfor; ?>
+</tr>
+<?php endfor; ?>
+</tbody>
+</table>
+<?php
+    else: // desc table
+        $rows = [];
+        flattenDescendants($descTree, 1, $rows, $rootPerson);
+?>
+<table class="data-table">
+<thead><tr><th>Gen</th><th>Name</th><th>Birth</th><th>Death</th></tr></thead>
+<tbody>
+<tr>
+    <td>0</td>
+    <td><b><?= personCell($rootPerson['first_name'], $rootPerson['last_name'], $rootPerson['birth'], $rootPerson['death'], $rootPerson['id']) ?></b></td>
+    <td><?= h($rootPerson['birth']) ?></td>
+    <td><?= h($rootPerson['death']) ?></td>
+</tr>
+<?php foreach ($rows as $r): ?>
+<tr>
+    <td><?= $r[0] ?></td>
+    <td style="padding-left:<?= $r[0] * 20 ?>px;"><?= personCell(explode(' ', $r[1], 2)[0] ?? '', explode(' ', $r[1], 2)[1] ?? '', $r[2], $r[3], $r[4]) ?></td>
+    <td><?= h($r[2]) ?></td>
+    <td><?= h($r[3]) ?></td>
+</tr>
+<?php endforeach; ?>
+</tbody>
+</table>
+<?php
+    endif;
+endif; // style switch
+
+echo '<p style="font-size:8pt; color:#999; margin-top:12px;">' . $L['heavy_warning'] . '</p>';
+return; // Skip classic grid rendering
+
+endif; // $style !== ''
+?>
+
+<?php
+// =========================================================================
 // RENDER: TREE GRID
 // =========================================================================
 
