@@ -44,6 +44,7 @@ USE `seeourfamily`;
 -- families: each family tree is a tenant in the system
 CREATE TABLE `families` (
   `id`              INT          NOT NULL AUTO_INCREMENT,
+  `uuid`            CHAR(36)     NOT NULL COMMENT 'Public-facing identifier (UUIDv4)',
   `name`            VARCHAR(255) NOT NULL,
   `title`           VARCHAR(255)          COMMENT 'Display title, e.g. "Smith Family Genealogy"',
   `language`        VARCHAR(3)   NOT NULL DEFAULT 'ENG' COMMENT 'ENG, FRA, ESP, ITA, POR, DEU, NLD',
@@ -58,6 +59,7 @@ CREATE TABLE `families` (
   `updated_by`      INT                   DEFAULT NULL,
   `updated_at`      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_families_uuid` (`uuid`),
   UNIQUE KEY `uq_families_name` (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -65,15 +67,17 @@ CREATE TABLE `families` (
 -- users: application-level user accounts
 CREATE TABLE `users` (
   `id`              INT          NOT NULL AUTO_INCREMENT,
-  `login`           VARCHAR(255) NOT NULL,
-  `password`        VARCHAR(255) NOT NULL COMMENT 'Will be hashed in app layer',
+  `uuid`            CHAR(36)     NOT NULL COMMENT 'Public-facing identifier (UUIDv4)',
+  `login`           VARCHAR(255) NOT NULL COMMENT 'Min 4 chars, enforced in app layer',
+  `password`        VARCHAR(255) NOT NULL COMMENT 'Bcrypt hash via password_hash()',
   `name`            VARCHAR(255),
-  `email`           VARCHAR(255),
+  `email`           VARCHAR(255)          COMMENT 'Used for password recovery',
   `is_online`       TINYINT      NOT NULL DEFAULT 1,
   `created_at`      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_by`      INT                   DEFAULT NULL,
   `updated_at`      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_users_uuid`  (`uuid`),
   UNIQUE KEY `uq_users_login` (`login`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -102,6 +106,7 @@ CREATE TABLE `user_family_link` (
 -- people: individual family members
 CREATE TABLE `people` (
   `id`              INT          NOT NULL AUTO_INCREMENT,
+  `uuid`            CHAR(36)     NOT NULL COMMENT 'Public-facing identifier (UUIDv4)',
   `family_id`       INT          NOT NULL,
   `couple_id`       INT                   DEFAULT NULL COMMENT 'FK to parent couple (who are the parents)',
   `couple_sort`     INT                   DEFAULT NULL COMMENT 'Sibling ordering within parent couple',
@@ -123,6 +128,7 @@ CREATE TABLE `people` (
   `updated_by`      INT                   DEFAULT NULL,
   `updated_at`      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_people_uuid` (`uuid`),
   KEY `idx_people_family` (`family_id`),
   KEY `idx_people_couple` (`couple_id`),
   CONSTRAINT `fk_people_family` FOREIGN KEY (`family_id`) REFERENCES `families` (`id`)
@@ -132,6 +138,7 @@ CREATE TABLE `people` (
 -- couples: marriages or partnerships linking two people
 CREATE TABLE `couples` (
   `id`              INT          NOT NULL AUTO_INCREMENT,
+  `uuid`            CHAR(36)     NOT NULL COMMENT 'Public-facing identifier (UUIDv4)',
   `family_id`       INT          NOT NULL,
   `person1_id`      INT                   DEFAULT NULL COMMENT 'Traditionally the husband',
   `person2_id`      INT                   DEFAULT NULL COMMENT 'Traditionally the wife',
@@ -147,6 +154,7 @@ CREATE TABLE `couples` (
   `updated_by`      INT                   DEFAULT NULL,
   `updated_at`      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_couples_uuid` (`uuid`),
   KEY `idx_couples_family`  (`family_id`),
   KEY `idx_couples_person1` (`person1_id`),
   KEY `idx_couples_person2` (`person2_id`),
@@ -156,11 +164,39 @@ CREATE TABLE `couples` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
+-- folders: virtual folder management for photos and documents
+CREATE TABLE `folders` (
+  `id`              INT          NOT NULL AUTO_INCREMENT,
+  `uuid`            CHAR(36)     NOT NULL COMMENT 'Public-facing identifier (UUIDv4)',
+  `family_id`       INT          NOT NULL,
+  `type`            VARCHAR(10)  NOT NULL COMMENT 'image or document',
+  `name`            VARCHAR(255) NOT NULL,
+  `parent_folder_id` INT                  DEFAULT NULL COMMENT 'Nullable, for nested folders',
+  `is_online`       TINYINT      NOT NULL DEFAULT 1,
+  `created_at`      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_by`      INT                   DEFAULT NULL,
+  `updated_at`      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_folders_uuid` (`uuid`),
+  KEY `idx_folders_family` (`family_id`),
+  KEY `idx_folders_parent` (`parent_folder_id`),
+  CONSTRAINT `fk_folders_family` FOREIGN KEY (`family_id`) REFERENCES `families` (`id`),
+  CONSTRAINT `fk_folders_parent` FOREIGN KEY (`parent_folder_id`) REFERENCES `folders` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
 -- photos: photo and document metadata (files stored on disk)
 CREATE TABLE `photos` (
   `id`              INT          NOT NULL AUTO_INCREMENT,
+  `uuid`            CHAR(36)     NOT NULL COMMENT 'Public-facing identifier (UUIDv4)',
   `family_id`       INT          NOT NULL,
-  `file_name`       VARCHAR(255)          COMMENT 'Filename on disk',
+  `file_name`       VARCHAR(255)          COMMENT 'Legacy filename on disk (original path)',
+  `stored_filename` VARCHAR(255)          COMMENT 'UUID-based name on disk, e.g. a3f8c2d1-xxxx.jpg',
+  `original_filename` VARCHAR(255)        COMMENT 'Original filename as uploaded by user',
+  `folder_id`       INT                   DEFAULT NULL COMMENT 'FK to folders, NULL = root',
+  `mime_type`       VARCHAR(100)          COMMENT 'e.g. image/jpeg, application/pdf',
+  `file_size`       BIGINT                DEFAULT NULL COMMENT 'Size in bytes',
+  `poster_uuid`     CHAR(36)              DEFAULT NULL COMMENT 'Poster image UUID for video/audio files',
   `description`     TEXT,
   `photo_date`      DATE                  DEFAULT NULL,
   `photo_precision` VARCHAR(3)            DEFAULT NULL COMMENT 'ymd, ym, or y',
@@ -169,8 +205,11 @@ CREATE TABLE `photos` (
   `updated_by`      INT                   DEFAULT NULL,
   `updated_at`      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_photos_uuid` (`uuid`),
   KEY `idx_photos_family` (`family_id`),
-  CONSTRAINT `fk_photos_family` FOREIGN KEY (`family_id`) REFERENCES `families` (`id`)
+  KEY `idx_photos_folder` (`folder_id`),
+  CONSTRAINT `fk_photos_family` FOREIGN KEY (`family_id`) REFERENCES `families` (`id`),
+  CONSTRAINT `fk_photos_folder` FOREIGN KEY (`folder_id`) REFERENCES `folders` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
@@ -205,6 +244,7 @@ CREATE TABLE `photo_tags` (
 -- comments: events, anecdotes, biographical notes attached to people
 CREATE TABLE `comments` (
   `id`              INT          NOT NULL AUTO_INCREMENT,
+  `uuid`            CHAR(36)     NOT NULL COMMENT 'Public-facing identifier (UUIDv4)',
   `family_id`       INT          NOT NULL,
   `title`           VARCHAR(255),
   `event_date`      VARCHAR(255)          COMMENT 'Free-text date (kept flexible as in original)',
@@ -214,6 +254,7 @@ CREATE TABLE `comments` (
   `updated_by`      INT                   DEFAULT NULL,
   `updated_at`      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_comments_uuid` (`uuid`),
   KEY `idx_comments_family` (`family_id`),
   CONSTRAINT `fk_comments_family` FOREIGN KEY (`family_id`) REFERENCES `families` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -235,6 +276,7 @@ CREATE TABLE `comment_person_link` (
 -- forums: message boards (one per topic/category)
 CREATE TABLE `forums` (
   `id`              INT          NOT NULL AUTO_INCREMENT,
+  `uuid`            CHAR(36)     NOT NULL COMMENT 'Public-facing identifier (UUIDv4)',
   `family_id`       INT          NOT NULL,
   `parent_id`       INT                   DEFAULT NULL COMMENT 'For nested forums (IdDad)',
   `sort_order`      INT                   DEFAULT 0,
@@ -245,6 +287,7 @@ CREATE TABLE `forums` (
   `updated_by`      INT                   DEFAULT NULL,
   `updated_at`      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_forums_uuid` (`uuid`),
   KEY `idx_forums_family` (`family_id`),
   CONSTRAINT `fk_forums_family` FOREIGN KEY (`family_id`) REFERENCES `families` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -253,6 +296,7 @@ CREATE TABLE `forums` (
 -- forum_items: individual messages posted to a forum
 CREATE TABLE `forum_items` (
   `id`              INT          NOT NULL AUTO_INCREMENT,
+  `uuid`            CHAR(36)     NOT NULL COMMENT 'Public-facing identifier (UUIDv4)',
   `forum_id`        INT          NOT NULL,
   `title`           VARCHAR(255),
   `author_name`     VARCHAR(255),
@@ -261,6 +305,7 @@ CREATE TABLE `forum_items` (
   `posted_at`       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `is_online`       TINYINT      NOT NULL DEFAULT 1,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_forum_items_uuid` (`uuid`),
   KEY `idx_fi_forum` (`forum_id`),
   CONSTRAINT `fk_fi_forum` FOREIGN KEY (`forum_id`) REFERENCES `forums` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -269,6 +314,7 @@ CREATE TABLE `forum_items` (
 -- infos: free-form information pages per family
 CREATE TABLE `infos` (
   `id`              INT          NOT NULL AUTO_INCREMENT,
+  `uuid`            CHAR(36)     NOT NULL COMMENT 'Public-facing identifier (UUIDv4)',
   `family_id`       INT          NOT NULL,
   `location`        VARCHAR(255)          COMMENT 'Page location/slot identifier',
   `content`         TEXT,
@@ -277,8 +323,63 @@ CREATE TABLE `infos` (
   `updated_by`      INT                   DEFAULT NULL,
   `updated_at`      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_infos_uuid` (`uuid`),
   KEY `idx_infos_family` (`family_id`),
   CONSTRAINT `fk_infos_family` FOREIGN KEY (`family_id`) REFERENCES `families` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- =======================================================================
+-- BLOG, AUTH & ONBOARDING TABLES
+-- =======================================================================
+
+-- blog_posts: public-facing blog on the front page
+CREATE TABLE `blog_posts` (
+  `id`              INT          NOT NULL AUTO_INCREMENT,
+  `uuid`            CHAR(36)     NOT NULL COMMENT 'Public-facing identifier (UUIDv4)',
+  `title`           VARCHAR(255) NOT NULL,
+  `body`            TEXT         NOT NULL COMMENT 'HTML or plain text content',
+  `is_published`    TINYINT      NOT NULL DEFAULT 0 COMMENT '1=visible to public, 0=draft',
+  `is_hidden`       TINYINT      NOT NULL DEFAULT 0 COMMENT '1=hidden from listing even if published',
+  `published_at`    TIMESTAMP             DEFAULT NULL COMMENT 'When the post went live',
+  `is_online`       TINYINT      NOT NULL DEFAULT 1,
+  `created_at`      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_by`      INT                   DEFAULT NULL,
+  `updated_at`      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_blog_posts_uuid` (`uuid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- password_resets: time-limited tokens for password recovery
+CREATE TABLE `password_resets` (
+  `id`              INT          NOT NULL AUTO_INCREMENT,
+  `user_id`         INT          NOT NULL,
+  `token`           VARCHAR(255) NOT NULL COMMENT 'Unique reset token (hashed in app layer)',
+  `expires_at`      TIMESTAMP    NOT NULL COMMENT 'Token expiry time',
+  `used_at`         TIMESTAMP             DEFAULT NULL COMMENT 'When the token was consumed',
+  `created_at`      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_password_resets_token` (`token`),
+  KEY `idx_pr_user` (`user_id`),
+  CONSTRAINT `fk_pr_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- invitations: onboarding tokens sent to new users
+CREATE TABLE `invitations` (
+  `id`              INT          NOT NULL AUTO_INCREMENT,
+  `family_id`       INT          NOT NULL,
+  `token`           VARCHAR(255) NOT NULL COMMENT 'Unique invitation token',
+  `email`           VARCHAR(255) NOT NULL COMMENT 'Email the invitation was sent to',
+  `role`            VARCHAR(10)  NOT NULL DEFAULT 'Guest' COMMENT 'Role granted on acceptance: Owner, Admin, Guest',
+  `expires_at`      TIMESTAMP    NOT NULL COMMENT 'Token expiry time',
+  `used_at`         TIMESTAMP             DEFAULT NULL COMMENT 'When the invitation was accepted',
+  `created_at`      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_invitations_token` (`token`),
+  KEY `idx_inv_family` (`family_id`),
+  CONSTRAINT `fk_inv_family` FOREIGN KEY (`family_id`) REFERENCES `families` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
