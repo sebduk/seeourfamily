@@ -61,11 +61,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
         }
+        $folderId = (int)($_POST['folder_id'] ?? 0) ?: null;
         $fields = [
             'file_name'       => $newFileName,
             'description'     => $val('description'),
             'photo_date'      => $val('photo_date'),
             'photo_precision' => $val('photo_precision'),
+            'folder_id'       => $folderId,
         ];
         $personIds = $_POST['linked_people'] ?? [];
 
@@ -135,6 +137,11 @@ foreach ($chkStmt->fetchAll() as $chk) {
         $warnings[] = 'File missing on disk: ' . ($label ?? '(no filename)');
     }
 }
+
+// Image folders for dropdown
+$folderStmt = $pdo->prepare('SELECT id, name, parent_folder_id FROM folders WHERE family_id = ? AND type = ? AND is_online = 1 ORDER BY name');
+$folderStmt->execute([$fid, 'image']);
+$imageFoldersList = $folderStmt->fetchAll();
 
 // All people (needed for sidebar filter and dual-list)
 $allPeople = $pdo->prepare('SELECT id, first_name, last_name, YEAR(birth_date) AS birth_year FROM people WHERE family_id = ? ORDER BY last_name, first_name');
@@ -344,6 +351,14 @@ $linkedIds = array_column($linkedPeople, 'id');
             <div class="form-row"><label>Description</label><textarea name="description" cols="60" rows="3"><?= h($photo['description'] ?? '') ?></textarea></div>
             <div class="form-row"><label>Date</label><input type="date" name="photo_date" value="<?= h($photo['photo_date'] ?? '') ?>"></div>
             <div class="form-row"><label>Precision</label><select name="photo_precision"><option value="">-</option><option value="ymd"<?= ($photo['photo_precision'] ?? '') === 'ymd' ? ' selected' : '' ?>>Day</option><option value="ym"<?= ($photo['photo_precision'] ?? '') === 'ym' ? ' selected' : '' ?>>Month</option><option value="y"<?= ($photo['photo_precision'] ?? '') === 'y' ? ' selected' : '' ?>>Year</option></select></div>
+            <div class="form-row"><label>Folder</label>
+                <select name="folder_id">
+                    <option value="">(none)</option>
+                    <?php foreach ($imageFoldersList as $fl): ?>
+                    <option value="<?= $fl['id'] ?>"<?= ($photo['folder_id'] ?? '') == $fl['id'] ? ' selected' : '' ?>><?= h($fl['name']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
 
             <div class="form-row"><label>People</label>
                 <div class="dual-list">

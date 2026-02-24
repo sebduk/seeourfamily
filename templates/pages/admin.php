@@ -25,6 +25,7 @@ if (!$isAdmin) {
         [<a href="/admin/comments"><b><?= $L['menu_comments'] ?></b></a>]
         [<a href="/admin/photos"><b><?= $L['menu_pictures'] ?></b></a>]
         [<a href="/admin/documents"><b><?= $L['menu_documents'] ?></b></a>]
+        [<a href="/admin/folders"><b><?= $L['menu_folders'] ?? 'folders' ?></b></a>]
         [<a href="/admin/info"><b>information</b></a>]
         <?php if (($family['package'] ?? '') === 'Platinum'): ?>
             [<a href="/admin/messages"><b><?= $L['menu_messages'] ?></b></a>]

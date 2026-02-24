@@ -55,6 +55,7 @@ class Router
         'admin-photos',
         'admin-documents',
         'admin-info',
+        'admin-folders',
         'admin-messages',
         'system-admin',
         'system-admin-families',

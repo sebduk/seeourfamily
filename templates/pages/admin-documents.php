@@ -61,11 +61,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
         }
+        $folderId = (int)($_POST['folder_id'] ?? 0) ?: null;
         $fields = [
             'file_name'       => $newFileName,
             'description'     => $val('description'),
             'photo_date'      => $val('photo_date'),
             'photo_precision' => $val('photo_precision'),
+            'folder_id'       => $folderId,
         ];
         $personIds = $_POST['linked_people'] ?? [];
 
@@ -135,6 +137,11 @@ $stmt = $pdo->prepare(
 $stmt->execute([$fid]);
 $docsList = $stmt->fetchAll();
 
+// Document folders for dropdown
+$folderStmt = $pdo->prepare('SELECT id, name, parent_folder_id FROM folders WHERE family_id = ? AND type = ? AND is_online = 1 ORDER BY name');
+$folderStmt->execute([$fid, 'document']);
+$docFoldersList = $folderStmt->fetchAll();
+
 // Edit record
 $doc = null;
 $linkedPeople = [];
@@ -197,6 +204,14 @@ $linkedIds = array_column($linkedPeople, 'id');
             <div class="form-row"><label>Description</label><textarea name="description" cols="60" rows="3"><?= h($doc['description'] ?? '') ?></textarea></div>
             <div class="form-row"><label>Date</label><input type="date" name="photo_date" value="<?= h($doc['photo_date'] ?? '') ?>"></div>
             <div class="form-row"><label>Precision</label><select name="photo_precision"><option value="">-</option><option value="ymd"<?= ($doc['photo_precision'] ?? '') === 'ymd' ? ' selected' : '' ?>>Day</option><option value="ym"<?= ($doc['photo_precision'] ?? '') === 'ym' ? ' selected' : '' ?>>Month</option><option value="y"<?= ($doc['photo_precision'] ?? '') === 'y' ? ' selected' : '' ?>>Year</option></select></div>
+            <div class="form-row"><label>Folder</label>
+                <select name="folder_id">
+                    <option value="">(none)</option>
+                    <?php foreach ($docFoldersList as $fl): ?>
+                    <option value="<?= $fl['id'] ?>"<?= ($doc['folder_id'] ?? '') == $fl['id'] ? ' selected' : '' ?>><?= h($fl['name']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
 
             <div class="form-row"><label>People</label>
                 <div class="dual-list">

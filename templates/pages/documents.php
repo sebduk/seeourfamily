@@ -5,6 +5,7 @@
  *
  * Replaces Prog/View/lstDocs.asp.
  * Modern <table> styling (.data-table) replaces bgcolor + spacer cells.
+ * Browsing by virtual folders (DB-driven).
  *
  * Available from index.php: $db, $auth, $router, $family, $L, $isLoggedIn
  */
@@ -15,22 +16,37 @@ $fid = $auth->familyId();
 $pdo = $db->pdo();
 
 $familyName = $family['name'] ?? '';
+$folderId = isset($_GET['folder']) ? (int)$_GET['folder'] : null;
 
 // Sort parameters (s=column, o=direction)
 $sortCol = $_GET['s'] ?? '2';
 $sortDir = $_GET['o'] ?? 'u';
 
+// Non-image filter
+$docFilter = "(
+    (file_name IS NOT NULL AND LOWER(RIGHT(file_name, 3)) NOT IN ('jpg','gif','png')
+      AND LOWER(RIGHT(file_name, 4)) <> 'jpeg')
+    OR (stored_filename IS NOT NULL AND file_name IS NULL
+      AND LOWER(RIGHT(stored_filename, 3)) NOT IN ('jpg','gif','png')
+      AND LOWER(RIGHT(stored_filename, 4)) <> 'jpeg')
+)";
+
 $sql = "SELECT id, uuid, file_name, original_filename, stored_filename, description, photo_date, file_size, created_at
         FROM photos
-        WHERE family_id = ?
-          AND (
-            (file_name IS NOT NULL AND LOWER(RIGHT(file_name, 3)) NOT IN ('jpg','gif','png')
-              AND LOWER(RIGHT(file_name, 4)) <> 'jpeg')
-            OR (stored_filename IS NOT NULL AND file_name IS NULL
-              AND LOWER(RIGHT(stored_filename, 3)) NOT IN ('jpg','gif','png')
-              AND LOWER(RIGHT(stored_filename, 4)) <> 'jpeg')
-          )";
+        WHERE family_id = ? AND $docFilter";
 $params = [$fid];
+
+if ($folderId !== null) {
+    if ($folderId === 0) {
+        $sql .= ' AND folder_id IS NULL';
+    } else {
+        $sql .= ' AND folder_id = ?';
+        $params[] = $folderId;
+    }
+}
+
+// Preserve folder in sort links
+$folderQs = $folderId !== null ? '&amp;folder=' . $folderId : '';
 
 switch ($sortCol) {
     case '1':
@@ -46,20 +62,49 @@ $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $docs = $stmt->fetchAll();
 
+// Virtual folders
+$fStmt = $pdo->prepare(
+    "SELECT f.id, f.name, COUNT(p.id) AS cnt
+     FROM folders f
+     LEFT JOIN photos p ON p.folder_id = f.id AND p.family_id = f.family_id
+       AND $docFilter
+     WHERE f.family_id = ? AND f.type = 'document' AND f.is_online = 1
+     GROUP BY f.id, f.name
+     ORDER BY f.name"
+);
+$fStmt->execute([$fid]);
+$folders = $fStmt->fetchAll();
+
+// Unfiled count
+$unfStmt = $pdo->prepare("SELECT COUNT(*) FROM photos WHERE family_id = ? AND folder_id IS NULL AND $docFilter");
+$unfStmt->execute([$fid]);
+$unfiledCount = (int)$unfStmt->fetchColumn();
+
 // Sortable header link helper
-function sortLink(string $col, string $currentCol, string $currentDir, string $label): string
+function sortLink(string $col, string $currentCol, string $currentDir, string $label, string $extra = ''): string
 {
     $newDir = ($col === $currentCol && $currentDir === 'u') ? 'd' : 'u';
-    return '<a href="/documents?s=' . $col . '&amp;o=' . $newDir . '"><b>' . $label . '</b></a>';
+    return '<a href="/documents?s=' . $col . '&amp;o=' . $newDir . $extra . '"><b>' . $label . '</b></a>';
 }
 ?>
+
+<?php if ($folders): ?>
+<!-- Folder navigation -->
+<div class="photo-folders" style="margin-bottom:.5rem">
+    <a href="/documents"<?= $folderId === null ? ' class="active-folder"' : '' ?>><?= $L['pictures_all'] ?? 'All' ?></a>
+    | <a href="/documents?folder=0"<?= $folderId === 0 ? ' class="active-folder"' : '' ?>>Unfiled (<?= $unfiledCount ?>)</a>
+    <?php foreach ($folders as $f): ?>
+        | <a href="/documents?folder=<?= $f['id'] ?>"<?= $folderId === (int)$f['id'] ? ' class="active-folder"' : '' ?>><?= h($f['name']) ?> (<?= $f['cnt'] ?>)</a>
+    <?php endforeach; ?>
+</div>
+<?php endif; ?>
 
 <table class="data-table">
     <thead>
         <tr>
             <th class="doc-icon">&nbsp;</th>
-            <th><?= sortLink('1', $sortCol, $sortDir, $L['file_name']) ?></th>
-            <th><?= sortLink('2', $sortCol, $sortDir, $L['date']) ?></th>
+            <th><?= sortLink('1', $sortCol, $sortDir, $L['file_name'], $folderQs) ?></th>
+            <th><?= sortLink('2', $sortCol, $sortDir, $L['date'], $folderQs) ?></th>
             <th style="text-align:right"><?= $L['size'] ?? 'Size' ?></th>
             <th style="text-align:right"><?= $L['uploaded'] ?? 'Uploaded' ?></th>
         </tr>

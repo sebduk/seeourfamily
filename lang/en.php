@@ -13,6 +13,7 @@ return [
     'menu_calendar'   => '<b>b</b>irthdays',
     'menu_pictures'   => '<b>p</b>ictures',
     'menu_documents'  => '<b>d</b>ocuments',
+    'menu_folders'    => '<b>f</b>olders',
     'menu_messages'   => '<b>m</b>essages',
     'menu_intro'      => '<b>i</b>ntro',
     'menu_help'       => '<b>h</b>elp',
