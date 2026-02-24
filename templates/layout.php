@@ -128,6 +128,11 @@ if ($cookieSize >= 8 && $cookieSize <= 16) $bodyStyle .= 'font-size:' . $cookieS
                         <a href="/admin">&#x2699; <?= $L['menu_admin'] ?></a>
                     </div>
                     <?php endif; ?>
+                    <?php if ($isSuperAdmin): ?>
+                    <div class="settings-section">
+                        <a href="/system-admin">&#x1F6E1; System Admin</a>
+                    </div>
+                    <?php endif; ?>
                     <?php if ($isLoggedIn): ?>
                     <div class="settings-section">
                         <?php if ($userName): ?>

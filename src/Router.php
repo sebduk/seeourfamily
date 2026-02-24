@@ -48,6 +48,10 @@ class Router
         'admin-documents',
         'admin-info',
         'admin-messages',
+        'system-admin',
+        'system-admin-families',
+        'system-admin-users',
+        'system-admin-invitations',
     ];
 
     private string $page = 'home';
@@ -95,7 +99,11 @@ class Router
             $segments = explode('/', $path);
 
             // /admin/people/12 -> page=admin-people, id=12
-            if ($segments[0] === 'admin' && isset($segments[1])) {
+            // /system-admin/users/5 -> page=system-admin-users, id=5
+            if ($segments[0] === 'system-admin' && isset($segments[1])) {
+                $candidate = 'system-admin-' . $segments[1];
+                $this->params['id'] = $segments[2] ?? null;
+            } elseif ($segments[0] === 'admin' && isset($segments[1])) {
                 $candidate = 'admin-' . $segments[1];
                 $this->params['id'] = $segments[2] ?? null;
             } else {

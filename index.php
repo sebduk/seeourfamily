@@ -204,6 +204,12 @@ if (str_starts_with($page, 'admin') && !$auth->isAdmin()) {
     exit;
 }
 
+// System-admin route protection (superadmin only)
+if (str_starts_with($page, 'system-admin') && !$auth->isSuperAdmin()) {
+    header('Location: /login');
+    exit;
+}
+
 // =========================================================================
 // HELPER FUNCTIONS (must be defined before template variables use them)
 // =========================================================================
@@ -249,9 +255,10 @@ $familyTitle = $family
 $lang        = $auth->language();
 $labels      = new Labels($lang);
 $L           = $labels->all();
-$isLoggedIn  = $auth->isLoggedIn();
-$isAdmin     = $auth->isAdmin();
-$userName    = $auth->userName();
+$isLoggedIn    = $auth->isLoggedIn();
+$isAdmin       = $auth->isAdmin();
+$isSuperAdmin  = $auth->isSuperAdmin();
+$userName      = $auth->userName();
 
 // =========================================================================
 // RENDER

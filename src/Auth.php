@@ -18,10 +18,11 @@ use PDO;
  * New system uses password_hash() / password_verify().
  *
  * Session keys:
- *   family_id  – active family (int)
- *   user_id    – logged-in user (int)
- *   role       – role within current family (Owner|Admin|Guest)
- *   language   – UI language override (ENG|FRA|ESP|...)
+ *   family_id    – active family (int)
+ *   user_id      – logged-in user (int)
+ *   role         – role within current family (Owner|Admin|Guest)
+ *   is_superadmin – system-wide superadmin flag (bool)
+ *   language     – UI language override (ENG|FRA|ESP|...)
  */
 class Auth
 {
@@ -61,7 +62,12 @@ class Auth
         $row = $stmt->fetch();
         if ($row) {
             $_SESSION['family_id'] = (int)$row['id'];
-            // If user is logged in, resolve their role for this family
+            // Superadmins get Owner role on any family
+            if ($this->isSuperAdmin()) {
+                $_SESSION['role'] = 'Owner';
+                return true;
+            }
+            // Regular users: resolve their role for this family
             $userId = $this->userId();
             if ($userId !== null) {
                 $role = $this->resolveUserRole($userId, (int)$row['id']);
@@ -115,7 +121,7 @@ class Auth
         }
 
         $stmt = $this->db->pdo()->prepare(
-            'SELECT id, password FROM users WHERE login = ? AND is_online = 1'
+            'SELECT id, password, is_superadmin FROM users WHERE login = ? AND is_online = 1'
         );
         $stmt->execute([$login]);
         $user = $stmt->fetch();
@@ -126,6 +132,12 @@ class Auth
 
         // User authenticated — store in session
         $_SESSION['user_id'] = (int)$user['id'];
+        $_SESSION['is_superadmin'] = (bool)$user['is_superadmin'];
+
+        // Superadmins can access all families
+        if ($user['is_superadmin']) {
+            return $this->allFamilies();
+        }
 
         // Get all families this user can access
         return $this->userFamilies((int)$user['id']);
@@ -180,6 +192,16 @@ class Auth
         return $stmt->fetchAll();
     }
 
+    /** Get all families in the system (for superadmins). */
+    public function allFamilies(): array
+    {
+        $stmt = $this->db->pdo()->query(
+            "SELECT id AS family_id, 'Owner' AS role, name, title
+             FROM families WHERE is_online = 1 ORDER BY name"
+        );
+        return $stmt->fetchAll();
+    }
+
     /** Look up the role a user has for a specific family. */
     private function resolveUserRole(int $userId, int $familyId): ?string
     {
@@ -194,7 +216,7 @@ class Auth
 
     public function logout(): void
     {
-        unset($_SESSION['user_id'], $_SESSION['role'], $_SESSION['family_id']);
+        unset($_SESSION['user_id'], $_SESSION['role'], $_SESSION['family_id'], $_SESSION['is_superadmin']);
     }
 
     public function userId(): ?int
@@ -210,14 +232,23 @@ class Auth
     /** True if the user has an active role (authenticated via user login or family password). */
     public function isLoggedIn(): bool
     {
-        return $this->role() !== null;
+        return $this->role() !== null || $this->isSuperAdmin();
     }
 
-    /** True if role is Admin or Owner. */
+    /** True if role is Admin or Owner, or if superadmin. */
     public function isAdmin(): bool
     {
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
         $role = $this->role();
         return $role === 'Admin' || $role === 'Owner';
+    }
+
+    /** True if the user has the system-wide superadmin flag. */
+    public function isSuperAdmin(): bool
+    {
+        return !empty($_SESSION['is_superadmin']);
     }
 
     /** Get the logged-in user's display name. */

@@ -72,6 +72,7 @@ CREATE TABLE `users` (
   `password`        VARCHAR(255) NOT NULL COMMENT 'Bcrypt hash via password_hash()',
   `name`            VARCHAR(255),
   `email`           VARCHAR(255)          COMMENT 'Used for password recovery',
+  `is_superadmin`   TINYINT      NOT NULL DEFAULT 0 COMMENT 'System-wide superadmin flag',
   `is_online`       TINYINT      NOT NULL DEFAULT 1,
   `created_at`      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_by`      INT                   DEFAULT NULL,
