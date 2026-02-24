@@ -55,10 +55,14 @@ return [
     'calendar_warn'   => 'Only individuals for whom a precise birthdate is known are listed',
     'pictures_all'    => 'View all pictures',
 
-    // Login
-    'login_message' => 'Log in to access your family tree.',
-    'password'      => 'Password',
-    'btn_login'     => 'Login',
+    // Login & account
+    'login_message'    => 'Log in to access your family tree.',
+    'password'         => 'Password',
+    'btn_login'        => 'Login',
+    'forgot_password'  => 'Forgot your password?',
+    'reset_password'   => 'Reset Password',
+    'create_account'   => 'Create Account',
+    'back_to_login'    => 'Back to login',
 
     // Documents list (Prog/View/lstDocs.asp)
     'file_name'    => 'File Name',

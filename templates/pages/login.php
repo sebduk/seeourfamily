@@ -15,6 +15,13 @@
  *   $loginFamilies   - array of families if user has multiple, null otherwise
  */
 
+// If visiting /login?invite=..., redirect to the registration page
+$inviteParam = $_GET['invite'] ?? '';
+if ($inviteParam !== '') {
+    header('Location: /register?invite=' . urlencode($inviteParam));
+    exit;
+}
+
 // If already logged in with a family set, redirect to home
 if ($isLoggedIn && $family) {
     header('Location: /home');
@@ -63,6 +70,10 @@ if ($loginFamilies !== null && count($loginFamilies) > 1): ?>
         </div>
         <input type="submit" value="<?= h($L['btn_login'] ?? 'Login') ?>" class="box">
     </form>
+
+    <p style="margin-top:8px; font-size:9pt;">
+        <a href="/forgot-password">Forgot your password?</a>
+    </p>
 
     <?php if ($family): ?>
         <br>

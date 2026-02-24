@@ -190,8 +190,99 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($router->page() === 'login') && is
     }
 }
 
+// Forgot password (POST)
+$resetMessage = '';
+$resetError = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $router->page() === 'forgot-password') {
+    $email = trim($_POST['email'] ?? '');
+    if ($email !== '') {
+        $result = $auth->createPasswordReset($email);
+        if ($result) {
+            $baseUrl = ($_SERVER['REQUEST_SCHEME'] ?? 'https') . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost');
+            $resetUrl = $baseUrl . '/reset-password?token=' . $result['token'];
+            // In production, email the link. For now, display it.
+            $resetMessage = 'A password reset link has been generated.<br>'
+                . '<b>Reset link:</b> <a href="' . h($resetUrl) . '">' . h($resetUrl) . '</a><br>'
+                . '<small>This link expires in 1 hour.</small>';
+        } else {
+            // Don't reveal whether the email exists (security best practice)
+            $resetMessage = 'If an account with that email exists, a reset link has been generated.';
+        }
+    }
+}
+
+// Reset password (POST)
+$resetTokenUser = null;
+$resetTokenError = '';
+$resetFormError = '';
+$resetSuccess = false;
+if ($router->page() === 'reset-password') {
+    $token = $_GET['token'] ?? '';
+    if ($token !== '') {
+        $resetTokenUser = $auth->validateResetToken($token);
+        if (!$resetTokenUser) {
+            $resetTokenError = 'This reset link is invalid or has expired.';
+        }
+    }
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && $token !== '' && $resetTokenUser) {
+        $newPass = $_POST['new_password'] ?? '';
+        $confirmPass = $_POST['confirm_password'] ?? '';
+        if (strlen($newPass) < 6) {
+            $resetFormError = 'Password must be at least 6 characters.';
+        } elseif ($newPass !== $confirmPass) {
+            $resetFormError = 'Passwords do not match.';
+        } else {
+            if ($auth->resetPassword($token, $newPass)) {
+                $resetSuccess = true;
+                $resetTokenUser = null; // Hide the form
+            } else {
+                $resetTokenError = 'This reset link is invalid or has expired.';
+                $resetTokenUser = null;
+            }
+        }
+    }
+}
+
+// Register via invitation (POST + GET)
+$inviteData = null;
+$inviteError = '';
+$registerError = '';
+$registerSuccess = false;
+if ($router->page() === 'register') {
+    $inviteToken = $_GET['invite'] ?? '';
+    if ($inviteToken !== '') {
+        $inviteData = $auth->validateInvitation($inviteToken);
+        if (!$inviteData) {
+            $inviteError = 'This invitation link is invalid, expired, or has already been used.';
+        }
+    }
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && $inviteToken !== '' && $inviteData) {
+        $regLogin   = trim($_POST['login'] ?? '');
+        $regName    = trim($_POST['name'] ?? '');
+        $regEmail   = trim($_POST['email'] ?? '');
+        $regPass    = $_POST['password'] ?? '';
+        $regConfirm = $_POST['confirm_password'] ?? '';
+
+        if (strlen($regLogin) < 4) {
+            $registerError = 'Username must be at least 4 characters.';
+        } elseif (strlen($regPass) < 6) {
+            $registerError = 'Password must be at least 6 characters.';
+        } elseif ($regPass !== $regConfirm) {
+            $registerError = 'Passwords do not match.';
+        } else {
+            $newUserId = $auth->acceptInvitation($inviteToken, $regLogin, $regPass, $regName, $regEmail);
+            if ($newUserId !== null) {
+                $registerSuccess = true;
+                $inviteData = null; // Hide the form
+            } else {
+                $registerError = 'Username is already taken. Please choose a different one.';
+            }
+        }
+    }
+}
+
 // Route protection: redirect to login if accessing protected pages without auth
-$publicPages = ['login', 'home', 'blog', 'blog-post'];
+$publicPages = ['login', 'home', 'blog', 'blog-post', 'forgot-password', 'reset-password', 'register'];
 $page = $router->page();
 if (!$auth->isLoggedIn() && !in_array($page, $publicPages, true)) {
     header('Location: /login');

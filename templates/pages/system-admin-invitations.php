@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Build the invitation URL
             $baseUrl = ($_SERVER['REQUEST_SCHEME'] ?? 'https') . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost');
-            $invUrl = $baseUrl . '/login?invite=' . $token;
+            $invUrl = $baseUrl . '/register?invite=' . $token;
 
             $message = '<span style="color:#060;">Invitation created for ' . h($email) . '.</span><br>'
                      . '<b>Invitation link:</b> <code style="word-break:break-all;">' . h($invUrl) . '</code><br>'

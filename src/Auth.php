@@ -270,6 +270,179 @@ class Auth
     }
 
     // -----------------------------------------------------------------
+    // Password reset
+    // -----------------------------------------------------------------
+
+    /**
+     * Create a password reset token for a user identified by email.
+     *
+     * @return array|null ['token' => string, 'user' => array] on success, null if email not found.
+     */
+    public function createPasswordReset(string $email): ?array
+    {
+        $email = trim($email);
+        if ($email === '') {
+            return null;
+        }
+
+        $stmt = $this->db->pdo()->prepare(
+            'SELECT id, login, name, email FROM users WHERE email = ? AND is_online = 1'
+        );
+        $stmt->execute([$email]);
+        $user = $stmt->fetch();
+
+        if (!$user) {
+            return null;
+        }
+
+        // Invalidate any existing unused tokens for this user
+        $this->db->pdo()->prepare(
+            'UPDATE password_resets SET expires_at = NOW() WHERE user_id = ? AND used_at IS NULL AND expires_at > NOW()'
+        )->execute([$user['id']]);
+
+        // Generate new token (64 hex chars)
+        $token = bin2hex(random_bytes(32));
+
+        $stmt = $this->db->pdo()->prepare(
+            'INSERT INTO password_resets (user_id, token, expires_at, created_at)
+             VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 1 HOUR), NOW())'
+        );
+        $stmt->execute([$user['id'], $token]);
+
+        return ['token' => $token, 'user' => $user];
+    }
+
+    /**
+     * Validate a password reset token.
+     *
+     * @return array|null The user row if token is valid, null otherwise.
+     */
+    public function validateResetToken(string $token): ?array
+    {
+        $stmt = $this->db->pdo()->prepare(
+            'SELECT pr.user_id, u.login, u.name, u.email
+             FROM password_resets pr
+             JOIN users u ON u.id = pr.user_id
+             WHERE pr.token = ? AND pr.used_at IS NULL AND pr.expires_at > NOW() AND u.is_online = 1'
+        );
+        $stmt->execute([$token]);
+        return $stmt->fetch() ?: null;
+    }
+
+    /**
+     * Reset a user's password using a valid token.
+     */
+    public function resetPassword(string $token, string $newPassword): bool
+    {
+        $user = $this->validateResetToken($token);
+        if (!$user) {
+            return false;
+        }
+
+        $hash = password_hash($newPassword, PASSWORD_DEFAULT);
+
+        $this->db->pdo()->prepare(
+            'UPDATE users SET password = ? WHERE id = ?'
+        )->execute([$hash, $user['user_id']]);
+
+        // Mark token as used
+        $this->db->pdo()->prepare(
+            'UPDATE password_resets SET used_at = NOW() WHERE token = ?'
+        )->execute([$token]);
+
+        return true;
+    }
+
+    // -----------------------------------------------------------------
+    // Invitations
+    // -----------------------------------------------------------------
+
+    /**
+     * Validate an invitation token.
+     *
+     * @return array|null Invitation row (with family_name) if valid, null otherwise.
+     */
+    public function validateInvitation(string $token): ?array
+    {
+        $stmt = $this->db->pdo()->prepare(
+            'SELECT i.*, f.name AS family_name, f.title AS family_title
+             FROM invitations i
+             JOIN families f ON f.id = i.family_id
+             WHERE i.token = ? AND i.used_at IS NULL AND i.expires_at > NOW() AND f.is_online = 1'
+        );
+        $stmt->execute([$token]);
+        return $stmt->fetch() ?: null;
+    }
+
+    /**
+     * Accept an invitation: create a user account and link to the family.
+     *
+     * @return int|null The new user ID on success, null on failure.
+     */
+    public function acceptInvitation(string $token, string $login, string $password, string $name, string $email): ?int
+    {
+        $invitation = $this->validateInvitation($token);
+        if (!$invitation) {
+            return null;
+        }
+
+        $login = trim($login);
+        $name = trim($name);
+        $email = trim($email);
+
+        if ($login === '' || strlen($login) < 4 || $password === '' || strlen($password) < 6) {
+            return null;
+        }
+
+        // Check login uniqueness
+        $stmt = $this->db->pdo()->prepare('SELECT id FROM users WHERE login = ?');
+        $stmt->execute([$login]);
+        if ($stmt->fetch()) {
+            return null; // Login already taken
+        }
+
+        $pdo = $this->db->pdo();
+        $pdo->beginTransaction();
+
+        try {
+            // Create user
+            $uuid = sprintf('%s-%s-%s-%s-%s',
+                bin2hex(random_bytes(4)),
+                bin2hex(random_bytes(2)),
+                bin2hex(random_bytes(2)),
+                bin2hex(random_bytes(2)),
+                bin2hex(random_bytes(6))
+            );
+            $hash = password_hash($password, PASSWORD_DEFAULT);
+
+            $stmt = $pdo->prepare(
+                'INSERT INTO users (uuid, login, password, name, email, is_online, created_at)
+                 VALUES (?, ?, ?, ?, ?, 1, NOW())'
+            );
+            $stmt->execute([$uuid, $login, $hash, $name ?: null, $email ?: $invitation['email']]);
+            $userId = (int)$pdo->lastInsertId();
+
+            // Link user to family with the invitation's role
+            $stmt = $pdo->prepare(
+                'INSERT INTO user_family_link (user_id, family_id, role, is_online, created_at)
+                 VALUES (?, ?, ?, 1, NOW())'
+            );
+            $stmt->execute([$userId, $invitation['family_id'], $invitation['role']]);
+
+            // Mark invitation as used
+            $pdo->prepare(
+                'UPDATE invitations SET used_at = NOW() WHERE id = ?'
+            )->execute([$invitation['id']]);
+
+            $pdo->commit();
+            return $userId;
+        } catch (\Throwable $e) {
+            $pdo->rollBack();
+            return null;
+        }
+    }
+
+    // -----------------------------------------------------------------
     // Language
     // -----------------------------------------------------------------
 
