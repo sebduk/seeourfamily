@@ -28,6 +28,8 @@ class Router
     /** Whitelist of valid page names. */
     private const PAGES = [
         'home',
+        'blog',
+        'blog-post',
         'tree',
         'ascendants',
         'descendants',
@@ -52,6 +54,7 @@ class Router
         'system-admin-families',
         'system-admin-users',
         'system-admin-invitations',
+        'system-admin-blog',
     ];
 
     private string $page = 'home';
@@ -98,9 +101,13 @@ class Router
         if ($path !== '' && $path !== 'index.php') {
             $segments = explode('/', $path);
 
+            // /blog/abc-123-def -> page=blog-post, id=abc-123-def
             // /admin/people/12 -> page=admin-people, id=12
             // /system-admin/users/5 -> page=system-admin-users, id=5
-            if ($segments[0] === 'system-admin' && isset($segments[1])) {
+            if ($segments[0] === 'blog' && isset($segments[1])) {
+                $candidate = 'blog-post';
+                $this->params['id'] = $segments[1];
+            } elseif ($segments[0] === 'system-admin' && isset($segments[1])) {
                 $candidate = 'system-admin-' . $segments[1];
                 $this->params['id'] = $segments[2] ?? null;
             } elseif ($segments[0] === 'admin' && isset($segments[1])) {

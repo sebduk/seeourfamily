@@ -20,6 +20,7 @@ if (!$auth->isSuperAdmin()) {
 $familyCount = $db->pdo()->query("SELECT COUNT(*) FROM families WHERE is_online = 1")->fetchColumn();
 $userCount   = $db->pdo()->query("SELECT COUNT(*) FROM users WHERE is_online = 1")->fetchColumn();
 $pendingInv  = $db->pdo()->query("SELECT COUNT(*) FROM invitations WHERE used_at IS NULL AND expires_at > NOW()")->fetchColumn();
+$blogCount   = $db->pdo()->query("SELECT COUNT(*) FROM blog_posts WHERE is_online = 1")->fetchColumn();
 ?>
 
 <div class="page-wrap">
@@ -45,6 +46,12 @@ $pendingInv  = $db->pdo()->query("SELECT COUNT(*) FROM invitations WHERE used_at
                 <div>Pending Invitations</div>
             </div>
         </a>
+        <a href="/system-admin/blog" style="text-decoration:none; color:inherit;">
+            <div style="border:1px solid #ccc; padding:20px; min-width:180px; text-align:center; background:#f9f9f9;">
+                <div style="font-size:28pt; font-weight:bold;"><?= (int)$blogCount ?></div>
+                <div>Blog Posts</div>
+            </div>
+        </a>
     </div>
 
     <h3>Quick Actions</h3>
@@ -52,5 +59,6 @@ $pendingInv  = $db->pdo()->query("SELECT COUNT(*) FROM invitations WHERE used_at
         <li><a href="/system-admin/families?action=new">Create new family</a></li>
         <li><a href="/system-admin/invitations?action=new">Send invitation</a></li>
         <li><a href="/system-admin/users">Manage users</a></li>
+        <li><a href="/system-admin/blog?action=new">Write blog post</a></li>
     </ul>
 </div>

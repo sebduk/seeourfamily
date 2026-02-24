@@ -83,14 +83,17 @@ if ($cookieSize >= 8 && $cookieSize <= 16) $bodyStyle .= 'font-size:' . $cookieS
          ============================================================ -->
     <nav class="menubar">
         <div class="menu-links">
-            [<a href="/home"><?= $L['menu_home'] ?></a>] &gt;
-            <?= $L['menu_genealogy'] ?>
-            [<a href="/list-names?sort=name"><?= $L['menu_names'] ?></a>]
-            [<a href="/list-names?sort=year"><?= $L['menu_years'] ?></a>]
-            [<a href="/birthdays"><?= $L['menu_calendar'] ?></a>]
-            [<a href="/photos"><?= $L['menu_pictures'] ?></a>]
-            [<a href="/documents"><?= $L['menu_documents'] ?></a>]
-            [<a href="/messages"><?= $L['menu_messages'] ?></a>]
+            [<a href="/home"><?= $L['menu_home'] ?></a>]
+            [<a href="/blog">Blog</a>]
+            <?php if ($family): ?>
+                &gt; <?= $L['menu_genealogy'] ?>
+                [<a href="/list-names?sort=name"><?= $L['menu_names'] ?></a>]
+                [<a href="/list-names?sort=year"><?= $L['menu_years'] ?></a>]
+                [<a href="/birthdays"><?= $L['menu_calendar'] ?></a>]
+                [<a href="/photos"><?= $L['menu_pictures'] ?></a>]
+                [<a href="/documents"><?= $L['menu_documents'] ?></a>]
+                [<a href="/messages"><?= $L['menu_messages'] ?></a>]
+            <?php endif; ?>
         </div>
         <div class="menu-right">
             <a href="/help" class="help-icon" title="Help">&#x2753;</a>

@@ -495,9 +495,55 @@ hr { border: none; border-top: 1px solid #666; }
 
 
 /* ============================================================
+ * PUBLIC LANDING PAGE
+ * ============================================================ */
+.landing { max-width: 700px; margin: 0 auto; padding: 20px; }
+.landing-hero { text-align: center; padding: 40px 0 30px; }
+.landing-hero h1 { font-size: 28pt; margin-bottom: 8px; }
+.landing-tagline { font-size: 12pt; color: #555; margin-bottom: 16px; }
+.landing-cta {
+    display: inline-block; padding: 8px 24px;
+    background: #333; color: #fff; text-decoration: none;
+    border: 1px solid #000;
+}
+.landing-cta:hover { background: #555; }
+
+.landing-blog { border-top: 1px solid #ccc; padding-top: 20px; margin-top: 10px; }
+.landing-blog h2 { margin-bottom: 12px; }
+
+/* ============================================================
+ * BLOG
+ * ============================================================ */
+.blog-listing h1 { margin-bottom: 16px; }
+.blog-card { border-bottom: 1px solid #ddd; padding: 16px 0; }
+.blog-card:last-of-type { border-bottom: none; }
+.blog-card h2, .blog-card h3 { margin: 0 0 4px; }
+.blog-card h2 a, .blog-card h3 a { color: #000; text-decoration: none; }
+.blog-card h2 a:hover, .blog-card h3 a:hover { text-decoration: underline; }
+.blog-date { color: #888; font-size: 9pt; display: block; margin-bottom: 6px; }
+.blog-excerpt { color: #444; margin: 0; }
+
+.blog-pagination { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-top: 1px solid #ddd; margin-top: 8px; }
+.blog-pagination a { color: #000; }
+
+.blog-post-view h1 { margin-bottom: 4px; }
+.blog-back { margin-bottom: 12px; }
+.blog-back a { color: #666; font-size: 9pt; }
+.blog-body { line-height: 1.6; margin: 16px 0; }
+.blog-body p { margin-bottom: 1em; }
+.blog-body img { max-width: 100%; height: auto; }
+
+.blog-post-nav { display: flex; justify-content: space-between; border-top: 1px solid #ddd; padding-top: 16px; margin-top: 24px; font-size: 9pt; }
+.blog-nav-prev { text-align: left; }
+.blog-nav-next { text-align: right; }
+
+
+/* ============================================================
  * RESPONSIVE
  * ============================================================ */
 @media (max-width: 768px) {
+    .landing-hero { padding: 20px 0 16px; }
+    .landing-hero h1 { font-size: 20pt; }
     .name-list { columns: 1; }
     .bio-item,
     .bio-photo-item { grid-template-columns: 1fr; }

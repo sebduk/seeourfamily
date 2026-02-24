@@ -191,7 +191,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($router->page() === 'login') && is
 }
 
 // Route protection: redirect to login if accessing protected pages without auth
-$publicPages = ['login', 'home'];
+$publicPages = ['login', 'home', 'blog', 'blog-post'];
 $page = $router->page();
 if (!$auth->isLoggedIn() && !in_array($page, $publicPages, true)) {
     header('Location: /login');
