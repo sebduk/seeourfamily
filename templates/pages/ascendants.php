@@ -17,17 +17,27 @@ if (!$isLoggedIn) { echo '<p><a href="/login">' . $L['menu_login'] . '</a></p>';
 $fid = $auth->familyId();
 $pdo = $db->pdo();
 
-$personId = (int)($router->param('id') ?? $_GET['IDPerso'] ?? 1);
+$personUuid = $router->param('id') ?? $_GET['IDPerso'] ?? '';
+
+// Resolve UUID to integer id
+if ($personUuid !== '' && !ctype_digit($personUuid)) {
+    $stmt = $pdo->prepare('SELECT id FROM people WHERE uuid = ? AND family_id = ?');
+    $stmt->execute([$personUuid, $fid]);
+    $resolved = $stmt->fetch();
+    $personId = $resolved ? (int)$resolved['id'] : 0;
+} else {
+    $personId = (int)$personUuid ?: 1;
+}
 
 // =========================================================================
 // HELPER: format a person link
 // =========================================================================
-function ascPersonCell(?string $firstName, ?string $lastName, ?string $birth, ?string $death, int $id): string
+function ascPersonCell(?string $firstName, ?string $lastName, ?string $birth, ?string $death, string $uuid): string
 {
     $name = h($firstName) . '&nbsp;' . h($lastName);
     $dates = h($birth) . '-' . h($death);
-    return '<a href="/tree/' . $id . '">' . $name . '</a>'
-         . ' (<a href="/person/' . $id . '">' . $dates . '</a>)';
+    return '<a href="/tree/' . h($uuid) . '">' . $name . '</a>'
+         . ' (<a href="/person/' . h($uuid) . '">' . $dates . '</a>)';
 }
 
 // =========================================================================
@@ -35,7 +45,7 @@ function ascPersonCell(?string $firstName, ?string $lastName, ?string $birth, ?s
 // =========================================================================
 
 $stmt = $pdo->prepare(
-    'SELECT id, first_name, last_name, couple_id,
+    'SELECT id, uuid, first_name, last_name, couple_id,
             IFNULL(DATE_FORMAT(birth_date, "%Y"), "") AS birth,
             IFNULL(DATE_FORMAT(death_date, "%Y"), "") AS death
      FROM people WHERE id = ? AND family_id = ?'
@@ -63,10 +73,10 @@ function findParentCouple(PDO $pdo, int $fid, int $personId): array|false
     $stmt = $pdo->prepare(
         'SELECT p.couple_id,
                 c.id AS cid,
-                p1.id AS p1_id, p1.first_name AS p1_fn, p1.last_name AS p1_ln,
+                p1.id AS p1_id, p1.uuid AS p1_uuid, p1.first_name AS p1_fn, p1.last_name AS p1_ln,
                 IFNULL(DATE_FORMAT(p1.birth_date, "%Y"), "") AS p1_birth,
                 IFNULL(DATE_FORMAT(p1.death_date, "%Y"), "") AS p1_death,
-                p2.id AS p2_id, p2.first_name AS p2_fn, p2.last_name AS p2_ln,
+                p2.id AS p2_id, p2.uuid AS p2_uuid, p2.first_name AS p2_fn, p2.last_name AS p2_ln,
                 IFNULL(DATE_FORMAT(p2.birth_date, "%Y"), "") AS p2_birth,
                 IFNULL(DATE_FORMAT(p2.death_date, "%Y"), "") AS p2_death
          FROM people p
@@ -98,9 +108,9 @@ function renderAncestors(PDO $pdo, int $fid, int $personId): void
 
     // Then display this couple
     echo '<div class="desc-pair">';
-    echo '<span>' . ascPersonCell($couple['p1_fn'], $couple['p1_ln'], $couple['p1_birth'], $couple['p1_death'], (int)$couple['p1_id']) . '</span>';
+    echo '<span>' . ascPersonCell($couple['p1_fn'], $couple['p1_ln'], $couple['p1_birth'], $couple['p1_death'], $couple['p1_uuid']) . '</span>';
     echo '<span class="desc-sep">&amp;</span>';
-    echo '<span>' . ascPersonCell($couple['p2_fn'], $couple['p2_ln'], $couple['p2_birth'], $couple['p2_death'], (int)$couple['p2_id']) . '</span>';
+    echo '<span>' . ascPersonCell($couple['p2_fn'], $couple['p2_ln'], $couple['p2_birth'], $couple['p2_death'], $couple['p2_uuid']) . '</span>';
     echo '</div>';
 
     echo '</div>';
@@ -115,7 +125,7 @@ function renderAncestors(PDO $pdo, int $fid, int $personId): void
     <strong><?= h($personName) ?></strong>
     <?= $L['full_ascendance'] ?>
     <span class="nav-links">|
-        <a href="/tree/<?= $personId ?>"><?= $L['classic'] ?></a>
+        <a href="/tree/<?= h($person['uuid']) ?>"><?= $L['classic'] ?></a>
     </span>
 </div>
 
@@ -128,7 +138,7 @@ function renderAncestors(PDO $pdo, int $fid, int $personId): void
     <div class="desc-couple desc-root">
         <?php renderAncestors($pdo, $fid, $personId); ?>
         <div class="desc-single">
-            <b><?= ascPersonCell($person['first_name'], $person['last_name'], $person['birth'], $person['death'], (int)$person['id']) ?></b>
+            <b><?= ascPersonCell($person['first_name'], $person['last_name'], $person['birth'], $person['death'], $person['uuid']) ?></b>
         </div>
     </div>
 </div>

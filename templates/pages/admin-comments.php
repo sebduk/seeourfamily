@@ -57,10 +57,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$editId = (int)($id ?? $_GET['id'] ?? 0);
+$editUuid = $router->param('id') ?? $_GET['id'] ?? '';
+if ($editUuid !== '' && !ctype_digit($editUuid)) {
+    $stmt = $pdo->prepare('SELECT id FROM comments WHERE uuid = ? AND family_id = ?');
+    $stmt->execute([$editUuid, $fid]);
+    $resolved = $stmt->fetch();
+    $editId = $resolved ? (int)$resolved['id'] : 0;
+} else {
+    $editId = (int)$editUuid;
+}
 
 // List
-$stmt = $pdo->prepare('SELECT id, title, event_date FROM comments WHERE family_id = ? ORDER BY title');
+$stmt = $pdo->prepare('SELECT id, uuid, title, event_date FROM comments WHERE family_id = ? ORDER BY title');
 $stmt->execute([$fid]);
 $commentsList = $stmt->fetchAll();
 
@@ -97,7 +105,7 @@ $linkedIds = array_column($linkedPeople, 'id');
         <div class="sidebar-links"><a href="/admin/comments">Add a Comment</a></div>
         <hr>
         <?php foreach ($commentsList as $c): ?>
-            <a href="/admin/comments?id=<?= $c['id'] ?>"><?= h($c['title'] ?? '(untitled)') ?> <?= $c['event_date'] ? '(' . h($c['event_date']) . ')' : '' ?></a>
+            <a href="/admin/comments?id=<?= $c['uuid'] ?>"><?= h($c['title'] ?? '(untitled)') ?> <?= $c['event_date'] ? '(' . h($c['event_date']) . ')' : '' ?></a>
         <?php endforeach; ?>
     </div>
 

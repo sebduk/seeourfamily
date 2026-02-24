@@ -18,7 +18,7 @@ $sort   = $_GET['sort'] ?? $_POST['tri'] ?? 'name';
 $search = $_GET['search'] ?? $_POST['search'] ?? '';
 
 // Build query
-$sql = 'SELECT p.id, p.last_name, p.first_name,
+$sql = 'SELECT p.id, p.uuid, p.last_name, p.first_name,
                IFNULL(DATE_FORMAT(p.birth_date, "%Y"), "") AS birth,
                IFNULL(DATE_FORMAT(p.death_date, "%Y"), "") AS death,
                p.updated_at,
@@ -79,8 +79,8 @@ $total = count($people);
         }
     ?>
     <div class="name-list-item">
-        <a href="/person/<?= $p['id'] ?>"><img src="<?= $icon ?>" alt=""></a>
-        <a href="/tree/<?= $p['id'] ?>"><?= $display ?></a>
+        <a href="/person/<?= h($p['uuid']) ?>"><img src="<?= $icon ?>" alt=""></a>
+        <a href="/tree/<?= h($p['uuid']) ?>"><?= $display ?></a>
     </div>
     <?php endforeach; ?>
 </div>

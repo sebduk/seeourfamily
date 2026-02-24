@@ -65,10 +65,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$editId = (int)($id ?? $_GET['id'] ?? 0);
+$editUuid = $router->param('id') ?? $_GET['id'] ?? '';
+if ($editUuid !== '' && !ctype_digit($editUuid)) {
+    $stmt = $pdo->prepare('SELECT id FROM forums WHERE uuid = ? AND family_id = ?');
+    $stmt->execute([$editUuid, $fid]);
+    $resolved = $stmt->fetch();
+    $editId = $resolved ? (int)$resolved['id'] : 0;
+} else {
+    $editId = (int)$editUuid;
+}
 
 // List forums
-$stmt = $pdo->prepare('SELECT id, title, admin_name, is_online FROM forums WHERE family_id = ? ORDER BY sort_order, title');
+$stmt = $pdo->prepare('SELECT id, uuid, title, admin_name, is_online FROM forums WHERE family_id = ? ORDER BY sort_order, title');
 $stmt->execute([$fid]);
 $forumsList = $stmt->fetchAll();
 
@@ -100,7 +108,7 @@ if ($editId > 0) {
         <div class="sidebar-links"><a href="/admin/messages">Add a Board</a></div>
         <hr>
         <?php foreach ($forumsList as $f): ?>
-            <a href="/admin/messages?id=<?= $f['id'] ?>" <?= !$f['is_online'] ? 'style="font-style:italic"' : '' ?>><?= h($f['title'] ?? '(untitled)') ?></a>
+            <a href="/admin/messages?id=<?= $f['uuid'] ?>" <?= !$f['is_online'] ? 'style="font-style:italic"' : '' ?>><?= h($f['title'] ?? '(untitled)') ?></a>
         <?php endforeach; ?>
     </div>
 

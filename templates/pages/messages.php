@@ -48,7 +48,7 @@ $isPersonal = ($activeForum === 'perso') || empty($forums);
 $emailPeople = [];
 if ($isPersonal) {
     $stmt = $pdo->prepare(
-        'SELECT id, first_name, last_name,
+        'SELECT id, uuid, first_name, last_name,
                 IFNULL(DATE_FORMAT(birth_date, "%Y"), "") AS birth
          FROM people WHERE family_id = ? AND email IS NOT NULL
          ORDER BY last_name, first_name'
@@ -57,7 +57,7 @@ if ($isPersonal) {
     $emailPeople = $stmt->fetchAll();
 }
 
-$selectedPerso = (int)($_GET['IDPerso'] ?? 0);
+$selectedPerso = $_GET['IDPerso'] ?? '';
 ?>
 
 <div class="page-wrap">
@@ -89,7 +89,7 @@ $selectedPerso = (int)($_GET['IDPerso'] ?? 0);
                 <label><?= $L['msg_to'] ?></label><br>
                 <select name="IDTo[]" multiple size="20" class="text">
                     <?php foreach ($emailPeople as $ep): ?>
-                        <option value="<?= $ep['id'] ?>"<?= ($ep['id'] === $selectedPerso) ? ' selected' : '' ?>>
+                        <option value="<?= h($ep['uuid']) ?>"<?= ($ep['uuid'] === $selectedPerso) ? ' selected' : '' ?>>
                             <?= h($ep['last_name']) ?>, <?= h($ep['first_name']) ?> (<?= h($ep['birth']) ?>)
                         </option>
                     <?php endforeach; ?>

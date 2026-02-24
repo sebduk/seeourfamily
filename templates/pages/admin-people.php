@@ -66,14 +66,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$editId = (int)($id ?? $_GET['id'] ?? 0);
+$editUuid = $router->param('id') ?? $_GET['id'] ?? '';
+if ($editUuid !== '' && !ctype_digit($editUuid)) {
+    $stmt = $pdo->prepare('SELECT id FROM people WHERE uuid = ? AND family_id = ?');
+    $stmt->execute([$editUuid, $fid]);
+    $resolved = $stmt->fetch();
+    $editId = $resolved ? (int)$resolved['id'] : 0;
+} else {
+    $editId = (int)$editUuid;
+}
 
 // =========================================================================
 // LOAD LIST
 // =========================================================================
 
 $sort = $_GET['sort'] ?? 'alpha';
-$listSql = 'SELECT id, first_name, last_name,
+$listSql = 'SELECT id, uuid, first_name, last_name,
                    IFNULL(YEAR(birth_date), "") AS birth,
                    IFNULL(YEAR(death_date), "") AS death
             FROM people WHERE family_id = ?';
@@ -128,7 +136,7 @@ $coupleList = $couples->fetchAll();
         <a href="/admin/people?sort=nopar">W/o Parents</a>
         <hr>
         <?php foreach ($people as $p): ?>
-            <a href="/admin/people?id=<?= $p['id'] ?>&amp;sort=<?= h($sort) ?>"><?= h($p['last_name']) ?> <?= h($p['first_name']) ?> (<?= h($p['birth']) ?>-<?= h($p['death']) ?>)</a>
+            <a href="/admin/people?id=<?= $p['uuid'] ?>&amp;sort=<?= h($sort) ?>"><?= h($p['last_name']) ?> <?= h($p['first_name']) ?> (<?= h($p['birth']) ?>-<?= h($p['death']) ?>)</a>
         <?php endforeach; ?>
     </div>
 

@@ -45,10 +45,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$editId = (int)($id ?? $_GET['id'] ?? 0);
+$editUuid = $router->param('id') ?? $_GET['id'] ?? '';
+if ($editUuid !== '' && !ctype_digit($editUuid)) {
+    $stmt = $pdo->prepare('SELECT id FROM infos WHERE uuid = ? AND family_id = ?');
+    $stmt->execute([$editUuid, $fid]);
+    $resolved = $stmt->fetch();
+    $editId = $resolved ? (int)$resolved['id'] : 0;
+} else {
+    $editId = (int)$editUuid;
+}
 
 // List
-$stmt = $pdo->prepare('SELECT id, location FROM infos WHERE family_id = ? ORDER BY location');
+$stmt = $pdo->prepare('SELECT id, uuid, location FROM infos WHERE family_id = ? ORDER BY location');
 $stmt->execute([$fid]);
 $infoList = $stmt->fetchAll();
 
@@ -70,7 +78,7 @@ if ($editId > 0) {
         <div class="sidebar-links"><a href="/admin/info">Add Information</a></div>
         <hr>
         <?php foreach ($infoList as $i): ?>
-            <a href="/admin/info?id=<?= $i['id'] ?>"><?= h($i['location'] ?? '(no location)') ?></a>
+            <a href="/admin/info?id=<?= $i['uuid'] ?>"><?= h($i['location'] ?? '(no location)') ?></a>
         <?php endforeach; ?>
     </div>
 

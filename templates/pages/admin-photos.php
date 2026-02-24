@@ -132,7 +132,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$editId = (int)($id ?? $_GET['id'] ?? 0);
+$editUuid = $router->param('id') ?? $_GET['id'] ?? '';
+if ($editUuid !== '' && !ctype_digit($editUuid)) {
+    $stmt = $pdo->prepare('SELECT id FROM photos WHERE uuid = ? AND family_id = ?');
+    $stmt->execute([$editUuid, $fid]);
+    $resolved = $stmt->fetch();
+    $editId = $resolved ? (int)$resolved['id'] : 0;
+} else {
+    $editId = (int)$editUuid;
+}
 
 // ---- Maintenance: thumbnails & database sync ----
 $warnings = [];
@@ -269,7 +277,7 @@ $qs = function(array $extra = []): string {
 };
 
 // List (image files only) with tag status
-$sql = "SELECT p.id, p.file_name, p.photo_date,
+$sql = "SELECT p.id, p.uuid, p.file_name, p.photo_date,
                COUNT(DISTINCT ppl.person_id) AS linked_count,
                COUNT(DISTINCT pt.person_id)  AS tagged_count
         FROM photos p
@@ -285,7 +293,7 @@ if ($filterPerson > 0) {
     $params[] = $filterPerson;
 }
 
-$sql .= " GROUP BY p.id, p.file_name, p.photo_date";
+$sql .= " GROUP BY p.id, p.uuid, p.file_name, p.photo_date";
 
 if ($filterTagged === 'done') {
     $sql .= " HAVING COUNT(DISTINCT ppl.person_id) > 0 AND COUNT(DISTINCT pt.person_id) >= COUNT(DISTINCT ppl.person_id)";
@@ -388,7 +396,7 @@ $linkedIds = array_column($linkedPeople, 'id');
             }
         ?>
             <?php $displayName = preg_replace('/\.[^.]+$/', '', $p['file_name']); ?>
-            <a href="/admin/photos?id=<?= $p['id'] ?><?= h(substr($qs(), 1) ? '&' . substr($qs(), 1) : '') ?>"><span class="tag-status-dot <?= $dotClass ?>">&#9679;</span> <?= h($displayName) ?></a>
+            <a href="/admin/photos?id=<?= $p['uuid'] ?><?= h(substr($qs(), 1) ? '&' . substr($qs(), 1) : '') ?>"><span class="tag-status-dot <?= $dotClass ?>">&#9679;</span> <?= h($displayName) ?></a>
         <?php endforeach; ?>
     </div>
 

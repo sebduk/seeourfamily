@@ -37,7 +37,7 @@ $totalPhotos = (int)$stmt->fetchColumn();
 $totalPages = max(1, (int)ceil($totalPhotos / $perPage));
 
 // Load current page of photos
-$sql = "SELECT id, file_name, description, photo_date
+$sql = "SELECT id, uuid, file_name, description, photo_date
         FROM photos
         WHERE family_id = ?
           AND (LOWER(RIGHT(file_name, 3)) IN ('jpg','gif','png')
@@ -96,7 +96,7 @@ $folders = $fStmt->fetchAll();
     <?php foreach ($photos as $photo):
         $alt = pathinfo($photo['file_name'], PATHINFO_FILENAME);
     ?>
-        <a class="thumb" href="/photo/<?= $photo['id'] ?>" title="<?= h($alt) ?>">
+        <a class="thumb" href="/photo/<?= h($photo['uuid']) ?>" title="<?= h($alt) ?>">
             <img src="<?= h($imagePath . $photo['file_name']) ?>" alt="<?= h($alt) ?>">
         </a>
     <?php endforeach; ?>

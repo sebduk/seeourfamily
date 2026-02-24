@@ -13,7 +13,7 @@ if (!$isLoggedIn) { echo '<p><a href="/login">' . $L['menu_login'] . '</a></p>';
 
 $fid = $auth->familyId();
 $pdo = $db->pdo();
-$personId = (int)($router->param('id') ?? $_GET['ID'] ?? 0);
+$personUuid = $router->param('id') ?? $_GET['ID'] ?? '';
 $months = $L['months'] ?? [];
 $dateFormat = $family['date_format'] ?? 'dmy';
 
@@ -57,8 +57,8 @@ function formatPhotoDate(?string $dateStr, string $precision, array $months): st
 // LOAD PERSON
 // =========================================================================
 
-$stmt = $pdo->prepare('SELECT * FROM people WHERE id = ? AND family_id = ?');
-$stmt->execute([$personId, $fid]);
+$stmt = $pdo->prepare('SELECT * FROM people WHERE uuid = ? AND family_id = ?');
+$stmt->execute([$personUuid, $fid]);
 $person = $stmt->fetch();
 
 if (!$person) {
@@ -66,6 +66,8 @@ if (!$person) {
     return;
 }
 
+$personId = (int)$person['id']; // integer for internal JOINs
+$personUuid = $person['uuid'];  // UUID for URLs
 $isMale = (bool)($person['is_male'] ?? true);
 $bornLabel = $isMale ? $L['born_m'] : $L['born_f'];
 $diedLabel = $isMale ? $L['died_m'] : $L['died_f'];
@@ -111,7 +113,7 @@ $docs = $stmt->fetchAll();
 <!-- Bio header -->
 <a id="top"></a>
 <div class="bio-header">
-    <h1><a href="/tree/<?= $personId ?>"><?= h($person['first_names'] ?? $person['first_name']) ?>&nbsp;<?= h($person['last_name']) ?></a></h1>
+    <h1><a href="/tree/<?= h($personUuid) ?>"><?= h($person['first_names'] ?? $person['first_name']) ?>&nbsp;<?= h($person['last_name']) ?></a></h1>
     <b>(<?php
         echo $person['birth_date'] ? formatFullDate($person['birth_date'], $dateFormat, $months) : h($person['birth_precision'] ?? '');
     ?>-<?php
@@ -124,7 +126,7 @@ $docs = $stmt->fetchAll();
         <?= $diedLabel ?>&nbsp;<?= h($person['death_place']) ?>.&nbsp;
     <?php endif; ?>
     <?php if ($person['email'] && !$person['death_date']): ?>
-        <br>[<a href="/messages?IDForum=perso&amp;IDPerso=<?= $personId ?>">Email</a>]
+        <br>[<a href="/messages?IDForum=perso&amp;IDPerso=<?= h($personUuid) ?>">Email</a>]
     <?php endif; ?>
 </div>
 
@@ -157,7 +159,7 @@ $docs = $stmt->fetchAll();
     <?php foreach ($comments as $comment):
         // Other people linked to this comment
         $stmt = $pdo->prepare(
-            'SELECT p.id, p.first_name, p.last_name FROM people p
+            'SELECT p.id, p.uuid, p.first_name, p.last_name FROM people p
              JOIN comment_person_link cpl ON cpl.person_id = p.id
              WHERE cpl.comment_id = ? AND p.id <> ?
              ORDER BY p.last_name, p.first_name'
@@ -174,7 +176,7 @@ $docs = $stmt->fetchAll();
                 <i><?= $L['with'] ?>:
                 <?php foreach ($others as $j => $o): ?>
                     <?php if ($j > 0) echo ', '; ?>
-                    <a href="/person/<?= $o['id'] ?>"><?= h($o['first_name']) ?>&nbsp;<?= h($o['last_name']) ?></a>
+                    <a href="/person/<?= h($o['uuid']) ?>"><?= h($o['first_name']) ?>&nbsp;<?= h($o['last_name']) ?></a>
                 <?php endforeach; ?>.</i>
             <?php endif; ?>
         </div>
@@ -191,7 +193,7 @@ $docs = $stmt->fetchAll();
     <h2><?= $L['pictures'] ?></h2>
     <?php foreach ($pictures as $pic):
         $stmt = $pdo->prepare(
-            'SELECT p.id, p.first_name, p.last_name FROM people p
+            'SELECT p.id, p.uuid, p.first_name, p.last_name FROM people p
              JOIN photo_person_link ppl ON ppl.person_id = p.id
              WHERE ppl.photo_id = ? AND p.id <> ?
              ORDER BY p.last_name, p.first_name'
@@ -204,7 +206,7 @@ $docs = $stmt->fetchAll();
     ?>
     <div class="bio-photo-item">
         <div class="thumb">
-            <a href="/photo/<?= $pic['id'] ?>"><img src="<?= h($imagePath . $pic['file_name']) ?>" alt=""></a>
+            <a href="/photo/<?= h($pic['uuid']) ?>"><img src="<?= h($imagePath . $pic['file_name']) ?>" alt=""></a>
         </div>
         <div>
             <?= formatPhotoDate($pic['photo_date'], $pic['photo_precision'] ?? 'y', $months) ?>
@@ -213,7 +215,7 @@ $docs = $stmt->fetchAll();
                 <i><?= $L['with'] ?>:
                 <?php foreach ($others as $j => $o): ?>
                     <?php if ($j > 0) echo ', '; ?>
-                    <a href="/person/<?= $o['id'] ?>"><?= h($o['first_name']) ?>&nbsp;<?= h($o['last_name']) ?></a>
+                    <a href="/person/<?= h($o['uuid']) ?>"><?= h($o['first_name']) ?>&nbsp;<?= h($o['last_name']) ?></a>
                 <?php endforeach; ?>.</i>
             <?php endif; ?>
         </div>
@@ -230,7 +232,7 @@ $docs = $stmt->fetchAll();
     <h2><?= $L['documents'] ?></h2>
     <?php foreach ($docs as $doc):
         $stmt = $pdo->prepare(
-            'SELECT p.id, p.first_name, p.last_name FROM people p
+            'SELECT p.id, p.uuid, p.first_name, p.last_name FROM people p
              JOIN photo_person_link ppl ON ppl.person_id = p.id
              WHERE ppl.photo_id = ? AND p.id <> ?
              ORDER BY p.last_name, p.first_name'
@@ -255,7 +257,7 @@ $docs = $stmt->fetchAll();
                 <i><?= $L['with'] ?>:
                 <?php foreach ($others as $j => $o): ?>
                     <?php if ($j > 0) echo ', '; ?>
-                    <a href="/person/<?= $o['id'] ?>"><?= h($o['first_name']) ?>&nbsp;<?= h($o['last_name']) ?></a>
+                    <a href="/person/<?= h($o['uuid']) ?>"><?= h($o['first_name']) ?>&nbsp;<?= h($o['last_name']) ?></a>
                 <?php endforeach; ?>.</i>
             <?php endif; ?>
         </div>

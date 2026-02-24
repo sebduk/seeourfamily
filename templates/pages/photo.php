@@ -18,16 +18,18 @@ $months = $L['months'] ?? [];
 $familyName = $family['name'] ?? '';
 $imagePath  = '/Gene/File/' . urlencode($familyName) . '/Image/';
 
-$photoId = (int)($router->param('id') ?? $_GET['IDPhoto'] ?? 0);
+$photoUuid = $router->param('id') ?? $_GET['IDPhoto'] ?? '';
 
-$stmt = $pdo->prepare('SELECT * FROM photos WHERE id = ? AND family_id = ?');
-$stmt->execute([$photoId, $fid]);
+$stmt = $pdo->prepare('SELECT * FROM photos WHERE uuid = ? AND family_id = ?');
+$stmt->execute([$photoUuid, $fid]);
 $photo = $stmt->fetch();
 
 if (!$photo) {
     echo '<p>Photo not found.</p>';
     return;
 }
+
+$photoId = (int)$photo['id']; // integer for internal JOINs
 
 // Date formatting
 $dateStr = '';
@@ -46,7 +48,7 @@ if ($photo['photo_date']) {
 
 // People in the photo
 $stmt = $pdo->prepare(
-    'SELECT p.id, p.first_name, p.last_name,
+    'SELECT p.id, p.uuid, p.first_name, p.last_name,
             IFNULL(DATE_FORMAT(p.birth_date, "%Y"), "") AS birth,
             IFNULL(DATE_FORMAT(p.death_date, "%Y"), "") AS death
      FROM people p
@@ -59,7 +61,7 @@ $people = $stmt->fetchAll();
 
 // Face tags
 $stmt = $pdo->prepare(
-    'SELECT pt.person_id, pt.x_pct, pt.y_pct, p.first_name, p.last_name
+    'SELECT pt.person_id, pt.x_pct, pt.y_pct, p.uuid, p.first_name, p.last_name
      FROM photo_tags pt
      JOIN people p ON pt.person_id = p.id
      WHERE pt.photo_id = ?'
@@ -72,7 +74,7 @@ $tags = $stmt->fetchAll();
     <div class="photo-tags-container">
         <img src="<?= h($imagePath . $photo['file_name']) ?>" alt="">
         <?php foreach ($tags as $tag): ?>
-        <a class="photo-tag" href="/person/<?= $tag['person_id'] ?>"
+        <a class="photo-tag" href="/person/<?= h($tag['uuid']) ?>"
            style="left:<?= $tag['x_pct'] ?>%;top:<?= $tag['y_pct'] ?>%">
             <?= h($tag['first_name']) ?> <?= h($tag['last_name']) ?>
         </a>
@@ -93,7 +95,7 @@ $tags = $stmt->fetchAll();
                 if ($i > 0) echo ', ';
                 $title = '[' . h($p['birth']) . ($p['death'] ? '-' . h($p['death']) : '') . ']';
             ?>
-                <a href="/person/<?= $p['id'] ?>" title="<?= $title ?>"><?= h($p['first_name']) ?> <?= h($p['last_name']) ?></a>
+                <a href="/person/<?= h($p['uuid']) ?>" title="<?= $title ?>"><?= h($p['first_name']) ?> <?= h($p['last_name']) ?></a>
             <?php endforeach; ?>.
         </div>
     <?php endif; ?>

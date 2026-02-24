@@ -16,17 +16,27 @@ if (!$isLoggedIn) { echo '<p><a href="/login">' . $L['menu_login'] . '</a></p>';
 $fid = $auth->familyId();
 $pdo = $db->pdo();
 
-$personId = (int)($router->param('id') ?? $_GET['IDPerso'] ?? 1);
+$personUuid = $router->param('id') ?? $_GET['IDPerso'] ?? '';
+
+// Resolve UUID to integer id
+if ($personUuid !== '' && !ctype_digit($personUuid)) {
+    $stmt = $pdo->prepare('SELECT id FROM people WHERE uuid = ? AND family_id = ?');
+    $stmt->execute([$personUuid, $fid]);
+    $resolved = $stmt->fetch();
+    $personId = $resolved ? (int)$resolved['id'] : 0;
+} else {
+    $personId = (int)$personUuid ?: 1;
+}
 
 // =========================================================================
 // HELPER: format a person link
 // =========================================================================
-function descPersonCell(?string $firstName, ?string $lastName, ?string $birth, ?string $death, int $id): string
+function descPersonCell(?string $firstName, ?string $lastName, ?string $birth, ?string $death, string $uuid): string
 {
     $name = h($firstName) . '&nbsp;' . h($lastName);
     $dates = h($birth) . '-' . h($death);
-    return '<a href="/tree/' . $id . '">' . $name . '</a>'
-         . ' (<a href="/person/' . $id . '">' . $dates . '</a>)';
+    return '<a href="/tree/' . h($uuid) . '">' . $name . '</a>'
+         . ' (<a href="/person/' . h($uuid) . '">' . $dates . '</a>)';
 }
 
 // =========================================================================
@@ -35,7 +45,7 @@ function descPersonCell(?string $firstName, ?string $lastName, ?string $birth, ?
 
 // Get person info
 $stmt = $pdo->prepare(
-    'SELECT id, first_name, last_name,
+    'SELECT id, uuid, first_name, last_name,
             IFNULL(DATE_FORMAT(birth_date, "%Y"), "") AS birth,
             IFNULL(DATE_FORMAT(death_date, "%Y"), "") AS death
      FROM people WHERE id = ? AND family_id = ?'
@@ -62,10 +72,10 @@ function findCouples(PDO $pdo, int $fid, int $personId): array
 {
     $stmt = $pdo->prepare(
         'SELECT c.id AS couple_id,
-                p1.id AS p1_id, p1.first_name AS p1_fn, p1.last_name AS p1_ln,
+                p1.id AS p1_id, p1.uuid AS p1_uuid, p1.first_name AS p1_fn, p1.last_name AS p1_ln,
                 IFNULL(DATE_FORMAT(p1.birth_date, "%Y"), "") AS p1_birth,
                 IFNULL(DATE_FORMAT(p1.death_date, "%Y"), "") AS p1_death,
-                p2.id AS p2_id, p2.first_name AS p2_fn, p2.last_name AS p2_ln,
+                p2.id AS p2_id, p2.uuid AS p2_uuid, p2.first_name AS p2_fn, p2.last_name AS p2_ln,
                 IFNULL(DATE_FORMAT(p2.birth_date, "%Y"), "") AS p2_birth,
                 IFNULL(DATE_FORMAT(p2.death_date, "%Y"), "") AS p2_death
          FROM couples c
@@ -84,7 +94,7 @@ function findCouples(PDO $pdo, int $fid, int $personId): array
 function findChildren(PDO $pdo, int $fid, int $coupleId): array
 {
     $stmt = $pdo->prepare(
-        'SELECT id, first_name, last_name,
+        'SELECT id, uuid, first_name, last_name,
                 IFNULL(DATE_FORMAT(birth_date, "%Y"), "") AS birth,
                 IFNULL(DATE_FORMAT(death_date, "%Y"), "") AS death
          FROM people WHERE couple_id = ? AND family_id = ? ORDER BY couple_sort'
@@ -121,9 +131,9 @@ function renderDescendants(PDO $pdo, int $fid, int $coupleId): void
                 $p1Direct = ((int)$couple['p1_id'] === $childId);
                 echo '<div class="desc-couple">';
                 echo '<div class="desc-pair">';
-                echo '<span>' . descBold(descPersonCell($couple['p1_fn'], $couple['p1_ln'], $couple['p1_birth'], $couple['p1_death'], (int)$couple['p1_id']), $p1Direct) . '</span>';
+                echo '<span>' . descBold(descPersonCell($couple['p1_fn'], $couple['p1_ln'], $couple['p1_birth'], $couple['p1_death'], $couple['p1_uuid']), $p1Direct) . '</span>';
                 echo '<span class="desc-sep">&amp;</span>';
-                echo '<span>' . descBold(descPersonCell($couple['p2_fn'], $couple['p2_ln'], $couple['p2_birth'], $couple['p2_death'], (int)$couple['p2_id']), !$p1Direct) . '</span>';
+                echo '<span>' . descBold(descPersonCell($couple['p2_fn'], $couple['p2_ln'], $couple['p2_birth'], $couple['p2_death'], $couple['p2_uuid']), !$p1Direct) . '</span>';
                 echo '</div>';
                 renderDescendants($pdo, $fid, (int)$couple['couple_id']);
                 echo '</div>';
@@ -132,7 +142,7 @@ function renderDescendants(PDO $pdo, int $fid, int $coupleId): void
             // Child has no spouse: always a direct descendant
             echo '<div class="desc-couple">';
             echo '<div class="desc-single">';
-            echo '<b>' . descPersonCell($child['first_name'], $child['last_name'], $child['birth'], $child['death'], $childId) . '</b>';
+            echo '<b>' . descPersonCell($child['first_name'], $child['last_name'], $child['birth'], $child['death'], $child['uuid']) . '</b>';
             echo '</div>';
             echo '</div>';
         }
@@ -148,7 +158,7 @@ function renderDescendants(PDO $pdo, int $fid, int $coupleId): void
     <strong><?= h($personName) ?></strong>
     <?= $L['full_descendance'] ?>
     <span class="nav-links">|
-        <a href="/tree/<?= $personId ?>"><?= $L['classic'] ?></a>
+        <a href="/tree/<?= h($person['uuid']) ?>"><?= $L['classic'] ?></a>
     </span>
 </div>
 
@@ -166,9 +176,9 @@ if (!empty($couples)):
 <div class="desc-tree">
     <div class="desc-couple desc-root">
         <div class="desc-pair">
-            <span><?= descBold(descPersonCell($couple['p1_fn'], $couple['p1_ln'], $couple['p1_birth'], $couple['p1_death'], (int)$couple['p1_id']), $p1Direct) ?></span>
+            <span><?= descBold(descPersonCell($couple['p1_fn'], $couple['p1_ln'], $couple['p1_birth'], $couple['p1_death'], $couple['p1_uuid']), $p1Direct) ?></span>
             <span class="desc-sep">&amp;</span>
-            <span><?= descBold(descPersonCell($couple['p2_fn'], $couple['p2_ln'], $couple['p2_birth'], $couple['p2_death'], (int)$couple['p2_id']), !$p1Direct) ?></span>
+            <span><?= descBold(descPersonCell($couple['p2_fn'], $couple['p2_ln'], $couple['p2_birth'], $couple['p2_death'], $couple['p2_uuid']), !$p1Direct) ?></span>
         </div>
         <?php renderDescendants($pdo, $fid, (int)$couple['couple_id']); ?>
     </div>
@@ -180,7 +190,7 @@ else:
 <div class="desc-tree">
     <div class="desc-couple desc-root">
         <div class="desc-single">
-            <b><?= descPersonCell($person['first_name'], $person['last_name'], $person['birth'], $person['death'], (int)$person['id']) ?></b>
+            <b><?= descPersonCell($person['first_name'], $person['last_name'], $person['birth'], $person['death'], $person['uuid']) ?></b>
         </div>
     </div>
 </div>

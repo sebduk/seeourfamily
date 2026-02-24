@@ -117,7 +117,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$editId = (int)($id ?? $_GET['id'] ?? 0);
+$editUuid = $router->param('id') ?? $_GET['id'] ?? '';
+if ($editUuid !== '' && !ctype_digit($editUuid)) {
+    $stmt = $pdo->prepare('SELECT id FROM photos WHERE uuid = ? AND family_id = ?');
+    $stmt->execute([$editUuid, $fid]);
+    $resolved = $stmt->fetch();
+    $editId = $resolved ? (int)$resolved['id'] : 0;
+} else {
+    $editId = (int)$editUuid;
+}
 
 // File type icon helper
 function docIcon(string $fileName): string {
@@ -136,7 +144,7 @@ function docIcon(string $fileName): string {
 
 // List (non-image files only)
 $stmt = $pdo->prepare(
-    "SELECT id, file_name, photo_date FROM photos
+    "SELECT id, uuid, file_name, photo_date FROM photos
      WHERE family_id = ?
        AND LOWER(RIGHT(file_name, 3)) NOT IN ('jpg','gif','png')
        AND LOWER(RIGHT(file_name, 4)) NOT IN ('jpeg','webp')
@@ -176,7 +184,7 @@ $linkedIds = array_column($linkedPeople, 'id');
         <div class="sidebar-links"><a href="/admin/documents">Add / Upload</a></div>
         <hr>
         <?php foreach ($docsList as $d): ?>
-            <a href="/admin/documents?id=<?= $d['id'] ?>"><?= h(pathinfo($d['file_name'], PATHINFO_FILENAME)) ?></a>
+            <a href="/admin/documents?id=<?= $d['uuid'] ?>"><?= h(pathinfo($d['file_name'], PATHINFO_FILENAME)) ?></a>
         <?php endforeach; ?>
     </div>
 

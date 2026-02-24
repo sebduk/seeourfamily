@@ -69,7 +69,7 @@ function sortLink(string $col, string $currentCol, string $currentDir, string $l
 
         // Participants
         $stmt = $pdo->prepare(
-            'SELECT p.id, p.first_name, p.last_name FROM people p
+            'SELECT p.id, p.uuid, p.first_name, p.last_name FROM people p
              JOIN photo_person_link ppl ON ppl.person_id = p.id
              WHERE ppl.photo_id = ?
              ORDER BY p.last_name, p.first_name'
@@ -93,7 +93,7 @@ function sortLink(string $col, string $currentCol, string $currentDir, string $l
                     <?php foreach ($participants as $i => $p):
                         if ($i > 0) echo ', ';
                     ?>
-                        <a href="/person/<?= $p['id'] ?>"><?= h($p['first_name']) ?>&nbsp;<?= h($p['last_name']) ?></a>
+                        <a href="/person/<?= h($p['uuid']) ?>"><?= h($p['first_name']) ?>&nbsp;<?= h($p['last_name']) ?></a>
                     <?php endforeach; ?>.
                 <?php endif; ?>
             </td>

@@ -21,7 +21,7 @@ $daysInMonth = [1=>31,2=>29,3=>31,4=>30,5=>31,6=>30,7=>31,8=>31,9=>30,10=>31,11=
 // Exclude year-only records (birth_precision='y', stored as YYYY-01-01 placeholders).
 // If birth_precision is NULL (data imported without migration), include the record.
 $stmt = $pdo->prepare(
-    "SELECT id, first_name, last_name,
+    "SELECT id, uuid, first_name, last_name,
             DAY(birth_date)  AS bday,
             MONTH(birth_date) AS bmonth,
             YEAR(birth_date) AS byear,
@@ -70,9 +70,9 @@ $todayDay   = (int)$today->format('j');
                 foreach ($cal[$m][$day] as $k => $p):
                     if ($k > 0) echo '<br>';
             ?>
-                <a href="/tree/<?= $p['id'] ?>"><?= h($p['last_name']) ?>&nbsp;<?= h($p['first_name']) ?>&nbsp;(<?= h($p['byear']) ?>)</a><?php
+                <a href="/tree/<?= h($p['uuid']) ?>"><?= h($p['last_name']) ?>&nbsp;<?= h($p['first_name']) ?>&nbsp;(<?= h($p['byear']) ?>)</a><?php
                     if ($p['email'] && !$p['death_date']):
-                ?> <a href="/messages?IDForum=perso&amp;IDPerso=<?= $p['id'] ?>"><b>&#64;</b></a><?php
+                ?> <a href="/messages?IDForum=perso&amp;IDPerso=<?= h($p['uuid']) ?>"><b>&#64;</b></a><?php
                     endif;
                 endforeach;
             else:

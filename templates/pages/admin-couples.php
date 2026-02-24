@@ -50,11 +50,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$editId = (int)($id ?? $_GET['id'] ?? 0);
+$editUuid = $router->param('id') ?? $_GET['id'] ?? '';
+if ($editUuid !== '' && !ctype_digit($editUuid)) {
+    $stmt = $pdo->prepare('SELECT id FROM couples WHERE uuid = ? AND family_id = ?');
+    $stmt->execute([$editUuid, $fid]);
+    $resolved = $stmt->fetch();
+    $editId = $resolved ? (int)$resolved['id'] : 0;
+} else {
+    $editId = (int)$editUuid;
+}
 
 // List
 $stmt = $pdo->prepare(
-    'SELECT c.id, p1.last_name AS ln1, p1.first_name AS fn1, p2.last_name AS ln2, p2.first_name AS fn2
+    'SELECT c.id, c.uuid, p1.last_name AS ln1, p1.first_name AS fn1, p2.last_name AS ln2, p2.first_name AS fn2
      FROM couples c
      JOIN people p1 ON c.person1_id = p1.id
      JOIN people p2 ON c.person2_id = p2.id
@@ -91,7 +99,7 @@ $women = $womenStmt->fetchAll();
         <div class="sidebar-links"><a href="/admin/couples">Add a Couple</a></div>
         <hr>
         <?php foreach ($couplesList as $c): ?>
-            <a href="/admin/couples?id=<?= $c['id'] ?>"><?= h($c['fn1'] . ' ' . $c['ln1'] . ' & ' . $c['fn2'] . ' ' . $c['ln2']) ?></a>
+            <a href="/admin/couples?id=<?= $c['uuid'] ?>"><?= h($c['fn1'] . ' ' . $c['ln1'] . ' & ' . $c['fn2'] . ' ' . $c['ln2']) ?></a>
         <?php endforeach; ?>
     </div>
 

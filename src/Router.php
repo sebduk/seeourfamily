@@ -10,12 +10,12 @@ namespace SeeOurFamily;
  * Turns clean URLs into a page name + parameters:
  *   /                     -> page=home
  *   /tree                 -> page=tree
- *   /tree/123             -> page=tree, id=123
- *   /person/456           -> page=person, id=456
+ *   /tree/abc-123-def     -> page=tree, id=abc-123-def (UUID)
+ *   /person/abc-456-ghi   -> page=person, id=abc-456-ghi (UUID)
  *   /photos               -> page=photos
- *   /photo/789            -> page=photo, id=789
+ *   /photo/abc-789-jkl    -> page=photo, id=abc-789-jkl (UUID)
  *   /admin/people         -> page=admin-people
- *   /admin/people/12      -> page=admin-people, id=12
+ *   /admin/people/abc-12  -> page=admin-people, id=abc-12 (UUID)
  *
  * Also supports the old query-string style for backwards compatibility:
  *   ?page=home            -> page=home
@@ -80,8 +80,8 @@ class Router
         return $this->params[$key] ?? $_GET[$key] ?? $default;
     }
 
-    /** Build a clean URL for a page + optional id. */
-    public static function url(string $page, ?int $id = null, array $extra = []): string
+    /** Build a clean URL for a page + optional id (UUID string or integer). */
+    public static function url(string $page, string|int|null $id = null, array $extra = []): string
     {
         $path = '/' . ltrim($page, '/');
         if ($id !== null) {
