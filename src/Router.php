@@ -25,6 +25,9 @@ namespace SeeOurFamily;
  */
 class Router
 {
+    /** Special route prefixes handled outside the page template system. */
+    private const SPECIAL_ROUTES = ['media'];
+
     /** Whitelist of valid page names. */
     private const PAGES = [
         'home',
@@ -65,6 +68,9 @@ class Router
     /** @var array<string, string> Extra parameters parsed from the URL. */
     private array $params = [];
 
+    /** Non-null when the URL matches a special route (e.g. /media/{uuid}). */
+    private ?string $specialRoute = null;
+
     public function __construct()
     {
         $this->resolve();
@@ -78,6 +84,12 @@ class Router
     public function param(string $key, ?string $default = null): ?string
     {
         return $this->params[$key] ?? $_GET[$key] ?? $default;
+    }
+
+    /** Returns the special route name (e.g. 'media') or null for normal pages. */
+    public function specialRoute(): ?string
+    {
+        return $this->specialRoute;
     }
 
     /** Build a clean URL for a page + optional id (UUID string or integer). */
@@ -103,6 +115,13 @@ class Router
 
         if ($path !== '' && $path !== 'index.php') {
             $segments = explode('/', $path);
+
+            // Special routes: /media/{uuid} — handled outside template system
+            if (in_array($segments[0], self::SPECIAL_ROUTES, true)) {
+                $this->specialRoute = $segments[0];
+                $this->params['id'] = $segments[1] ?? null;
+                return;
+            }
 
             // /blog/abc-123-def -> page=blog-post, id=abc-123-def
             // /admin/people/12 -> page=admin-people, id=12

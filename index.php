@@ -96,10 +96,12 @@ if (class_exists('Dotenv\\Dotenv') && file_exists($envFile)) {
 use SeeOurFamily\Database;
 use SeeOurFamily\Auth;
 use SeeOurFamily\Labels;
+use SeeOurFamily\Media;
 use SeeOurFamily\Router;
 
 $db     = new Database();
 $auth   = new Auth($db);
+$media  = new Media($db);
 $router = new Router();
 
 // =========================================================================
@@ -133,6 +135,27 @@ if (isset($_GET['Language'])) {
 if (($_GET['action'] ?? '') === 'logout') {
     $auth->logout();
     header('Location: /login');
+    exit;
+}
+
+// =========================================================================
+// MEDIA SERVING (special route: /media/{uuid})
+// =========================================================================
+
+if ($router->specialRoute() === 'media') {
+    $mediaUuid = $router->param('id');
+    if (!$mediaUuid || !$auth->isLoggedIn()) {
+        http_response_code(403);
+        echo 'Forbidden';
+        exit;
+    }
+    $familyId   = $auth->familyId();
+    $familyName = $auth->family()['name'] ?? '';
+    $thumbnail  = isset($_GET['tn']);
+    if (!$media->serve($mediaUuid, $familyId, $familyName, $thumbnail)) {
+        http_response_code(404);
+        echo 'Not found';
+    }
     exit;
 }
 

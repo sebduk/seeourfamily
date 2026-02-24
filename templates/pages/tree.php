@@ -27,9 +27,7 @@ if ($personUuid !== '' && !ctype_digit($personUuid)) {
     $personId = (int)$personUuid ?: 1;
 }
 
-// File path prefix for family images
 $familyName = $family['name'] ?? '';
-$imagePath  = '/Gene/File/' . urlencode($familyName) . '/Image/';
 
 // =========================================================================
 // HELPER: format a person cell

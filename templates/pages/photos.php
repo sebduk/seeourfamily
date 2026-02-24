@@ -15,17 +15,20 @@ $fid = $auth->familyId();
 $pdo = $db->pdo();
 
 $familyName = $family['name'] ?? '';
-$imagePath  = '/Gene/File/' . urlencode($familyName) . '/Image/';
 
 $perPage = 78;
 $start   = max(0, (int)($_GET['start'] ?? 0));
 $folder  = $_GET['folder'] ?? null;
 
+// Image filter: matches both legacy file_name and new stored_filename entries
+$imageFilter = "(
+    (file_name IS NOT NULL AND (LOWER(RIGHT(file_name, 3)) IN ('jpg','gif','png') OR LOWER(RIGHT(file_name, 4)) = 'jpeg'))
+    OR (stored_filename IS NOT NULL AND file_name IS NULL
+        AND (LOWER(RIGHT(stored_filename, 3)) IN ('jpg','gif','png') OR LOWER(RIGHT(stored_filename, 4)) = 'jpeg'))
+)";
+
 // Count total photos
-$countSql = "SELECT COUNT(*) FROM photos
-             WHERE family_id = ?
-               AND (LOWER(RIGHT(file_name, 3)) IN ('jpg','gif','png')
-                 OR LOWER(RIGHT(file_name, 4)) = 'jpeg')";
+$countSql = "SELECT COUNT(*) FROM photos WHERE family_id = ? AND $imageFilter";
 $countParams = [$fid];
 if ($folder) {
     $countSql .= ' AND file_name LIKE ?';
@@ -37,17 +40,15 @@ $totalPhotos = (int)$stmt->fetchColumn();
 $totalPages = max(1, (int)ceil($totalPhotos / $perPage));
 
 // Load current page of photos
-$sql = "SELECT id, uuid, file_name, description, photo_date
+$sql = "SELECT id, uuid, file_name, original_filename, stored_filename, description, photo_date
         FROM photos
-        WHERE family_id = ?
-          AND (LOWER(RIGHT(file_name, 3)) IN ('jpg','gif','png')
-            OR LOWER(RIGHT(file_name, 4)) = 'jpeg')";
+        WHERE family_id = ? AND $imageFilter";
 $params = [$fid];
 if ($folder) {
     $sql .= ' AND file_name LIKE ?';
     $params[] = $folder . '/%';
 }
-$sql .= ' ORDER BY photo_date, file_name LIMIT ? OFFSET ?';
+$sql .= ' ORDER BY photo_date, COALESCE(original_filename, file_name) LIMIT ? OFFSET ?';
 $params[] = $perPage;
 $params[] = $start;
 $stmt = $pdo->prepare($sql);
@@ -94,10 +95,10 @@ $folders = $fStmt->fetchAll();
 <!-- Thumbnail grid -->
 <div class="photo-grid">
     <?php foreach ($photos as $photo):
-        $alt = pathinfo($photo['file_name'], PATHINFO_FILENAME);
+        $alt = pathinfo($photo['original_filename'] ?? $photo['file_name'] ?? '', PATHINFO_FILENAME);
     ?>
         <a class="thumb" href="/photo/<?= h($photo['uuid']) ?>" title="<?= h($alt) ?>">
-            <img src="<?= h($imagePath . $photo['file_name']) ?>" alt="<?= h($alt) ?>">
+            <img src="/media/<?= h($photo['uuid']) ?>?tn=1" alt="<?= h($alt) ?>">
         </a>
     <?php endforeach; ?>
 </div>

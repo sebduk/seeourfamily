@@ -17,10 +17,7 @@ $personUuid = $router->param('id') ?? $_GET['ID'] ?? '';
 $months = $L['months'] ?? [];
 $dateFormat = $family['date_format'] ?? 'dmy';
 
-// File path prefix for family images/documents
 $familyName = $family['name'] ?? '';
-$imagePath  = '/Gene/File/' . urlencode($familyName) . '/Image/';
-$docPath    = '/Gene/File/' . urlencode($familyName) . '/Document/';
 
 // =========================================================================
 // HELPERS
@@ -85,14 +82,17 @@ $stmt = $pdo->prepare(
 $stmt->execute([$personId, $fid]);
 $comments = $stmt->fetchAll();
 
-// Pictures (file_name ending in jpg/gif/png)
+// Pictures (image extensions)
 $stmt = $pdo->prepare(
     "SELECT ph.* FROM photos ph
      JOIN photo_person_link ppl ON ppl.photo_id = ph.id
      WHERE ppl.person_id = ? AND ph.family_id = ?
-       AND (LOWER(RIGHT(ph.file_name, 3)) IN ('jpg','gif','png')
-         OR LOWER(RIGHT(ph.file_name, 4)) = 'jpeg')
-     ORDER BY ph.photo_date, ph.file_name"
+       AND (
+         (ph.file_name IS NOT NULL AND (LOWER(RIGHT(ph.file_name, 3)) IN ('jpg','gif','png') OR LOWER(RIGHT(ph.file_name, 4)) = 'jpeg'))
+         OR (ph.stored_filename IS NOT NULL AND ph.file_name IS NULL
+           AND (LOWER(RIGHT(ph.stored_filename, 3)) IN ('jpg','gif','png') OR LOWER(RIGHT(ph.stored_filename, 4)) = 'jpeg'))
+       )
+     ORDER BY ph.photo_date, COALESCE(ph.original_filename, ph.file_name)"
 );
 $stmt->execute([$personId, $fid]);
 $pictures = $stmt->fetchAll();
@@ -102,9 +102,14 @@ $stmt = $pdo->prepare(
     "SELECT ph.* FROM photos ph
      JOIN photo_person_link ppl ON ppl.photo_id = ph.id
      WHERE ppl.person_id = ? AND ph.family_id = ?
-       AND LOWER(RIGHT(ph.file_name, 3)) NOT IN ('jpg','gif','png')
-       AND LOWER(RIGHT(ph.file_name, 4)) <> 'jpeg'
-     ORDER BY ph.photo_date, ph.file_name"
+       AND (
+         (ph.file_name IS NOT NULL AND LOWER(RIGHT(ph.file_name, 3)) NOT IN ('jpg','gif','png')
+           AND LOWER(RIGHT(ph.file_name, 4)) <> 'jpeg')
+         OR (ph.stored_filename IS NOT NULL AND ph.file_name IS NULL
+           AND LOWER(RIGHT(ph.stored_filename, 3)) NOT IN ('jpg','gif','png')
+           AND LOWER(RIGHT(ph.stored_filename, 4)) <> 'jpeg')
+       )
+     ORDER BY ph.photo_date, COALESCE(ph.original_filename, ph.file_name)"
 );
 $stmt->execute([$personId, $fid]);
 $docs = $stmt->fetchAll();
@@ -206,7 +211,7 @@ $docs = $stmt->fetchAll();
     ?>
     <div class="bio-photo-item">
         <div class="thumb">
-            <a href="/photo/<?= h($pic['uuid']) ?>"><img src="<?= h($imagePath . $pic['file_name']) ?>" alt=""></a>
+            <a href="/photo/<?= h($pic['uuid']) ?>"><img src="/media/<?= h($pic['uuid']) ?>?tn=1" alt=""></a>
         </div>
         <div>
             <?= formatPhotoDate($pic['photo_date'], $pic['photo_precision'] ?? 'y', $months) ?>
@@ -240,15 +245,16 @@ $docs = $stmt->fetchAll();
         $stmt->execute([$doc['id'], $personId]);
         $others = $stmt->fetchAll();
 
-        $ext = strtolower(pathinfo($doc['file_name'], PATHINFO_EXTENSION));
+        $docFileName = $doc['original_filename'] ?? $doc['file_name'] ?? $doc['stored_filename'] ?? '';
+        $ext = strtolower(pathinfo($docFileName, PATHINFO_EXTENSION));
         $knownIcons = ['doc','mdb','pdf','ppt','pps','txt','xls','zip'];
         $icon = in_array($ext, $knownIcons) ? $ext : 'other';
-        $baseName = pathinfo($doc['file_name'], PATHINFO_FILENAME);
+        $baseName = pathinfo($docFileName, PATHINFO_FILENAME);
     ?>
     <div class="bio-item">
         <div class="bio-item-label">
             <img src="/Image/Icon/<?= $icon ?>.gif" alt="<?= h($ext) ?>">
-            <a href="<?= h($docPath . $doc['file_name']) ?>"><b><?= h($baseName) ?></b></a>
+            <a href="/media/<?= h($doc['uuid']) ?>"><b><?= h($baseName) ?></b></a>
         </div>
         <div>
             <?php if ($doc['photo_date']): ?><b>(<?= h($doc['photo_date']) ?>)</b> <?php endif; ?>

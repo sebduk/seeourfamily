@@ -16,8 +16,6 @@ $pdo = $db->pdo();
 $msg = '';
 
 $familyName = $family['name'] ?? '';
-$docPath    = '/Gene/File/' . urlencode($familyName) . '/Document/';
-$docDir     = $_SERVER['DOCUMENT_ROOT'] . $docPath;
 
 // Handle POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -31,43 +29,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $msg = 'Document deleted.';
         $id = 0;
     } elseif ($todo === 'upload' && !empty($_FILES['doc_file']['name'])) {
-        // File upload — allowlist only
-        $allowedExt = ['jpg', 'jpeg', 'gif', 'png', 'mp3', 'mp4', 'avi', 'pdf'];
-        $ext = strtolower(pathinfo($_FILES['doc_file']['name'], PATHINFO_EXTENSION));
-        if (!in_array($ext, $allowedExt, true)) {
-            $msg = 'File type not allowed. Accepted: ' . implode(', ', $allowedExt);
-        } elseif ($_FILES['doc_file']['error'] !== UPLOAD_ERR_OK) {
-            $msg = 'Upload error (code ' . $_FILES['doc_file']['error'] . ').';
-        } else {
-            // Verify actual file content matches extension
-            $finfo = new finfo(FILEINFO_MIME_TYPE);
-            $mime = $finfo->file($_FILES['doc_file']['tmp_name']);
-            $allowedMime = [
-                'image/jpeg', 'image/gif', 'image/png',
-                'audio/mpeg', 'video/mp4', 'video/x-msvideo', 'video/avi',
-                'application/pdf',
-            ];
-            if (!in_array($mime, $allowedMime, true)) {
-                $msg = 'File content does not match an allowed type (detected: ' . h($mime) . ').';
+        $result = $media->storeUpload($_FILES['doc_file'], $fid);
+        if ($result === null) {
+            $ext = strtolower(pathinfo($_FILES['doc_file']['name'], PATHINFO_EXTENSION));
+            $allowedExt = ['jpg', 'jpeg', 'gif', 'png', 'mp3', 'mp4', 'avi', 'pdf'];
+            if (!in_array($ext, $allowedExt, true)) {
+                $msg = 'File type not allowed. Accepted: ' . implode(', ', $allowedExt);
             } else {
-                $fileName = basename($_FILES['doc_file']['name']);
-                // Sanitize: strip anything that isn't alphanumeric, dash, underscore, dot
-                $fileName = preg_replace('/[^a-zA-Z0-9._-]/', '_', $fileName);
-                $folder = $val('folder') ? trim($val('folder'), '/') . '/' : '';
-                $targetDir = $docDir . $folder;
-                if (!is_dir($targetDir)) @mkdir($targetDir, 0755, true);
-                $target = $targetDir . $fileName;
-                if (move_uploaded_file($_FILES['doc_file']['tmp_name'], $target)) {
-                    $dbName = $folder . $fileName;
-                    $pdo->prepare(
-                        'INSERT INTO photos (family_id, file_name, photo_date) VALUES (?, ?, NULL)'
-                    )->execute([$fid, $dbName]);
-                    $id = (int)$pdo->lastInsertId();
-                    $msg = 'Document uploaded. Now edit its details below.';
-                } else {
-                    $msg = 'Upload failed.';
-                }
+                $msg = 'Upload failed — file content may not match an allowed type.';
             }
+        } else {
+            $pdo->prepare(
+                'INSERT INTO photos (family_id, stored_filename, original_filename, mime_type, file_size, photo_date)
+                 VALUES (?, ?, ?, ?, ?, NULL)'
+            )->execute([$fid, $result['stored_filename'], $result['original_filename'], $result['mime_type'], $result['file_size']]);
+            $id = (int)$pdo->lastInsertId();
+            $msg = 'Document uploaded. Now edit its details below.';
         }
     } elseif ($todo === 'add' || $todo === 'update') {
         $newFileName = $val('file_name');
@@ -144,11 +121,16 @@ function docIcon(string $fileName): string {
 
 // List (non-image files only)
 $stmt = $pdo->prepare(
-    "SELECT id, uuid, file_name, photo_date FROM photos
+    "SELECT id, uuid, file_name, original_filename, stored_filename, photo_date FROM photos
      WHERE family_id = ?
-       AND LOWER(RIGHT(file_name, 3)) NOT IN ('jpg','gif','png')
-       AND LOWER(RIGHT(file_name, 4)) NOT IN ('jpeg','webp')
-     ORDER BY file_name"
+       AND (
+         (file_name IS NOT NULL AND LOWER(RIGHT(file_name, 3)) NOT IN ('jpg','gif','png')
+           AND LOWER(RIGHT(file_name, 4)) NOT IN ('jpeg','webp'))
+         OR (stored_filename IS NOT NULL AND file_name IS NULL
+           AND LOWER(RIGHT(stored_filename, 3)) NOT IN ('jpg','gif','png')
+           AND LOWER(RIGHT(stored_filename, 4)) NOT IN ('jpeg','webp'))
+       )
+     ORDER BY COALESCE(original_filename, file_name)"
 );
 $stmt->execute([$fid]);
 $docsList = $stmt->fetchAll();
@@ -184,7 +166,8 @@ $linkedIds = array_column($linkedPeople, 'id');
         <div class="sidebar-links"><a href="/admin/documents">Add / Upload</a></div>
         <hr>
         <?php foreach ($docsList as $d): ?>
-            <a href="/admin/documents?id=<?= $d['uuid'] ?>"><?= h(pathinfo($d['file_name'], PATHINFO_FILENAME)) ?></a>
+            <?php $dName = $d['original_filename'] ?? $d['file_name'] ?? ''; ?>
+            <a href="/admin/documents?id=<?= $d['uuid'] ?>"><?= h(pathinfo($dName, PATHINFO_FILENAME)) ?></a>
         <?php endforeach; ?>
     </div>
 
@@ -194,7 +177,6 @@ $linkedIds = array_column($linkedPeople, 'id');
         <form method="post" action="/admin/documents" enctype="multipart/form-data" class="admin-form" style="margin-bottom:1rem">
             <input type="hidden" name="todo" value="upload">
             <div class="form-row"><label>Upload File</label><input type="file" name="doc_file" accept=".jpg,.jpeg,.gif,.png,.mp3,.mp4,.avi,.pdf"></div>
-            <div class="form-row"><label>Folder (optional)</label><input type="text" name="folder" size="20"></div>
             <div class="form-actions"><input type="submit" value="Upload"></div>
         </form>
         <p><small>Naming convention: LastFirstNamesYearMonthDay.ext (e.g. DucosGabriel20020530.pdf)<br>
@@ -207,7 +189,11 @@ $linkedIds = array_column($linkedPeople, 'id');
             <input type="hidden" name="id" value="<?= $doc ? $doc['id'] : '' ?>">
             <input type="hidden" name="todo" value="<?= $doc ? 'update' : 'add' ?>">
 
+            <?php if ($doc && $doc['stored_filename']): ?>
+            <div class="form-row"><label>File</label><span><?= h($doc['original_filename'] ?? $doc['stored_filename']) ?></span></div>
+            <?php else: ?>
             <div class="form-row"><label>File Name</label><input type="text" name="file_name" size="40" value="<?= h($doc['file_name'] ?? '') ?>"></div>
+            <?php endif; ?>
             <div class="form-row"><label>Description</label><textarea name="description" cols="60" rows="3"><?= h($doc['description'] ?? '') ?></textarea></div>
             <div class="form-row"><label>Date</label><input type="date" name="photo_date" value="<?= h($doc['photo_date'] ?? '') ?>"></div>
             <div class="form-row"><label>Precision</label><select name="photo_precision"><option value="">-</option><option value="ymd"<?= ($doc['photo_precision'] ?? '') === 'ymd' ? ' selected' : '' ?>>Day</option><option value="ym"<?= ($doc['photo_precision'] ?? '') === 'ym' ? ' selected' : '' ?>>Month</option><option value="y"<?= ($doc['photo_precision'] ?? '') === 'y' ? ' selected' : '' ?>>Year</option></select></div>

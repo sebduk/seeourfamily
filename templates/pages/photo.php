@@ -16,7 +16,6 @@ $pdo = $db->pdo();
 $months = $L['months'] ?? [];
 
 $familyName = $family['name'] ?? '';
-$imagePath  = '/Gene/File/' . urlencode($familyName) . '/Image/';
 
 $photoUuid = $router->param('id') ?? $_GET['IDPhoto'] ?? '';
 
@@ -72,7 +71,7 @@ $tags = $stmt->fetchAll();
 
 <div class="photo-detail">
     <div class="photo-tags-container">
-        <img src="<?= h($imagePath . $photo['file_name']) ?>" alt="">
+        <img src="/media/<?= h($photo['uuid']) ?>" alt="">
         <?php foreach ($tags as $tag): ?>
         <a class="photo-tag" href="/person/<?= h($tag['uuid']) ?>"
            style="left:<?= $tag['x_pct'] ?>%;top:<?= $tag['y_pct'] ?>%">

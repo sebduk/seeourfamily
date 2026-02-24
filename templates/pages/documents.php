@@ -15,26 +15,30 @@ $fid = $auth->familyId();
 $pdo = $db->pdo();
 
 $familyName = $family['name'] ?? '';
-$docPath    = '/Gene/File/' . urlencode($familyName) . '/Document/';
 
 // Sort parameters (s=column, o=direction)
 $sortCol = $_GET['s'] ?? '2';
 $sortDir = $_GET['o'] ?? 'u';
 
-$sql = "SELECT id, file_name, description, photo_date, created_at
+$sql = "SELECT id, uuid, file_name, original_filename, stored_filename, description, photo_date, file_size, created_at
         FROM photos
         WHERE family_id = ?
-          AND LOWER(RIGHT(file_name, 3)) NOT IN ('jpg','gif','png')
-          AND LOWER(RIGHT(file_name, 4)) <> 'jpeg'";
+          AND (
+            (file_name IS NOT NULL AND LOWER(RIGHT(file_name, 3)) NOT IN ('jpg','gif','png')
+              AND LOWER(RIGHT(file_name, 4)) <> 'jpeg')
+            OR (stored_filename IS NOT NULL AND file_name IS NULL
+              AND LOWER(RIGHT(stored_filename, 3)) NOT IN ('jpg','gif','png')
+              AND LOWER(RIGHT(stored_filename, 4)) <> 'jpeg')
+          )";
 $params = [$fid];
 
 switch ($sortCol) {
     case '1':
-        $sql .= ' ORDER BY file_name' . ($sortDir === 'd' ? ' DESC' : '') . ', photo_date';
+        $sql .= ' ORDER BY COALESCE(original_filename, file_name)' . ($sortDir === 'd' ? ' DESC' : '') . ', photo_date';
         break;
     case '2':
     default:
-        $sql .= ' ORDER BY photo_date' . ($sortDir === 'd' ? ' DESC' : '') . ', file_name';
+        $sql .= ' ORDER BY photo_date' . ($sortDir === 'd' ? ' DESC' : '') . ', COALESCE(original_filename, file_name)';
         break;
 }
 
@@ -62,10 +66,11 @@ function sortLink(string $col, string $currentCol, string $currentDir, string $l
     </thead>
     <tbody>
     <?php foreach ($docs as $doc):
-        $ext = strtolower(pathinfo($doc['file_name'], PATHINFO_EXTENSION));
+        $docFileName = $doc['original_filename'] ?? $doc['file_name'] ?? $doc['stored_filename'] ?? '';
+        $ext = strtolower(pathinfo($docFileName, PATHINFO_EXTENSION));
         $knownIcons = ['doc','mdb','pdf','ppt','pps','txt','xls','zip'];
         $icon = in_array($ext, $knownIcons) ? $ext : 'other';
-        $baseName = pathinfo($doc['file_name'], PATHINFO_FILENAME);
+        $baseName = pathinfo($docFileName, PATHINFO_FILENAME);
 
         // Participants
         $stmt = $pdo->prepare(
@@ -79,9 +84,9 @@ function sortLink(string $col, string $currentCol, string $currentDir, string $l
     ?>
         <tr>
             <td class="doc-icon"><img src="/Image/Icon/<?= $icon ?>.gif" alt="<?= h($ext) ?>"></td>
-            <td><a href="<?= h($docPath . $doc['file_name']) ?>"><b><?= h($baseName) ?></b></a></td>
+            <td><a href="/media/<?= h($doc['uuid']) ?>"><b><?= h($baseName) ?></b></a></td>
             <td><?= h($doc['photo_date'] ?? '') ?></td>
-            <td style="text-align:right">&nbsp;</td>
+            <td style="text-align:right"><?php if ($doc['file_size']): ?><?= number_format((int)$doc['file_size'] / 1024, 0) ?> KB<?php endif; ?></td>
             <td style="text-align:right"><?= $doc['created_at'] ? h(date('d/m/Y', strtotime($doc['created_at']))) : '' ?></td>
         </tr>
         <?php if ($doc['description'] || $participants): ?>

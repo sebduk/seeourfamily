@@ -15,8 +15,6 @@ $pdo = $db->pdo();
 $msg = '';
 
 $familyName = $family['name'] ?? '';
-$imagePath  = '/Gene/File/' . urlencode($familyName) . '/Image/';
-$imageDir   = $_SERVER['DOCUMENT_ROOT'] . $imagePath;
 
 // Handle POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -31,43 +29,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $msg = 'Photo deleted.';
         $id = 0;
     } elseif ($todo === 'upload' && !empty($_FILES['photo_file']['name'])) {
-        // File upload — allowlist only
-        $allowedExt = ['jpg', 'jpeg', 'gif', 'png', 'mp3', 'mp4', 'avi', 'pdf'];
-        $ext = strtolower(pathinfo($_FILES['photo_file']['name'], PATHINFO_EXTENSION));
-        if (!in_array($ext, $allowedExt, true)) {
-            $msg = 'File type not allowed. Accepted: ' . implode(', ', $allowedExt);
-        } elseif ($_FILES['photo_file']['error'] !== UPLOAD_ERR_OK) {
-            $msg = 'Upload error (code ' . $_FILES['photo_file']['error'] . ').';
-        } else {
-            // Verify actual file content matches extension
-            $finfo = new finfo(FILEINFO_MIME_TYPE);
-            $mime = $finfo->file($_FILES['photo_file']['tmp_name']);
-            $allowedMime = [
-                'image/jpeg', 'image/gif', 'image/png',
-                'audio/mpeg', 'video/mp4', 'video/x-msvideo', 'video/avi',
-                'application/pdf',
-            ];
-            if (!in_array($mime, $allowedMime, true)) {
-                $msg = 'File content does not match an allowed type (detected: ' . h($mime) . ').';
+        $result = $media->storeUpload($_FILES['photo_file'], $fid);
+        if ($result === null) {
+            $ext = strtolower(pathinfo($_FILES['photo_file']['name'], PATHINFO_EXTENSION));
+            $allowedExt = ['jpg', 'jpeg', 'gif', 'png', 'mp3', 'mp4', 'avi', 'pdf'];
+            if (!in_array($ext, $allowedExt, true)) {
+                $msg = 'File type not allowed. Accepted: ' . implode(', ', $allowedExt);
             } else {
-                $fileName = basename($_FILES['photo_file']['name']);
-                // Sanitize: strip anything that isn't alphanumeric, dash, underscore, dot
-                $fileName = preg_replace('/[^a-zA-Z0-9._-]/', '_', $fileName);
-                $folder = $val('folder') ? trim($val('folder'), '/') . '/' : '';
-                $targetDir = $imageDir . $folder;
-                if (!is_dir($targetDir)) @mkdir($targetDir, 0755, true);
-                $target = $targetDir . $fileName;
-                if (move_uploaded_file($_FILES['photo_file']['tmp_name'], $target)) {
-                    $dbName = $folder . $fileName;
-                    $pdo->prepare(
-                        'INSERT INTO photos (family_id, file_name, photo_date) VALUES (?, ?, NULL)'
-                    )->execute([$fid, $dbName]);
-                    $id = (int)$pdo->lastInsertId();
-                    $msg = 'Photo uploaded. Now edit its details below.';
-                } else {
-                    $msg = 'Upload failed.';
-                }
+                $msg = 'Upload failed — file content may not match an allowed type.';
             }
+        } else {
+            $pdo->prepare(
+                'INSERT INTO photos (family_id, stored_filename, original_filename, mime_type, file_size, photo_date)
+                 VALUES (?, ?, ?, ?, ?, NULL)'
+            )->execute([$fid, $result['stored_filename'], $result['original_filename'], $result['mime_type'], $result['file_size']]);
+            $id = (int)$pdo->lastInsertId();
+            $msg = 'Photo uploaded. Now edit its details below.';
         }
     } elseif ($todo === 'add' || $todo === 'update') {
         $newFileName = $val('file_name');
@@ -142,108 +119,20 @@ if ($editUuid !== '' && !ctype_digit($editUuid)) {
     $editId = (int)$editUuid;
 }
 
-// ---- Maintenance: thumbnails & database sync ----
+// ---- Maintenance: check for missing files ----
 $warnings = [];
 $imageExts = ['jpg', 'jpeg', 'gif', 'png'];
 
-// Recursively collect all image files from disk
-$diskFiles = [];
-if (is_dir($imageDir)) {
-    $it = new RecursiveIteratorIterator(
-        new RecursiveDirectoryIterator($imageDir, FilesystemIterator::SKIP_DOTS)
-    );
-    foreach ($it as $fi) {
-        if (!$fi->isFile()) continue;
-        $ext = strtolower(pathinfo($fi->getFilename(), PATHINFO_EXTENSION));
-        if (!in_array($ext, $imageExts, true)) continue;
-        $rel = ltrim(substr($fi->getPathname(), strlen($imageDir)), '/\\');
-        $diskFiles[] = $rel;
-    }
-}
-
-// Split into source images and thumbnails
-$sourceFiles = [];
-$tnFiles     = [];
-foreach ($diskFiles as $f) {
-    if (preg_match('/\.tn\.\w+$/i', $f)) {
-        $tnFiles[] = $f;
-    } else {
-        $sourceFiles[] = $f;
-    }
-}
-
-// 1. Create missing thumbnails (100px max dimension)
-foreach ($sourceFiles as $srcRel) {
-    $tnRel  = preg_replace('/\.(\w+)$/', '.tn.$1', $srcRel);
-    $srcAbs = $imageDir . $srcRel;
-    $tnAbs  = $imageDir . $tnRel;
-    if (file_exists($tnAbs)) {
-        // Verify size is correct (max 100px)
-        $tnSize = @getimagesize($tnAbs);
-        if ($tnSize && $tnSize[0] <= 100 && $tnSize[1] <= 100) continue;
-        // Oversized thumbnail — recreate it
-    }
-    $ext = strtolower(pathinfo($srcRel, PATHINFO_EXTENSION));
-    $src = null;
-    if ($ext === 'jpg' || $ext === 'jpeg') $src = @imagecreatefromjpeg($srcAbs);
-    elseif ($ext === 'png')                $src = @imagecreatefrompng($srcAbs);
-    elseif ($ext === 'gif')                $src = @imagecreatefromgif($srcAbs);
-    if (!$src) {
-        $warnings[] = 'Could not read image: ' . $srcRel;
-        continue;
-    }
-    $w = imagesx($src); $h = imagesy($src);
-    $max = 100;
-    if ($w >= $h) { $nw = min($w, $max); $nh = (int)round($h * $nw / $w); }
-    else          { $nh = min($h, $max); $nw = (int)round($w * $nh / $h); }
-    $tn = imagecreatetruecolor(max($nw, 1), max($nh, 1));
-    if ($ext === 'png' || $ext === 'gif') {
-        imagealphablending($tn, false);
-        imagesavealpha($tn, true);
-        imagefilledrectangle($tn, 0, 0, $nw, $nh, imagecolorallocatealpha($tn, 0, 0, 0, 127));
-    }
-    imagecopyresampled($tn, $src, 0, 0, 0, 0, $nw, $nh, $w, $h);
-    $tnDir = dirname($tnAbs);
-    if (!is_dir($tnDir)) @mkdir($tnDir, 0755, true);
-    if ($ext === 'jpg' || $ext === 'jpeg') imagejpeg($tn, $tnAbs, 85);
-    elseif ($ext === 'png')                imagepng($tn, $tnAbs);
-    elseif ($ext === 'gif')                imagegif($tn, $tnAbs);
-    $src = $tn = null;
-    $warnings[] = 'Created thumbnail: ' . $tnRel;
-}
-
-// 2. Flag orphan thumbnails (no matching source image)
-$srcSet = array_flip($sourceFiles);
-foreach ($tnFiles as $tnRel) {
-    $srcRel = preg_replace('/\.tn\.(\w+)$/i', '.$1', $tnRel);
-    if (!isset($srcSet[$srcRel])) {
-        $warnings[] = 'Orphan thumbnail (no source image): ' . $tnRel;
-    }
-}
-
-// 3. Database sync — compare disk files with DB entries
-$dbStmt = $pdo->prepare('SELECT file_name FROM photos WHERE family_id = ?');
-$dbStmt->execute([$fid]);
-$dbFiles   = array_column($dbStmt->fetchAll(), 'file_name');
-$dbFileSet = array_flip($dbFiles);
-$srcFileSet = array_flip($sourceFiles);
-
-// Files on disk not in DB → add
-$insStmt = $pdo->prepare('INSERT INTO photos (family_id, file_name, photo_date) VALUES (?, ?, NULL)');
-foreach ($sourceFiles as $srcRel) {
-    if (!isset($dbFileSet[$srcRel])) {
-        $insStmt->execute([$fid, $srcRel]);
-        $warnings[] = 'Added to database: ' . $srcRel;
-    }
-}
-
-// DB entries whose file is missing on disk → flag
-foreach ($dbFiles as $dbFile) {
-    $ext = strtolower(pathinfo($dbFile, PATHINFO_EXTENSION));
-    if (!in_array($ext, $imageExts, true)) continue;
-    if (preg_match('/\.tn\.\w+$/i', $dbFile)) continue;
-    if (!isset($srcFileSet[$dbFile])) {
-        $warnings[] = 'Orphan DB entry (file missing): ' . $dbFile;
+// Check DB entries for missing disk files
+$chkStmt = $pdo->prepare(
+    "SELECT id, file_name, stored_filename FROM photos WHERE family_id = ?
+     AND (LOWER(RIGHT(file_name, 3)) IN ('jpg','gif','png') OR LOWER(RIGHT(file_name, 4)) = 'jpeg' OR stored_filename IS NOT NULL)"
+);
+$chkStmt->execute([$fid]);
+foreach ($chkStmt->fetchAll() as $chk) {
+    if ($media->diskPath($chk + ['family_id' => $fid], $familyName) === null) {
+        $label = $chk['stored_filename'] ?: $chk['file_name'];
+        $warnings[] = 'File missing on disk: ' . ($label ?? '(no filename)');
     }
 }
 
@@ -277,15 +166,19 @@ $qs = function(array $extra = []): string {
 };
 
 // List (image files only) with tag status
-$sql = "SELECT p.id, p.uuid, p.file_name, p.photo_date,
+$sql = "SELECT p.id, p.uuid, p.file_name, p.original_filename, p.photo_date,
                COUNT(DISTINCT ppl.person_id) AS linked_count,
                COUNT(DISTINCT pt.person_id)  AS tagged_count
         FROM photos p
         LEFT JOIN photo_person_link ppl ON ppl.photo_id = p.id
         LEFT JOIN photo_tags pt ON pt.photo_id = p.id";
 $sql .= " WHERE p.family_id = ?
-           AND (LOWER(RIGHT(p.file_name, 3)) IN ('jpg','gif','png') OR LOWER(RIGHT(p.file_name, 4)) = 'jpeg')
-           AND LOWER(p.file_name) NOT LIKE '%.tn.%'";
+           AND (
+             (p.file_name IS NOT NULL AND (LOWER(RIGHT(p.file_name, 3)) IN ('jpg','gif','png') OR LOWER(RIGHT(p.file_name, 4)) = 'jpeg')
+               AND LOWER(p.file_name) NOT LIKE '%.tn.%')
+             OR (p.stored_filename IS NOT NULL AND p.file_name IS NULL
+               AND (LOWER(RIGHT(p.stored_filename, 3)) IN ('jpg','gif','png') OR LOWER(RIGHT(p.stored_filename, 4)) = 'jpeg'))
+           )";
 $params = [$fid];
 
 if ($filterPerson > 0) {
@@ -293,7 +186,7 @@ if ($filterPerson > 0) {
     $params[] = $filterPerson;
 }
 
-$sql .= " GROUP BY p.id, p.uuid, p.file_name, p.photo_date";
+$sql .= " GROUP BY p.id, p.uuid, p.file_name, p.original_filename, p.photo_date";
 
 if ($filterTagged === 'done') {
     $sql .= " HAVING COUNT(DISTINCT ppl.person_id) > 0 AND COUNT(DISTINCT pt.person_id) >= COUNT(DISTINCT ppl.person_id)";
@@ -395,7 +288,7 @@ $linkedIds = array_column($linkedPeople, 'id');
                 $dotClass = 'tag-status-red';
             }
         ?>
-            <?php $displayName = preg_replace('/\.[^.]+$/', '', $p['file_name']); ?>
+            <?php $displayName = preg_replace('/\.[^.]+$/', '', $p['original_filename'] ?? $p['file_name'] ?? ''); ?>
             <a href="/admin/photos?id=<?= $p['uuid'] ?><?= h(substr($qs(), 1) ? '&' . substr($qs(), 1) : '') ?>"><span class="tag-status-dot <?= $dotClass ?>">&#9679;</span> <?= h($displayName) ?></a>
         <?php endforeach; ?>
     </div>
@@ -406,7 +299,6 @@ $linkedIds = array_column($linkedPeople, 'id');
         <form method="post" action="/admin/photos<?= $qs() ?>" enctype="multipart/form-data" class="admin-form" style="margin-bottom:1rem">
             <input type="hidden" name="todo" value="upload">
             <div class="form-row"><label>Upload Photo</label><input type="file" name="photo_file" accept=".jpg,.jpeg,.gif,.png,.mp3,.mp4,.avi,.pdf"></div>
-            <div class="form-row"><label>Folder (optional)</label><input type="text" name="folder" size="20"></div>
             <div class="form-actions"><input type="submit" value="Upload"></div>
         </form>
         <hr>
@@ -421,7 +313,7 @@ $linkedIds = array_column($linkedPeople, 'id');
             <?php if ($photo): ?>
             <!-- Taggable image -->
             <div class="tag-container" id="tagContainer">
-                <img id="tagImg" src="<?= h($imagePath . $photo['file_name']) ?>">
+                <img id="tagImg" src="/media/<?= h($photo['uuid']) ?>">
             </div>
             <p class="tag-instruction" id="tagInstruction">Click a name below, then click the photo to place their tag. Click a tag dot to remove it.</p>
 
@@ -444,7 +336,11 @@ $linkedIds = array_column($linkedPeople, 'id');
             </div>
             <?php endif; ?>
 
+            <?php if ($photo && $photo['stored_filename']): ?>
+            <div class="form-row"><label>File</label><span><?= h($photo['original_filename'] ?? $photo['stored_filename']) ?></span></div>
+            <?php else: ?>
             <div class="form-row"><label>File Name</label><input type="text" name="file_name" size="40" value="<?= h($photo['file_name'] ?? '') ?>"></div>
+            <?php endif; ?>
             <div class="form-row"><label>Description</label><textarea name="description" cols="60" rows="3"><?= h($photo['description'] ?? '') ?></textarea></div>
             <div class="form-row"><label>Date</label><input type="date" name="photo_date" value="<?= h($photo['photo_date'] ?? '') ?>"></div>
             <div class="form-row"><label>Precision</label><select name="photo_precision"><option value="">-</option><option value="ymd"<?= ($photo['photo_precision'] ?? '') === 'ymd' ? ' selected' : '' ?>>Day</option><option value="ym"<?= ($photo['photo_precision'] ?? '') === 'ym' ? ' selected' : '' ?>>Month</option><option value="y"<?= ($photo['photo_precision'] ?? '') === 'y' ? ' selected' : '' ?>>Year</option></select></div>
