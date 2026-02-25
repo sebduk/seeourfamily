@@ -3,7 +3,7 @@
 migrate_access_to_mariadb.py
 
 Migrates data from the old See Our Family Access databases (.mdb files)
-into the new MariaDB schema.
+into the new MariaDB schema (with UUIDs and all modern tables).
 
 Sources:
   - Data/user.mdb        -> families, users, user_family_link
@@ -12,18 +12,24 @@ Sources:
                             forum_items, infos
 
 Requirements:
-  pip install pyodbc mysql-connector-python
+  pip install mysql-connector-python bcrypt
 
   For .mdb access on Linux you also need mdbtools:
-    sudo apt-get install mdbtools odbc-mdbtools
+    sudo apt-get install mdbtools
 
 Usage:
-  1. Edit the configuration section below (MariaDB credentials, .mdb paths)
-  2. Run: python3 migrate_access_to_mariadb.py
-  3. Check the output for any warnings or errors
+  1. Run createDB.sql first to create the schema:
+       mysql < createDB.sql
+  2. Edit the MARIADB_CONFIG and WANTED_FAMILIES below
+  3. Run: python3 migrate_access_to_mariadb.py
+  4. Check the output for any warnings or errors
+  5. Optionally run: python3 cli/create-superadmin.php  (to create an admin)
 
 The script is idempotent: it will TRUNCATE all tables before inserting.
-Run createDB.sql first to create the schema.
+Each row gets a fresh UUIDv4 for use in public-facing URLs.
+
+To list available families in user.mdb:
+  python3 migrate_access_to_mariadb.py --list-families
 """
 
 import os
@@ -31,6 +37,7 @@ import sys
 import subprocess
 import csv
 import io
+import uuid as uuid_mod
 from datetime import datetime, date
 
 try:
@@ -46,6 +53,11 @@ except ImportError:
     bcrypt = None
     print("WARNING: bcrypt not installed. Passwords will be hashed with a fallback.")
     print("  For production use: pip install bcrypt")
+
+
+def new_uuid() -> str:
+    """Generate a UUIDv4 string."""
+    return str(uuid_mod.uuid4())
 
 
 def hash_password(plain: str) -> str:
@@ -277,10 +289,11 @@ def migrate_common_db(cursor, mdb_path, wanted_families=None, data_dir="Data"):
                 family_mdb_files[name] = os.path.join(data_dir, domain_db)
 
             cursor.execute("""
-                INSERT INTO families (name, title, language, date_format, package,
+                INSERT INTO families (uuid, name, title, language, date_format, package,
                                      url, hash, guest_password, admin_password, is_online)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 1)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 1)
             """, (
+                new_uuid(),
                 name,
                 safe_str(row.get("DomainHeadTitle")),
                 safe_str(row.get("DomainLanguage")) or "ENG",
@@ -306,9 +319,10 @@ def migrate_common_db(cursor, mdb_path, wanted_families=None, data_dir="Data"):
         print(f"  User: {len(rows)} rows")
         for row in rows:
             cursor.execute("""
-                INSERT INTO users (login, password, name, email, is_online)
-                VALUES (%s, %s, %s, %s, %s)
+                INSERT INTO users (uuid, login, password, name, email, is_online)
+                VALUES (%s, %s, %s, %s, %s, %s)
             """, (
+                new_uuid(),
                 safe_str(row.get("UserLogin")) or "unknown",
                 hash_password(safe_str(row.get("UserPassword")) or "changeme"),
                 safe_str(row.get("UserName")),
@@ -373,13 +387,14 @@ def migrate_family_db(cursor, mdb_path, family_id, family_name):
                 row.get("DtDec"), row.get("DateDec"))
 
             cursor.execute("""
-                INSERT INTO people (family_id, first_name, first_names, last_name,
+                INSERT INTO people (uuid, family_id, first_name, first_names, last_name,
                                     is_male, birth_date, birth_precision, birth_place,
                                     death_date, death_precision, death_place,
                                     email, biography, links, is_online,
                                     updated_by, updated_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 1, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 1, %s, %s)
             """, (
+                new_uuid(),
                 family_id,
                 safe_str(row.get("Prenom")),
                 safe_str(row.get("Prenoms")),
@@ -415,11 +430,12 @@ def migrate_family_db(cursor, mdb_path, family_id, family_name):
             old_fem = safe_int(row.get("IDPersFem"))
 
             cursor.execute("""
-                INSERT INTO couples (family_id, person1_id, person2_id,
+                INSERT INTO couples (uuid, family_id, person1_id, person2_id,
                                      start_date, start_precision, start_place,
                                      is_online, updated_by, updated_at)
-                VALUES (%s, %s, %s, %s, %s, %s, 1, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, 1, %s, %s)
             """, (
+                new_uuid(),
                 family_id,
                 person_id_map.get(old_masc),
                 person_id_map.get(old_fem),
@@ -460,11 +476,12 @@ def migrate_family_db(cursor, mdb_path, family_id, family_name):
                 row.get("DtMonth"), row.get("DtDay"))
 
             cursor.execute("""
-                INSERT INTO photos (family_id, file_name, description,
+                INSERT INTO photos (uuid, family_id, file_name, description,
                                     photo_date, photo_precision, is_online,
                                     updated_by, updated_at)
-                VALUES (%s, %s, %s, %s, %s, 1, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, 1, %s, %s)
             """, (
+                new_uuid(),
                 family_id,
                 safe_str(row.get("NomPhoto")),
                 safe_str(row.get("DescrPhoto")),
@@ -502,10 +519,11 @@ def migrate_family_db(cursor, mdb_path, family_id, family_name):
         print(f"  Commentaire: {len(rows)} rows")
         for row in rows:
             cursor.execute("""
-                INSERT INTO comments (family_id, title, event_date, body,
+                INSERT INTO comments (uuid, family_id, title, event_date, body,
                                       is_online, updated_by, updated_at)
-                VALUES (%s, %s, %s, %s, 1, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, 1, %s, %s)
             """, (
+                new_uuid(),
                 family_id,
                 safe_str(row.get("Titre")),
                 safe_str(row.get("DtVecu")),
@@ -542,10 +560,11 @@ def migrate_family_db(cursor, mdb_path, family_id, family_name):
         print(f"  Forum: {len(rows)} rows")
         for row in rows:
             cursor.execute("""
-                INSERT INTO forums (family_id, parent_id, sort_order, admin_name,
+                INSERT INTO forums (uuid, family_id, parent_id, sort_order, admin_name,
                                     title, is_online, updated_by, updated_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             """, (
+                new_uuid(),
                 family_id,
                 safe_int(row.get("IdDad")) if safe_int(row.get("IdDad")) else None,
                 safe_int(row.get("ForumSort")) or 0,
@@ -569,10 +588,11 @@ def migrate_family_db(cursor, mdb_path, family_id, family_name):
             if new_forum_id:
                 posted = parse_access_date(row.get("ForumItemDate"))
                 cursor.execute("""
-                    INSERT INTO forum_items (forum_id, title, author_name,
+                    INSERT INTO forum_items (uuid, forum_id, title, author_name,
                                              author_email, body, posted_at, is_online)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 """, (
+                    new_uuid(),
                     new_forum_id,
                     safe_str(row.get("ForumItemTitle")),
                     safe_str(row.get("ForumItemFrom")),
@@ -588,10 +608,11 @@ def migrate_family_db(cursor, mdb_path, family_id, family_name):
         print(f"  Info: {len(rows)} rows")
         for row in rows:
             cursor.execute("""
-                INSERT INTO infos (family_id, location, content, is_online,
+                INSERT INTO infos (uuid, family_id, location, content, is_online,
                                    updated_by, updated_at)
-                VALUES (%s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
             """, (
+                new_uuid(),
                 family_id,
                 safe_str(row.get("InfoLocation")),
                 safe_str(row.get("InfoContent")),
@@ -655,9 +676,10 @@ def main():
 
     # Truncate all tables (idempotent migration)
     print("Truncating existing data...")
-    for table in ["forum_items", "forums", "infos",
+    for table in ["invitations", "password_resets", "blog_posts",
+                   "forum_items", "forums", "infos",
                    "comment_person_link", "comments",
-                   "photo_person_link", "photos",
+                   "photo_tags", "photo_person_link", "folders", "photos",
                    "couples", "people",
                    "user_family_link", "users", "families"]:
         cursor.execute(f"TRUNCATE TABLE `{table}`")
@@ -694,8 +716,10 @@ def main():
 
     # Summary
     for table in ["families", "users", "user_family_link", "people", "couples",
-                   "photos", "photo_person_link", "comments", "comment_person_link",
-                   "forums", "forum_items", "infos"]:
+                   "photos", "photo_person_link", "photo_tags", "folders",
+                   "comments", "comment_person_link",
+                   "forums", "forum_items", "infos",
+                   "blog_posts", "password_resets", "invitations"]:
         cursor.execute(f"SELECT COUNT(*) FROM `{table}`")
         count = cursor.fetchone()[0]
         print(f"  {table}: {count} rows")
