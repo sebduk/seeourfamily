@@ -15,8 +15,6 @@ if (!$isLoggedIn) { echo '<p><a href="/login">' . $L['menu_login'] . '</a></p>';
 $fid = $auth->familyId();
 $pdo = $db->pdo();
 
-$familyName = $family['name'] ?? '';
-
 $perPage = 78;
 $start   = max(0, (int)($_GET['start'] ?? 0));
 $folderId = isset($_GET['folder']) ? (int)$_GET['folder'] : null;

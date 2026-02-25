@@ -18,7 +18,7 @@
  *          frame lang -> Prog/p.lang.asp
  *
  * New PHP flow:
- *   Browser -> /home  (or /?DomKey=abc123 for backwards compat)
+ *   Browser -> /home  (or /?h=abc123 to select a family)
  *     -> Composer autoload + .env config
  *     -> Router resolves URL to page name
  *     -> Auth resolves family context + login state
@@ -115,8 +115,8 @@ if (($_GET['action'] ?? '') === 'exit') {
     exit;
 }
 
-// Family context: ?DomKey=abc123 or ?h=abc123
-$domKey = $_GET['DomKey'] ?? $_GET['h'] ?? null;
+// Family context: ?h=abc123
+$domKey = $_GET['h'] ?? null;
 if ($domKey !== null) {
     if ($domKey === '') {
         // Empty DomKey clears family selection (back to family chooser)
@@ -126,9 +126,9 @@ if ($domKey !== null) {
     }
 }
 
-// Language switch: ?Language=FRA
-if (isset($_GET['Language'])) {
-    $auth->setLanguage($_GET['Language']);
+// Language switch: ?lang=FRA
+if (isset($_GET['lang'])) {
+    $auth->setLanguage($_GET['lang']);
 }
 
 // Logout (before login handling so ?action=logout clears state first)

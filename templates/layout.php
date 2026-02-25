@@ -118,13 +118,13 @@ if ($cookieSize >= 8 && $cookieSize <= 16) $bodyStyle .= 'font-size:' . $cookieS
                     </div>
                     <div class="settings-section">
                         <div class="settings-section-title">Language</div>
-                        <a href="<?= h($currentPath) ?>?Language=ENG">English</a> |
-                        <a href="<?= h($currentPath) ?>?Language=FRA">Fran&ccedil;ais</a> |
-                        <a href="<?= h($currentPath) ?>?Language=ESP">Espa&ntilde;ol</a><br>
-                        <a href="<?= h($currentPath) ?>?Language=ITA">Italiano</a> |
-                        <a href="<?= h($currentPath) ?>?Language=POR">Portugu&ecirc;s</a> |
-                        <a href="<?= h($currentPath) ?>?Language=DEU">Deutsch</a> |
-                        <a href="<?= h($currentPath) ?>?Language=NLD">Nederlands</a>
+                        <a href="<?= h($currentPath) ?>?lang=ENG">English</a> |
+                        <a href="<?= h($currentPath) ?>?lang=FRA">Fran&ccedil;ais</a> |
+                        <a href="<?= h($currentPath) ?>?lang=ESP">Espa&ntilde;ol</a><br>
+                        <a href="<?= h($currentPath) ?>?lang=ITA">Italiano</a> |
+                        <a href="<?= h($currentPath) ?>?lang=POR">Portugu&ecirc;s</a> |
+                        <a href="<?= h($currentPath) ?>?lang=DEU">Deutsch</a> |
+                        <a href="<?= h($currentPath) ?>?lang=NLD">Nederlands</a>
                     </div>
                     <?php if ($isAdmin): ?>
                     <div class="settings-section">

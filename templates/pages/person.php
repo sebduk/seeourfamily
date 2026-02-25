@@ -13,7 +13,7 @@ if (!$isLoggedIn) { echo '<p><a href="/login">' . $L['menu_login'] . '</a></p>';
 
 $fid = $auth->familyId();
 $pdo = $db->pdo();
-$personUuid = $router->param('id') ?? $_GET['ID'] ?? '';
+$personUuid = $router->param('id') ?? '';
 $months = $L['months'] ?? [];
 $dateFormat = $family['date_format'] ?? 'dmy';
 
@@ -133,7 +133,7 @@ $docs = $stmt->fetchAll();
         <?= $diedLabel ?>&nbsp;<?= h($person['death_place']) ?>.&nbsp;
     <?php endif; ?>
     <?php if ($person['email'] && !$person['death_date']): ?>
-        <br>[<a href="/messages?IDForum=perso&amp;IDPerso=<?= h($personUuid) ?>">Email</a>]
+        <br>[<a href="/messages?forum=perso&amp;person=<?= h($personUuid) ?>">Email</a>]
     <?php endif; ?>
 </div>
 

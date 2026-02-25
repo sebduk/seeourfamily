@@ -72,7 +72,7 @@ $todayDay   = (int)$today->format('j');
             ?>
                 <a href="/tree/<?= h($p['uuid']) ?>"><?= h($p['last_name']) ?>&nbsp;<?= h($p['first_name']) ?>&nbsp;(<?= h($p['byear']) ?>)</a><?php
                     if ($p['email'] && !$p['death_date']):
-                ?> <a href="/messages?IDForum=perso&amp;IDPerso=<?= h($p['uuid']) ?>"><b>&#64;</b></a><?php
+                ?> <a href="/messages?forum=perso&amp;person=<?= h($p['uuid']) ?>"><b>&#64;</b></a><?php
                     endif;
                 endforeach;
             else:

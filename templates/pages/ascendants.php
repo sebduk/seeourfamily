@@ -17,7 +17,7 @@ if (!$isLoggedIn) { echo '<p><a href="/login">' . $L['menu_login'] . '</a></p>';
 $fid = $auth->familyId();
 $pdo = $db->pdo();
 
-$personUuid = $router->param('id') ?? $_GET['IDPerso'] ?? '';
+$personUuid = $router->param('id') ?? '';
 
 // Resolve UUID to integer id
 if ($personUuid !== '' && !ctype_digit($personUuid)) {

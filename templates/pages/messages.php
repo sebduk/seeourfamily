@@ -15,7 +15,7 @@ $fid = $auth->familyId();
 $pdo = $db->pdo();
 $months = $L['months'] ?? [];
 
-$activeForum = $_GET['IDForum'] ?? $_POST['IdForum'] ?? null;
+$activeForum = $_GET['forum'] ?? $_POST['forum'] ?? null;
 $viewAll = isset($_GET['v']);
 $maxItems = $viewAll ? 1000 : 4;
 
@@ -26,11 +26,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['todo'] ?? '') === 'add') {
          VALUES (?, ?, ?, ?, ?, 1)'
     );
     $stmt->execute([
-        (int)($_POST['IdForum'] ?? 0),
-        $_POST['ForumItemTitle'] ?? null,
-        $_POST['ForumItemFrom'] ?? null,
-        $_POST['ForumItemEmail'] ?? null,
-        $_POST['ForumItemBody'] ?? null,
+        (int)($_POST['forum'] ?? 0),
+        $_POST['title'] ?? null,
+        $_POST['author'] ?? null,
+        $_POST['email'] ?? null,
+        $_POST['body'] ?? null,
     ]);
 }
 
@@ -57,7 +57,7 @@ if ($isPersonal) {
     $emailPeople = $stmt->fetchAll();
 }
 
-$selectedPerso = $_GET['IDPerso'] ?? '';
+$selectedPerson = $_GET['person'] ?? '';
 ?>
 
 <div class="page-wrap">
@@ -65,31 +65,31 @@ $selectedPerso = $_GET['IDPerso'] ?? '';
 <!-- Personal Messages -->
 <div class="forum-section">
     <div class="forum-header-personal">
-        <a href="/messages?IDForum=perso"><b><?= $L['msg_personal'] ?></b></a>
+        <a href="/messages?forum=perso"><b><?= $L['msg_personal'] ?></b></a>
     </div>
 
     <?php if ($isPersonal): ?>
     <hr>
     <form action="/messages" method="post" name="SendForm">
         <input type="hidden" name="todo" value="send">
-        <input type="hidden" name="IdForum" value="perso">
+        <input type="hidden" name="forum" value="perso">
         <div class="forum-form">
             <label><?= $L['msg_subject'] ?></label>
-            <input type="text" name="ForumItemTitle" size="40">
+            <input type="text" name="title" size="40">
             <label><?= $L['msg_from'] ?></label>
-            <input type="text" name="ForumItemFrom" size="20">
+            <input type="text" name="author" size="20">
             <label><?= $L['msg_email'] ?? 'Email' ?></label>
-            <input type="text" name="ForumItemEmail" size="20">
+            <input type="text" name="email" size="20">
             <input type="submit" value="<?= h($L['msg_send']) ?>" class="box"><br><br>
 
-            <textarea name="ForumItemBody" rows="20" cols="80"></textarea>
+            <textarea name="body" rows="20" cols="80"></textarea>
 
             <?php if ($emailPeople): ?>
             <div style="margin-top:8px">
                 <label><?= $L['msg_to'] ?></label><br>
-                <select name="IDTo[]" multiple size="20" class="text">
+                <select name="to[]" multiple size="20" class="text">
                     <?php foreach ($emailPeople as $ep): ?>
-                        <option value="<?= h($ep['uuid']) ?>"<?= ($ep['uuid'] === $selectedPerso) ? ' selected' : '' ?>>
+                        <option value="<?= h($ep['uuid']) ?>"<?= ($ep['uuid'] === $selectedPerson) ? ' selected' : '' ?>>
                             <?= h($ep['last_name']) ?>, <?= h($ep['first_name']) ?> (<?= h($ep['birth']) ?>)
                         </option>
                     <?php endforeach; ?>
@@ -110,9 +110,9 @@ foreach ($forums as $forum):
 ?>
 <div class="forum-section">
     <div class="forum-header">
-        <a href="/messages?IDForum=<?= $forum['id'] ?>"><b><?= h($forum['title']) ?></b></a>
+        <a href="/messages?forum=<?= $forum['id'] ?>"><b><?= h($forum['title']) ?></b></a>
         <?php if ($isActive): ?>
-            | <a href="/messages?IDForum=<?= $forum['id'] ?>&amp;v=a"><?= $L['msg_all'] ?></a>
+            | <a href="/messages?forum=<?= $forum['id'] ?>&amp;v=a"><?= $L['msg_all'] ?></a>
         <?php endif; ?>
     </div>
 
@@ -138,16 +138,16 @@ foreach ($forums as $forum):
     <!-- Reply form -->
     <form action="/messages" method="post">
         <input type="hidden" name="todo" value="add">
-        <input type="hidden" name="IdForum" value="<?= $forum['id'] ?>">
+        <input type="hidden" name="forum" value="<?= $forum['id'] ?>">
         <div class="forum-form">
             <label><?= $L['msg_subject'] ?></label>
-            <input type="text" name="ForumItemTitle" size="40">
+            <input type="text" name="title" size="40">
             <label><?= $L['msg_from'] ?></label>
-            <input type="text" name="ForumItemFrom" size="20">
+            <input type="text" name="author" size="20">
             <label><?= $L['msg_email'] ?? 'Email' ?></label>
-            <input type="text" name="ForumItemEmail" size="20">
+            <input type="text" name="email" size="20">
             <input type="submit" value="<?= h($L['msg_send']) ?>" class="box"><br>
-            <textarea name="ForumItemBody" rows="5" cols="120"></textarea>
+            <textarea name="body" rows="5" cols="120"></textarea>
         </div>
     </form>
     <hr>

@@ -139,7 +139,7 @@ $families = $pdo->query(
                 <td><?= (int)$f['user_count'] ?></td>
                 <td><?= $f['is_online'] ? 'Yes' : 'No' ?></td>
                 <td>
-                    <a href="/home?DomKey=<?= h($f['hash'] ?? '') ?>">View</a>
+                    <a href="/home?h=<?= h($f['hash'] ?? '') ?>">View</a>
                     |
                     <form method="post" style="display:inline;">
                         <input type="hidden" name="form_action" value="toggle_online">

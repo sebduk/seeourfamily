@@ -15,7 +15,6 @@ if (!$isLoggedIn) { echo '<p><a href="/login">' . $L['menu_login'] . '</a></p>';
 $fid = $auth->familyId();
 $pdo = $db->pdo();
 
-$familyName = $family['name'] ?? '';
 $folderId = isset($_GET['folder']) ? (int)$_GET['folder'] : null;
 
 // Sort parameters (s=column, o=direction)

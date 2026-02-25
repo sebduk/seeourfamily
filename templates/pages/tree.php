@@ -14,8 +14,8 @@ if (!$isLoggedIn) { echo '<p><a href="/login">' . $L['menu_login'] . '</a></p>';
 $fid = $auth->familyId();
 $pdo = $db->pdo();
 
-$personUuid = $router->param('id') ?? $_GET['IDPerso'] ?? '';
-$pos        = (int)($router->param('pos') ?? $_GET['Pos'] ?? 1);
+$personUuid = $router->param('id') ?? '';
+$pos        = (int)($router->param('pos') ?? 1);
 
 // Resolve UUID to integer id (or fall back to integer for legacy URLs)
 if ($personUuid !== '' && !ctype_digit($personUuid)) {
@@ -26,8 +26,6 @@ if ($personUuid !== '' && !ctype_digit($personUuid)) {
 } else {
     $personId = (int)$personUuid ?: 1;
 }
-
-$familyName = $family['name'] ?? '';
 
 // =========================================================================
 // HELPER: format a person cell

@@ -15,9 +15,7 @@ $fid = $auth->familyId();
 $pdo = $db->pdo();
 $months = $L['months'] ?? [];
 
-$familyName = $family['name'] ?? '';
-
-$photoUuid = $router->param('id') ?? $_GET['IDPhoto'] ?? '';
+$photoUuid = $router->param('id') ?? '';
 
 $stmt = $pdo->prepare('SELECT * FROM photos WHERE uuid = ? AND family_id = ?');
 $stmt->execute([$photoUuid, $fid]);
