@@ -59,7 +59,7 @@ $nextPost = $nextPost->fetch();
             <time class="blog-date"><?= date('F j, Y', strtotime($post['published_at'])) ?></time>
         <?php endif; ?>
         <div class="blog-body">
-            <?= $post['body'] ?>
+            <?= \SeeOurFamily\Html::sanitize($post['body']) ?>
         </div>
     </article>
 

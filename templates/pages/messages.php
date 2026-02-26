@@ -30,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['todo'] ?? '') === 'add') {
         $_POST['title'] ?? null,
         $_POST['author'] ?? null,
         $_POST['email'] ?? null,
-        $_POST['body'] ?? null,
+        \SeeOurFamily\Html::clean($_POST['body'] ?? ''),
     ]);
 }
 
@@ -82,7 +82,7 @@ $selectedPerson = $_GET['person'] ?? '';
             <input type="text" name="email" size="20">
             <input type="submit" value="<?= h($L['msg_send']) ?>" class="box"><br><br>
 
-            <textarea name="body" rows="20" cols="80"></textarea>
+            <textarea name="body" rows="20" cols="80" data-richtext></textarea>
 
             <?php if ($emailPeople): ?>
             <div style="margin-top:8px">
@@ -130,7 +130,15 @@ foreach ($forums as $forum):
             <?= h($item['title'] ?? '') ?> | <?= h($item['author_name'] ?? '') ?> | <?= $postedAt ?>
         </div>
         <div class="forum-item">
-            <i><?= nl2br(h($item['body'] ?? '')) ?></i>
+            <i><?php
+                $raw = $item['body'] ?? '';
+                // Legacy messages are plain text; new ones contain HTML tags
+                if ($raw === strip_tags($raw)) {
+                    echo nl2br(h($raw));
+                } else {
+                    echo \SeeOurFamily\Html::sanitize($raw);
+                }
+            ?></i>
         </div>
     <?php endforeach; ?>
 
@@ -147,7 +155,7 @@ foreach ($forums as $forum):
             <label><?= $L['msg_email'] ?? 'Email' ?></label>
             <input type="text" name="email" size="20">
             <input type="submit" value="<?= h($L['msg_send']) ?>" class="box"><br>
-            <textarea name="body" rows="5" cols="120"></textarea>
+            <textarea name="body" rows="5" cols="120" data-richtext></textarea>
         </div>
     </form>
     <hr>

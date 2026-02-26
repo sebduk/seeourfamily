@@ -26,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($postAction === 'create_post') {
         $title = trim($_POST['title'] ?? '');
-        $body  = $_POST['body'] ?? '';
+        $body  = \SeeOurFamily\Html::clean($_POST['body'] ?? '');
         $publish = !empty($_POST['publish']);
 
         if ($title === '') {
@@ -62,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($postAction === 'update_post') {
         $postId = (int)($_POST['post_id'] ?? 0);
         $title  = trim($_POST['title'] ?? '');
-        $body   = $_POST['body'] ?? '';
+        $body   = \SeeOurFamily\Html::clean($_POST['body'] ?? '');
 
         if ($postId && $title !== '') {
             $stmt = $pdo->prepare(
@@ -136,8 +136,8 @@ $posts = $pdo->query(
                 </label>
             </div>
             <div style="margin-bottom:8px;">
-                <label>Body (HTML allowed):<br>
-                    <textarea name="body" class="box" rows="15" style="width:100%; max-width:700px; font-family:monospace;"></textarea>
+                <label>Body:<br>
+                    <textarea name="body" class="box" rows="15" style="width:100%; max-width:700px;" data-richtext></textarea>
                 </label>
             </div>
             <div style="margin-bottom:8px;">
@@ -167,8 +167,8 @@ $posts = $pdo->query(
                 </label>
             </div>
             <div style="margin-bottom:8px;">
-                <label>Body (HTML allowed):<br>
-                    <textarea name="body" class="box" rows="15" style="width:100%; max-width:700px; font-family:monospace;"><?= h($editPost['body']) ?></textarea>
+                <label>Body:<br>
+                    <textarea name="body" class="box" rows="15" style="width:100%; max-width:700px;" data-richtext><?= h($editPost['body']) ?></textarea>
                 </label>
             </div>
             <button type="submit" class="box">Save</button>

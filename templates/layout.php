@@ -224,5 +224,7 @@ function resetSize() {
 highlightActiveFont();
 </script>
 
+<script src="/js/richtext.js"></script>
+
 </body>
 </html>
