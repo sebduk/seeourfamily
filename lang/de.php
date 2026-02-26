@@ -48,7 +48,8 @@ return [
 
     'individuals'   => 'Individuen',
     'pictures_all'  => 'Alle Bilder',
-    'password'      => 'Kennwort',
+    'password'         => 'Kennwort',
+    'forgot_password'  => 'Kennwort vergessen?',
 
     'months' => [
         1 => 'Januar',       2 => 'Februar',      3 => 'M&auml;rz',

@@ -49,7 +49,8 @@ return [
     'individuals'   => 'Pessoas',
     'pictures_all'  => 'Todas as fotos',
     'login_message' => 'Conecte para ganhar acesso &agrave;s fun&ccedil;&otilde;es de modifica&ccedil;&atilde;o.',
-    'password'      => 'Senha',
+    'password'         => 'Senha',
+    'forgot_password'  => 'Esqueceu a sua senha?',
 
     'months' => [
         1 => 'Janeiro',       2 => 'Fevereiro',   3 => 'Mar&ccedil;o',

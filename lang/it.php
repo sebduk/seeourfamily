@@ -50,7 +50,8 @@ return [
     'individuals'   => 'Persone',
     'pictures_all'  => 'Tutte le Foto',
     'login_message' => 'Login per cambiare il menu ed avere accesso al sito o all\'aggiornamento.',
-    'password'      => 'Password',
+    'password'         => 'Password',
+    'forgot_password'  => 'Password dimenticata?',
 
     'months' => [
         1 => 'gennaio',     2 => 'febbraio',   3 => 'marzo',

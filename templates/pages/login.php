@@ -72,7 +72,7 @@ if ($loginFamilies !== null && count($loginFamilies) > 1): ?>
     </form>
 
     <p style="margin-top:8px; font-size:9pt;">
-        <a href="/forgot-password">Forgot your password?</a>
+        <a href="/forgot-password"><?= $L['forgot_password'] ?></a>
     </p>
 
     <?php if ($family): ?>

@@ -51,7 +51,8 @@ return [
     'calendar_warn' => 'Solo las personas para las cuales se recuerda una fecha de nacimiento exacta aparecen en la lista',
     'pictures_all'  => 'Todas las Fotos',
     'login_message' => 'Conectarse para modificar el menu y ganar acceso a las modificaciones.',
-    'password'      => 'contrase&ntilde;a',
+    'password'         => 'contrase&ntilde;a',
+    'forgot_password'  => '&iquest;Olvidaste tu contrase&ntilde;a?',
 
     'file_name'    => 'Fichero',
     'date'         => 'Fecha',

@@ -51,7 +51,8 @@ return [
     'calendar_warn' => 'Slechts de personen voor wie een nauwkeurige geboortedatum gekend is zijn vermeld',
     'pictures_all'  => 'Alle afbeeldingen',
     'login_message' => 'Login om het menu te verbreden en tot de wijzigenfuncties toegang te krijgen.',
-    'password'      => 'Wachtwoord',
+    'password'         => 'Wachtwoord',
+    'forgot_password'  => 'Wachtwoord vergeten?',
 
     'file_name'    => 'Naam',
     'date'         => 'Datum',
