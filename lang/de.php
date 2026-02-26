@@ -22,6 +22,10 @@ return [
     'menu_couples'    => '<b>P</b>aare',
     'menu_comments'   => '<b>A</b>nmerkungen',
 
+    'landing_tagline' => 'Teilen Sie Ihren Stammbaum mit den Menschen, die Ihnen wichtig sind.',
+    'news'            => 'Neuigkeiten',
+    'all_posts'       => 'Alle Beitr&auml;ge',
+
     'full_ascendance'  => 'Alle Vorfahren',
     'full_descendance' => 'Alle Nachfahren',
     'heavy_warning'    => 'Diese Versionen erfordern schwereren Prozess.<br>Seien Sie geduldig!',

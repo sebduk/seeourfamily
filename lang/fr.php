@@ -23,6 +23,10 @@ return [
     'menu_couples'    => '<b>c</b>ouples',
     'menu_comments'   => '<b>c</b>ommentaires',
 
+    'landing_tagline' => 'Partagez votre arbre g&eacute;n&eacute;alogique avec ceux qui comptent.',
+    'news'            => 'Actualit&eacute;s',
+    'all_posts'       => 'Tous les articles',
+
     'last_updates'     => 'Derni&egrave;res mises &agrave; jour',
     'full_ascendance'  => 'Ascendance compl&egrave;te',
     'full_descendance' => 'Descendance compl&egrave;te',

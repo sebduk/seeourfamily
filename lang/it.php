@@ -22,6 +22,10 @@ return [
     'menu_couples'    => '<b>c</b>oppie',
     'menu_comments'   => '<b>c</b>ommentari',
 
+    'landing_tagline' => 'Condividi il tuo albero genealogico con le persone che contano.',
+    'news'            => 'Novit&agrave;',
+    'all_posts'       => 'Tutti gli articoli',
+
     'full_ascendance'  => 'Tutti Genitori',
     'full_descendance' => 'Tutti Figli',
     'heavy_warning'    => 'Processi pesanti.<br>Sia paziente!',

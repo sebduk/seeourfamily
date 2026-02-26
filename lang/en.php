@@ -56,6 +56,11 @@ return [
     'calendar_warn'   => 'Only individuals for whom a precise birthdate is known are listed',
     'pictures_all'    => 'View all pictures',
 
+    // Landing page
+    'landing_tagline' => 'Share your family tree with the people who matter.',
+    'news'            => 'News',
+    'all_posts'       => 'All posts',
+
     // Login & account
     'login_message'    => 'Log in to access your family tree.',
     'password'         => 'Password',

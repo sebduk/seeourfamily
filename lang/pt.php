@@ -22,6 +22,10 @@ return [
     'menu_couples'    => '<b>c</b>asais',
     'menu_comments'   => '<b>c</b>oment&aacute;rios',
 
+    'landing_tagline' => 'Partilhe a sua &aacute;rvore geneal&oacute;gica com quem mais importa.',
+    'news'            => 'Not&iacute;cias',
+    'all_posts'       => 'Todos os artigos',
+
     'full_ascendance'  => 'Veja todos os Pais',
     'full_descendance' => 'Veja todas as Crian&ccedil;as',
 

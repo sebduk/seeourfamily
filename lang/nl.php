@@ -22,6 +22,10 @@ return [
     'menu_couples'    => '<b>p</b>aren',
     'menu_comments'   => '<b>c</b>ommentaren',
 
+    'landing_tagline' => 'Deel uw stamboom met de mensen die ertoe doen.',
+    'news'            => 'Nieuws',
+    'all_posts'       => 'Alle berichten',
+
     'full_ascendance'  => 'Alle ouders',
     'full_descendance' => 'Alle kinderen',
     'heavy_warning'    => 'Deze versies vereisen zwaardere verwerking.<br>Geduld a.u.b.!',

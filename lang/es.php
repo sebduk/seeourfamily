@@ -22,6 +22,10 @@ return [
     'menu_couples'    => '<b>p</b>arejas',
     'menu_comments'   => '<b>c</b>omentarios',
 
+    'landing_tagline' => 'Comparte tu &aacute;rbol geneal&oacute;gico con quienes m&aacute;s importan.',
+    'news'            => 'Noticias',
+    'all_posts'       => 'Todos los art&iacute;culos',
+
     'full_ascendance'  => 'Ver todos los Padres',
     'full_descendance' => 'Ver todos los Hijos',
     'heavy_warning'    => 'Versiones pesadas.<br>Sea paciente!',

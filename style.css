@@ -498,17 +498,16 @@ hr { border: none; border-top: 1px solid #666; }
  * PUBLIC LANDING PAGE
  * ============================================================ */
 .landing { max-width: 700px; margin: 0 auto; padding: 20px; }
-.landing-hero { text-align: center; padding: 40px 0 30px; }
+.landing-hero { text-align: center; padding: 40px 0 10px; }
 .landing-hero h1 { font-size: 28pt; margin-bottom: 8px; }
-.landing-tagline { font-size: 12pt; color: #555; margin-bottom: 16px; }
-.landing-cta {
-    display: inline-block; padding: 8px 24px;
-    background: #333; color: #fff; text-decoration: none;
-    border: 1px solid #000;
-}
-.landing-cta:hover { background: #555; }
+.landing-tagline { font-size: 12pt; color: #555; margin-bottom: 0; }
+.landing-sep { border: none; border-top: 1px solid #ccc; margin: 16px 0; }
+.landing-feature { padding: 8px 0 16px; }
+.landing-feature h2 { margin: 0 0 4px; }
+.landing-feature h2 a { color: #000; text-decoration: none; }
+.landing-feature h2 a:hover { text-decoration: underline; }
 
-.landing-blog { border-top: 1px solid #ccc; padding-top: 20px; margin-top: 10px; }
+.landing-blog { padding-top: 8px; }
 .landing-blog h2 { margin-bottom: 12px; }
 
 /* ============================================================

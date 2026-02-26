@@ -33,7 +33,7 @@ $posts = $stmt->fetchAll();
 ?>
 
 <div class="page-wrap blog-listing">
-    <h1>News</h1>
+    <h1><?= $L['news'] ?></h1>
 
     <?php if (empty($posts)): ?>
         <p>No posts yet.</p>
@@ -44,7 +44,7 @@ $posts = $stmt->fetchAll();
             <?php if ($post['published_at']): ?>
                 <time class="blog-date"><?= date('F j, Y', strtotime($post['published_at'])) ?></time>
             <?php endif; ?>
-            <p class="blog-excerpt"><?= h(mb_strimwidth(strip_tags($post['body']), 0, 300, '...')) ?></p>
+            <p class="blog-excerpt"><?= h(mb_strimwidth(html_entity_decode(strip_tags($post['body']), ENT_QUOTES, 'UTF-8'), 0, 300, '...')) ?></p>
             <p><a href="/blog/<?= h($post['uuid']) ?>">Read more &rarr;</a></p>
         </article>
         <?php endforeach; ?>

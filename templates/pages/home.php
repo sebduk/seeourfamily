@@ -61,24 +61,42 @@ if (!$family) {
     <div class="landing">
         <div class="landing-hero">
             <h1>See Our Family</h1>
-            <p class="landing-tagline">Share your family tree with the people who matter.</p>
-            <p><a href="/login" class="landing-cta">Log in</a></p>
+            <p class="landing-tagline"><?= $L['landing_tagline'] ?></p>
         </div>
 
+        <hr class="landing-sep">
+
+        <?php if ($recentPosts):
+            $latestPost = array_shift($recentPosts);
+        ?>
+        <article class="landing-feature">
+            <h2><a href="/blog/<?= h($latestPost['uuid']) ?>"><?= h($latestPost['title']) ?></a></h2>
+            <?php if ($latestPost['published_at']): ?>
+                <time class="blog-date"><?= date('F j, Y', strtotime($latestPost['published_at'])) ?></time>
+            <?php endif; ?>
+            <div class="blog-body">
+                <?= \SeeOurFamily\Html::sanitize($latestPost['body']) ?>
+            </div>
+        </article>
+
         <?php if ($recentPosts): ?>
+        <hr class="landing-sep">
+
         <div class="landing-blog">
-            <h2>News</h2>
+            <h2><?= $L['news'] ?></h2>
             <?php foreach ($recentPosts as $post): ?>
             <article class="blog-card">
                 <h3><a href="/blog/<?= h($post['uuid']) ?>"><?= h($post['title']) ?></a></h3>
                 <?php if ($post['published_at']): ?>
                     <time class="blog-date"><?= date('F j, Y', strtotime($post['published_at'])) ?></time>
                 <?php endif; ?>
-                <p class="blog-excerpt"><?= h(mb_strimwidth(strip_tags($post['body']), 0, 200, '...')) ?></p>
+                <p class="blog-excerpt"><?= h(mb_strimwidth(html_entity_decode(strip_tags($post['body']), ENT_QUOTES, 'UTF-8'), 0, 200, '...')) ?></p>
             </article>
             <?php endforeach; ?>
-            <p><a href="/blog">All posts &rarr;</a></p>
         </div>
+        <?php endif; ?>
+
+        <p><a href="/blog"><?= $L['all_posts'] ?> &rarr;</a></p>
         <?php endif; ?>
     </div>
 

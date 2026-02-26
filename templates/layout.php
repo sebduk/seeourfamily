@@ -41,6 +41,7 @@ if ($cookieSize >= 8 && $cookieSize <= 16) $bodyStyle .= 'font-size:' . $cookieS
         .settings-wrap { position: relative; display: inline-block; }
         .settings-toggle { cursor: pointer; font-size: 14pt; }
         .help-icon { font-size: 13pt; }
+        .menu-login-link { margin-right: 8px; font-size: 9pt; }
         .settings-panel {
             display: none; position: absolute; right: 0; top: 100%;
             background: #fff; border: 1px solid #999; padding: 8px;
@@ -96,6 +97,9 @@ if ($cookieSize >= 8 && $cookieSize <= 16) $bodyStyle .= 'font-size:' . $cookieS
             <?php endif; ?>
         </div>
         <div class="menu-right">
+            <?php if (!$isLoggedIn): ?>
+                <a href="/login" class="menu-login-link"><?= $L['btn_login'] ?></a>
+            <?php endif; ?>
             <a href="/help" class="help-icon" title="Help">&#x2753;</a>
             <div class="settings-wrap">
                 <a href="#" class="settings-toggle" onclick="toggleSettings(event)" title="Settings">&#9881;</a>
