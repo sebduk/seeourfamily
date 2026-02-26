@@ -69,6 +69,8 @@ return [
     'password'         => 'Password',
     'btn_login'        => 'Login',
     'forgot_password'  => 'Forgot your password?',
+    'link_help'        => 'Help',
+    'help_user_guide'  => 'User Guide',
     'reset_password'   => 'Reset Password',
     'create_account'   => 'Create Account',
     'back_to_login'    => 'Back to login',

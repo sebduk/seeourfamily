@@ -50,6 +50,8 @@ return [
     'pictures_all'  => 'Alle Bilder',
     'password'         => 'Kennwort',
     'forgot_password'  => 'Kennwort vergessen?',
+    'link_help'        => 'Hilfe',
+    'help_user_guide'  => 'Benutzerhandbuch',
 
     'months' => [
         1 => 'Januar',       2 => 'Februar',      3 => 'M&auml;rz',

@@ -52,6 +52,8 @@ return [
     'login_message' => 'Login per cambiare il menu ed avere accesso al sito o all\'aggiornamento.',
     'password'         => 'Password',
     'forgot_password'  => 'Password dimenticata?',
+    'link_help'        => 'Aiuto',
+    'help_user_guide'  => 'Guida Utente',
 
     'months' => [
         1 => 'gennaio',     2 => 'febbraio',   3 => 'marzo',

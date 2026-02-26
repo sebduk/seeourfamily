@@ -60,6 +60,8 @@ return [
     'login_message' => 'Loggez pour modifier le menu et avoir acc&egrave;s aux modifications.<br>(vous serez automatiquement d&eacute;logg&eacute;, si vous fermez votre navigateur)',
     'password'         => 'Mot de Passe',
     'forgot_password'  => 'Mot de passe oubli&eacute; ?',
+    'link_help'        => 'Aide',
+    'help_user_guide'  => 'Guide Utilisateur',
 
     'file_name'    => 'Nom de Fichier',
     'date'         => 'Date',

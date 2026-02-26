@@ -51,6 +51,8 @@ return [
     'login_message' => 'Conecte para ganhar acesso &agrave;s fun&ccedil;&otilde;es de modifica&ccedil;&atilde;o.',
     'password'         => 'Senha',
     'forgot_password'  => 'Esqueceu a sua senha?',
+    'link_help'        => 'Ajuda',
+    'help_user_guide'  => 'Guia do Utilizador',
 
     'months' => [
         1 => 'Janeiro',       2 => 'Fevereiro',   3 => 'Mar&ccedil;o',

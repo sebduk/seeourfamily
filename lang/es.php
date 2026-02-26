@@ -53,6 +53,8 @@ return [
     'login_message' => 'Conectarse para modificar el menu y ganar acceso a las modificaciones.',
     'password'         => 'contrase&ntilde;a',
     'forgot_password'  => '&iquest;Olvidaste tu contrase&ntilde;a?',
+    'link_help'        => 'Ayuda',
+    'help_user_guide'  => 'Gu&iacute;a del Usuario',
 
     'file_name'    => 'Fichero',
     'date'         => 'Fecha',

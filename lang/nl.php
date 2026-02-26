@@ -53,6 +53,8 @@ return [
     'login_message' => 'Login om het menu te verbreden en tot de wijzigenfuncties toegang te krijgen.',
     'password'         => 'Wachtwoord',
     'forgot_password'  => 'Wachtwoord vergeten?',
+    'link_help'        => 'Hulp',
+    'help_user_guide'  => 'Gebruikershandleiding',
 
     'file_name'    => 'Naam',
     'date'         => 'Datum',
