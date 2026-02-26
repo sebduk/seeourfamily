@@ -40,8 +40,6 @@ if ($cookieSize >= 8 && $cookieSize <= 16) $bodyStyle .= 'font-size:' . $cookieS
         /* Settings dropdown */
         .settings-wrap { position: relative; display: inline-block; }
         .settings-toggle { cursor: pointer; font-size: 14pt; }
-        .help-icon { font-size: 13pt; }
-        .menu-login-link { margin-right: 8px; font-size: 9pt; }
         .settings-panel {
             display: none; position: absolute; right: 0; top: 100%;
             background: #fff; border: 1px solid #999; padding: 8px;
@@ -85,7 +83,7 @@ if ($cookieSize >= 8 && $cookieSize <= 16) $bodyStyle .= 'font-size:' . $cookieS
     <nav class="menubar">
         <div class="menu-links">
             [<a href="/home"><?= $L['menu_home'] ?></a>]
-            [<a href="/blog">Blog</a>]
+            [<a href="/blog"><?= $L['menu_blog'] ?></a>]
             <?php if ($family): ?>
                 &gt; <?= $L['menu_genealogy'] ?>
                 [<a href="/list-names?sort=name"><?= $L['menu_names'] ?></a>]
@@ -98,11 +96,11 @@ if ($cookieSize >= 8 && $cookieSize <= 16) $bodyStyle .= 'font-size:' . $cookieS
         </div>
         <div class="menu-right">
             <?php if (!$isLoggedIn): ?>
-                <a href="/login" class="menu-login-link"><?= $L['btn_login'] ?></a>
+                [<a href="/login"><?= $L['menu_login'] ?></a>]
             <?php endif; ?>
-            <a href="/help" class="help-icon" title="Help">&#x2753;</a>
+            [<a href="/help"><?= $L['menu_help'] ?></a>]
             <div class="settings-wrap">
-                <a href="#" class="settings-toggle" onclick="toggleSettings(event)" title="Settings">&#9881;</a>
+                <a href="#" class="settings-toggle" onclick="toggleSettings(event)" title="<?= h(strip_tags($L['menu_settings'])) ?>">&#9881;</a>
                 <div class="settings-panel" id="settingsPanel">
                     <div class="settings-section">
                         <div class="settings-section-title">Font</div>

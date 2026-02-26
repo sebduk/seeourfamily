@@ -18,6 +18,8 @@ return [
     'menu_intro'      => '<b>i</b>ntro',
     'menu_help'       => '<b>h</b>elp',
     'menu_login'      => '<b>l</b>ogin',
+    'menu_blog'       => '<b>b</b>log',
+    'menu_settings'   => 'Settings',
     'menu_admin'      => '<b>a</b>dmin',
     'menu_update'     => '<b>u</b>pdate',
     'menu_people'     => '<b>p</b>eople',

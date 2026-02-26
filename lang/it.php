@@ -16,6 +16,8 @@ return [
     'menu_intro'      => '<b>i</b>ntro',
     'menu_help'       => '<b>a</b>iuto',
     'menu_login'      => '<b>l</b>ogin',
+    'menu_blog'       => '<b>b</b>log',
+    'menu_settings'   => 'Impostazioni',
     'menu_admin'      => '<b>a</b>dmin',
     'menu_update'     => '<b>a</b>ggiornare le',
     'menu_people'     => '<b>p</b>ersone',
