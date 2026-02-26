@@ -51,7 +51,7 @@ $nextPost = $nextPost->fetch();
 ?>
 
 <div class="page-wrap blog-post-view">
-    <p class="blog-back"><a href="/blog">&larr; All posts</a></p>
+    <p class="blog-back"><a href="/blog">&larr; <?= $L['all_posts'] ?></a></p>
 
     <article>
         <h1><?= h($post['title']) ?></h1>

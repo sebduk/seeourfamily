@@ -25,6 +25,7 @@ return [
     'landing_tagline' => 'Deel uw stamboom met de mensen die ertoe doen.',
     'news'            => 'Nieuws',
     'all_posts'       => 'Alle berichten',
+    'read_more'       => 'Lees meer',
 
     'full_ascendance'  => 'Alle ouders',
     'full_descendance' => 'Alle kinderen',

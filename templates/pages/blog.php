@@ -45,7 +45,7 @@ $posts = $stmt->fetchAll();
                 <time class="blog-date"><?= date('F j, Y', strtotime($post['published_at'])) ?></time>
             <?php endif; ?>
             <p class="blog-excerpt"><?= h(mb_strimwidth(html_entity_decode(strip_tags($post['body']), ENT_QUOTES, 'UTF-8'), 0, 300, '...')) ?></p>
-            <p><a href="/blog/<?= h($post['uuid']) ?>">Read more &rarr;</a></p>
+            <p><a href="/blog/<?= h($post['uuid']) ?>"><?= $L['read_more'] ?> &rarr;</a></p>
         </article>
         <?php endforeach; ?>
 

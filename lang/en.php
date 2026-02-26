@@ -60,6 +60,7 @@ return [
     'landing_tagline' => 'Share your family tree with the people who matter.',
     'news'            => 'News',
     'all_posts'       => 'All posts',
+    'read_more'       => 'Read more',
 
     // Login & account
     'login_message'    => 'Log in to access your family tree.',

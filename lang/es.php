@@ -25,6 +25,7 @@ return [
     'landing_tagline' => 'Comparte tu &aacute;rbol geneal&oacute;gico con quienes m&aacute;s importan.',
     'news'            => 'Noticias',
     'all_posts'       => 'Todos los art&iacute;culos',
+    'read_more'       => 'Leer m&aacute;s',
 
     'full_ascendance'  => 'Ver todos los Padres',
     'full_descendance' => 'Ver todos los Hijos',

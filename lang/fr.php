@@ -26,6 +26,7 @@ return [
     'landing_tagline' => 'Partagez votre arbre g&eacute;n&eacute;alogique avec ceux qui comptent.',
     'news'            => 'Actualit&eacute;s',
     'all_posts'       => 'Tous les articles',
+    'read_more'       => 'Lire la suite',
 
     'last_updates'     => 'Derni&egrave;res mises &agrave; jour',
     'full_ascendance'  => 'Ascendance compl&egrave;te',

@@ -25,6 +25,7 @@ return [
     'landing_tagline' => 'Condividi il tuo albero genealogico con le persone che contano.',
     'news'            => 'Novit&agrave;',
     'all_posts'       => 'Tutti gli articoli',
+    'read_more'       => 'Leggi di pi&ugrave;',
 
     'full_ascendance'  => 'Tutti Genitori',
     'full_descendance' => 'Tutti Figli',

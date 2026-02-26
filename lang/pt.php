@@ -25,6 +25,7 @@ return [
     'landing_tagline' => 'Partilhe a sua &aacute;rvore geneal&oacute;gica com quem mais importa.',
     'news'            => 'Not&iacute;cias',
     'all_posts'       => 'Todos os artigos',
+    'read_more'       => 'Ler mais',
 
     'full_ascendance'  => 'Veja todos os Pais',
     'full_descendance' => 'Veja todas as Crian&ccedil;as',

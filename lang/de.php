@@ -25,6 +25,7 @@ return [
     'landing_tagline' => 'Teilen Sie Ihren Stammbaum mit den Menschen, die Ihnen wichtig sind.',
     'news'            => 'Neuigkeiten',
     'all_posts'       => 'Alle Beitr&auml;ge',
+    'read_more'       => 'Weiterlesen',
 
     'full_ascendance'  => 'Alle Vorfahren',
     'full_descendance' => 'Alle Nachfahren',
