@@ -127,22 +127,39 @@ $stmt->execute([$fid, $lang]);
 $familyPosts = $stmt->fetchAll();
 ?>
 
-<table border="0" width="80%" align="center"><tr><td>
-
+<div class="landing">
 <?php if ($familyPosts): ?>
-    <?php foreach ($familyPosts as $post): ?>
-    <article style="margin-bottom: 16px;">
-        <?php if ($post['published_at']): ?>
-            <time class="blog-date" style="color:#666; font-size:9pt;"><?= date('F j, Y', strtotime($post['published_at'])) ?></time>
+    <?php
+    $latestFamilyPost = array_shift($familyPosts);
+    ?>
+    <article class="landing-feature">
+        <h2><?= h($latestFamilyPost['title']) ?></h2>
+        <?php if ($latestFamilyPost['published_at']): ?>
+            <time class="blog-date"><?= date('F j, Y', strtotime($latestFamilyPost['published_at'])) ?></time>
         <?php endif; ?>
-        <h2><?= h($post['title']) ?></h2>
         <div class="blog-body">
-            <?= fix_utf8(\SeeOurFamily\Html::sanitize($post['body'])) ?>
+            <?= fix_utf8(\SeeOurFamily\Html::sanitize($latestFamilyPost['body'])) ?>
         </div>
     </article>
-    <?php endforeach; ?>
+
+    <?php if ($familyPosts): ?>
+    <hr class="landing-sep">
+
+    <div class="landing-blog">
+        <?php foreach ($familyPosts as $post): ?>
+        <article class="blog-card">
+            <h3><?= h($post['title']) ?></h3>
+            <?php if ($post['published_at']): ?>
+                <time class="blog-date"><?= date('F j, Y', strtotime($post['published_at'])) ?></time>
+            <?php endif; ?>
+            <div class="blog-body">
+                <?= fix_utf8(\SeeOurFamily\Html::sanitize($post['body'])) ?>
+            </div>
+        </article>
+        <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
 <?php else: ?>
     <h1><?= $familyTitle ?></h1>
 <?php endif; ?>
-
-</td></tr></table>
+</div>
