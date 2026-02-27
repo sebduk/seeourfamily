@@ -15,7 +15,7 @@ namespace SeeOurFamily;
 class Html
 {
     /** Tags permitted in rich-text content. */
-    private const ALLOWED_TAGS = '<b><i><u><s><strong><em><a><ul><ol><li><br><p><h3>';
+    private const ALLOWED_TAGS = '<b><i><u><s><strong><em><a><ul><ol><li><br><p><h3><font>';
 
     /**
      * Strip all HTML tags except the safe formatting whitelist.

@@ -32,6 +32,8 @@
         { cmd: 'insertUnorderedList', label: '\u2022 List', title: 'Bullet list' },
         { cmd: 'insertOrderedList',   label: '1. List',     title: 'Numbered list' },
         { sep: true },
+        { type: 'fontSize' },
+        { sep: true },
         { cmd: 'removeFormat',   label: 'Clear',  title: 'Clear formatting' },
     ];
 
@@ -45,6 +47,37 @@
                 var s = document.createElement('span');
                 s.className = 'rt-sep';
                 bar.appendChild(s);
+                return;
+            }
+            if (btn.type === 'fontSize') {
+                var sel = document.createElement('select');
+                sel.title = 'Font size';
+                sel.className = 'rt-fontsize';
+                var sizes = [
+                    { value: '',  label: 'Size' },
+                    { value: '1', label: 'Smallest' },
+                    { value: '2', label: 'Small' },
+                    { value: '3', label: 'Normal' },
+                    { value: '4', label: 'Large' },
+                    { value: '5', label: 'Larger' },
+                    { value: '6', label: 'Biggest' },
+                ];
+                sizes.forEach(function (s) {
+                    var opt = document.createElement('option');
+                    opt.value = s.value;
+                    opt.textContent = s.label;
+                    sel.appendChild(opt);
+                });
+                sel.addEventListener('mousedown', function (e) {
+                    e.stopPropagation();  // don't steal focus from editor
+                });
+                sel.addEventListener('change', function () {
+                    if (sel.value) {
+                        document.execCommand('fontSize', false, sel.value);
+                    }
+                    sel.value = '';  // reset to label
+                });
+                bar.appendChild(sel);
                 return;
             }
             var b = document.createElement('button');
