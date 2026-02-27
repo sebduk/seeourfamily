@@ -83,7 +83,6 @@ if ($cookieSize >= 8 && $cookieSize <= 16) $bodyStyle .= 'font-size:' . $cookieS
     <nav class="menubar">
         <div class="menu-links">
             [<a href="/home"><?= $L['menu_home'] ?></a>]
-            [<a href="/blog"><?= $L['menu_blog'] ?></a>]
             <?php if ($family): ?>
                 &gt; <?= $L['menu_genealogy'] ?>
                 [<a href="/list-names?sort=name"><?= $L['menu_names'] ?></a>]

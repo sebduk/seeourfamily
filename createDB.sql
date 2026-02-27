@@ -334,10 +334,14 @@ CREATE TABLE `infos` (
 -- BLOG, AUTH & ONBOARDING TABLES
 -- =======================================================================
 
--- blog_posts: public-facing blog on the front page
+-- blog_posts: global and family-specific blog posts
+-- family_id NULL = global (super-admin), set = family-specific
+-- language NULL = shown for all languages, set = shown only for matching language
 CREATE TABLE `blog_posts` (
   `id`              INT          NOT NULL AUTO_INCREMENT,
   `uuid`            CHAR(36)     NOT NULL COMMENT 'Public-facing identifier (UUIDv4)',
+  `family_id`       INT                   DEFAULT NULL COMMENT 'NULL=global, set=family-specific',
+  `language`        VARCHAR(3)            DEFAULT NULL COMMENT 'Language code (ENG, FRA, etc.) or NULL for all',
   `title`           VARCHAR(255) NOT NULL,
   `body`            TEXT         NOT NULL COMMENT 'HTML or plain text content',
   `is_published`    TINYINT      NOT NULL DEFAULT 0 COMMENT '1=visible to public, 0=draft',
@@ -348,7 +352,9 @@ CREATE TABLE `blog_posts` (
   `updated_by`      INT                   DEFAULT NULL,
   `updated_at`      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_blog_posts_uuid` (`uuid`)
+  UNIQUE KEY `uq_blog_posts_uuid` (`uuid`),
+  KEY `idx_blog_posts_family` (`family_id`),
+  CONSTRAINT `fk_blog_posts_family` FOREIGN KEY (`family_id`) REFERENCES `families` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 

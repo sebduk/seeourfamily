@@ -20,7 +20,7 @@ if (!$auth->isSuperAdmin()) {
 $familyCount = $db->pdo()->query("SELECT COUNT(*) FROM families WHERE is_online = 1")->fetchColumn();
 $userCount   = $db->pdo()->query("SELECT COUNT(*) FROM users WHERE is_online = 1")->fetchColumn();
 $pendingInv  = $db->pdo()->query("SELECT COUNT(*) FROM invitations WHERE used_at IS NULL AND expires_at > NOW()")->fetchColumn();
-$blogCount   = $db->pdo()->query("SELECT COUNT(*) FROM blog_posts WHERE is_online = 1")->fetchColumn();
+$blogCount   = $db->pdo()->query("SELECT COUNT(*) FROM blog_posts WHERE family_id IS NULL AND is_online = 1")->fetchColumn();
 ?>
 
 <div class="page-wrap">
