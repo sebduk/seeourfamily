@@ -52,6 +52,8 @@ hr { border: none; border-top: 1px solid #666; }
 .name-list {
     columns: 3 200px;
     column-gap: 2rem;
+    width: 80%;
+    margin: 0 auto;
 }
 .name-list-item {
     break-inside: avoid;
@@ -66,12 +68,18 @@ hr { border: none; border-top: 1px solid #666; }
     padding-bottom: 0.5rem;
     margin-bottom: 0.5rem;
     border-bottom: 1px solid #666;
+    width: 80%;
+    margin-left: auto;
+    margin-right: auto;
 }
 .name-list-footer {
     text-align: center;
     padding-top: 0.5rem;
     margin-top: 0.5rem;
     border-top: 1px solid #666;
+    width: 80%;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 
@@ -568,10 +576,14 @@ hr { border: none; border-top: 1px solid #666; }
 /* ============================================================
  * RESPONSIVE
  * ============================================================ */
+@media (max-width: 1024px) {
+    .name-list { columns: 2; }
+}
 @media (max-width: 768px) {
     .landing-hero { padding: 20px 0 16px; }
     .landing-hero h1 { font-size: 20pt; }
-    .name-list { columns: 1; }
+    .name-list { columns: 1; width: 100%; }
+    .name-list-header, .name-list-footer { width: 100%; }
     .bio-item,
     .bio-photo-item { grid-template-columns: 1fr; }
     .bio-photo-item .thumb { margin: 0 auto 0.5rem; }

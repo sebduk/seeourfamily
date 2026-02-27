@@ -70,10 +70,7 @@ $todayDay   = (int)$today->format('j');
                 foreach ($cal[$m][$day] as $k => $p):
                     if ($k > 0) echo '<br>';
             ?>
-                <a href="/tree/<?= h($p['uuid']) ?>"><?= h($p['last_name']) ?>&nbsp;<?= h($p['first_name']) ?>&nbsp;(<?= h($p['byear']) ?>)</a><?php
-                    if ($p['email'] && !$p['death_date']):
-                ?> <a href="/messages?forum=perso&amp;person=<?= h($p['uuid']) ?>"><b>&#64;</b></a><?php
-                    endif;
+                <a href="/tree/<?= h($p['uuid']) ?>"><?= h($p['last_name']) ?>&nbsp;<?= h($p['first_name']) ?>&nbsp;(<?= h($p['byear']) ?><?php if ($p['death_date']): ?>-<?= h(date('Y', strtotime($p['death_date']))) ?><?php endif; ?>)</a><?php
                 endforeach;
             else:
                 echo '&nbsp;';
