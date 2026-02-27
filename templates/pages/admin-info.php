@@ -64,7 +64,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->prepare(
                 'UPDATE blog_posts SET title = ?, body = ?, updated_by = ? WHERE id = ? AND family_id = ?'
             )->execute([$title, $body, $auth->userId(), $postId, $fid]);
-            $msg = 'Post updated.';
+            header('Location: /admin/info?edit=' . $postId);
+            exit;
         }
     }
 
