@@ -31,13 +31,18 @@ class Media
     private const IMAGE_EXT = ['jpg', 'jpeg', 'gif', 'png', 'webp'];
 
     private string $mediaDir;
-    private string $legacyDir;
+    private ?string $legacyDir;
 
     public function __construct(
         private Database $db,
     ) {
         $this->mediaDir  = rtrim($_ENV['MEDIA_DIR'] ?? (__DIR__ . '/../media'), '/');
-        $this->legacyDir = rtrim($_ENV['MEDIA_LEGACY_DIR'] ?? ($_SERVER['DOCUMENT_ROOT'] ?? __DIR__ . '/..'), '/');
+
+        // Legacy dir is only active when MEDIA_LEGACY_DIR is set and non-empty.
+        // Once media migration is complete, set MEDIA_LEGACY_DIR= (empty) in .env
+        // to disable legacy path resolution entirely.
+        $legacy = $_ENV['MEDIA_LEGACY_DIR'] ?? '';
+        $this->legacyDir = ($legacy !== '') ? rtrim($legacy, '/') : null;
     }
 
     /** Base media directory. */
@@ -101,7 +106,7 @@ class Media
         }
 
         // Legacy path: /Gene/File/{FamilyName}/Image/{file_name}  (or /Document/)
-        if (!empty($row['file_name']) && $familyName !== '') {
+        if ($this->legacyDir !== null && !empty($row['file_name']) && $familyName !== '') {
             $ext = strtolower(pathinfo($row['file_name'], PATHINFO_EXTENSION));
             $isImage = in_array($ext, ['jpg', 'jpeg', 'gif', 'png', 'webp'], true);
             $subDir = $isImage ? 'Image' : 'Document';
@@ -131,7 +136,7 @@ class Media
         }
 
         // Legacy thumbnail
-        if (!empty($row['file_name']) && $familyName !== '') {
+        if ($this->legacyDir !== null && !empty($row['file_name']) && $familyName !== '') {
             $tnName = preg_replace('/\.(\w+)$/', '.tn.$1', $row['file_name']);
             $path = $this->legacyDir . '/Gene/File/' . $familyName . '/Image/' . $tnName;
             if (file_exists($path)) {

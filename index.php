@@ -89,6 +89,14 @@ if (class_exists('Dotenv\\Dotenv') && file_exists($envFile)) {
     }
 }
 
+// Fail clearly if .env was not loaded (DB_HOST is always required)
+if (!isset($_ENV['DB_HOST'])) {
+    http_response_code(500);
+    echo '<h1>Configuration missing</h1>'
+       . '<p><code>.env</code> file not found. Copy <code>.env.example</code> to <code>.env</code> and configure it.</p>';
+    exit;
+}
+
 // =========================================================================
 // APPLICATION OBJECTS
 // =========================================================================
