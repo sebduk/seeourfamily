@@ -149,22 +149,23 @@ $posts = $posts->fetchAll();
             <div class="form-actions">
                 <input type="submit" value="Save" class="box">
                 <a href="/admin/info" style="margin-left:12px;">Cancel</a>
-                &nbsp;|&nbsp;
-                <form method="post" action="/admin/info" style="display:inline;">
-                    <input type="hidden" name="form_action" value="toggle_publish">
-                    <input type="hidden" name="post_id" value="<?= (int)$editPost['id'] ?>">
-                    <button type="submit" style="border:none; background:none; color:#00c; cursor:pointer; text-decoration:underline; font-size:inherit;">
-                        <?= $editPost['is_published'] ? 'Unpublish' : 'Publish' ?>
-                    </button>
-                </form>
-                &nbsp;|&nbsp;
-                <form method="post" action="/admin/info" style="display:inline;" onsubmit="return confirm('Delete this post?')">
-                    <input type="hidden" name="form_action" value="delete_post">
-                    <input type="hidden" name="post_id" value="<?= (int)$editPost['id'] ?>">
-                    <button type="submit" style="border:none; background:none; color:#c00; cursor:pointer; text-decoration:underline; font-size:inherit;">Delete</button>
-                </form>
             </div>
         </form>
+        <div style="margin-top:8px;">
+            <form method="post" action="/admin/info" style="display:inline;">
+                <input type="hidden" name="form_action" value="toggle_publish">
+                <input type="hidden" name="post_id" value="<?= (int)$editPost['id'] ?>">
+                <button type="submit" style="border:none; background:none; color:#00c; cursor:pointer; text-decoration:underline; font-size:inherit;">
+                    <?= $editPost['is_published'] ? 'Unpublish' : 'Publish' ?>
+                </button>
+            </form>
+            &nbsp;|&nbsp;
+            <form method="post" action="/admin/info" style="display:inline;" onsubmit="return confirm('Delete this post?')">
+                <input type="hidden" name="form_action" value="delete_post">
+                <input type="hidden" name="post_id" value="<?= (int)$editPost['id'] ?>">
+                <button type="submit" style="border:none; background:none; color:#c00; cursor:pointer; text-decoration:underline; font-size:inherit;">Delete</button>
+            </form>
+        </div>
         <?php endif; endif; ?>
 
         <?php if (!$showNew && !$editId): ?>
