@@ -22,9 +22,9 @@ $sql = 'SELECT p.id, p.uuid, p.last_name, p.first_name,
                IFNULL(DATE_FORMAT(p.birth_date, "%Y"), "") AS birth,
                IFNULL(DATE_FORMAT(p.death_date, "%Y"), "") AS death,
                p.updated_at,
-               COUNT(ppl.photo_id) AS photo_count
+               COUNT(dpl.document_id) AS photo_count
         FROM people p
-        LEFT JOIN photo_person_link ppl ON ppl.person_id = p.id
+        LEFT JOIN document_person_link dpl ON dpl.person_id = p.id
         WHERE p.family_id = ?';
 $params = [$fid];
 

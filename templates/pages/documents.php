@@ -31,8 +31,8 @@ $docFilter = "(
       AND LOWER(RIGHT(stored_filename, 4)) NOT IN ('jpeg','webm'))
 )";
 
-$sql = "SELECT id, uuid, file_name, original_filename, stored_filename, description, photo_date, file_size, created_at
-        FROM photos
+$sql = "SELECT id, uuid, file_name, original_filename, stored_filename, description, doc_date, file_size, created_at
+        FROM documents
         WHERE family_id = ? AND $docFilter";
 $params = [$fid];
 
@@ -50,11 +50,11 @@ $folderQs = $folderId !== null ? '&amp;folder=' . $folderId : '';
 
 switch ($sortCol) {
     case '1':
-        $sql .= ' ORDER BY COALESCE(original_filename, file_name)' . ($sortDir === 'd' ? ' DESC' : '') . ', photo_date';
+        $sql .= ' ORDER BY COALESCE(original_filename, file_name)' . ($sortDir === 'd' ? ' DESC' : '') . ', doc_date';
         break;
     case '2':
     default:
-        $sql .= ' ORDER BY photo_date' . ($sortDir === 'd' ? ' DESC' : '') . ', COALESCE(original_filename, file_name)';
+        $sql .= ' ORDER BY doc_date' . ($sortDir === 'd' ? ' DESC' : '') . ', COALESCE(original_filename, file_name)';
         break;
 }
 
@@ -66,9 +66,9 @@ $docs = $stmt->fetchAll();
 $fStmt = $pdo->prepare(
     "SELECT f.id, f.name, COUNT(p.id) AS cnt
      FROM folders f
-     LEFT JOIN photos p ON p.folder_id = f.id AND p.family_id = f.family_id
+     LEFT JOIN documents p ON p.folder_id = f.id AND p.family_id = f.family_id
        AND $docFilter
-     WHERE f.family_id = ? AND f.type = 'document' AND f.is_online = 1
+     WHERE f.family_id = ? AND f.is_online = 1
      GROUP BY f.id, f.name
      ORDER BY f.name"
 );
@@ -76,7 +76,7 @@ $fStmt->execute([$fid]);
 $folders = $fStmt->fetchAll();
 
 // Unfiled count
-$unfStmt = $pdo->prepare("SELECT COUNT(*) FROM photos WHERE family_id = ? AND folder_id IS NULL AND $docFilter");
+$unfStmt = $pdo->prepare("SELECT COUNT(*) FROM documents WHERE family_id = ? AND folder_id IS NULL AND $docFilter");
 $unfStmt->execute([$fid]);
 $unfiledCount = (int)$unfStmt->fetchColumn();
 
@@ -120,8 +120,8 @@ function sortLink(string $col, string $currentCol, string $currentDir, string $l
         // Participants
         $stmt = $pdo->prepare(
             'SELECT p.id, p.uuid, p.first_name, p.last_name FROM people p
-             JOIN photo_person_link ppl ON ppl.person_id = p.id
-             WHERE ppl.photo_id = ?
+             JOIN document_person_link dpl ON dpl.person_id = p.id
+             WHERE dpl.document_id = ?
              ORDER BY p.last_name, p.first_name'
         );
         $stmt->execute([$doc['id']]);
@@ -130,7 +130,7 @@ function sortLink(string $col, string $currentCol, string $currentDir, string $l
         <tr>
             <td class="doc-icon"><img src="/Image/Icon/<?= $icon ?>.gif" alt="<?= h($ext) ?>"></td>
             <td><a href="/media/<?= h($doc['uuid']) ?>"><b><?= h($baseName) ?></b></a></td>
-            <td><?= h($doc['photo_date'] ?? '') ?></td>
+            <td><?= h($doc['doc_date'] ?? '') ?></td>
             <td style="text-align:right"><?php if ($doc['file_size']): ?><?= number_format((int)$doc['file_size'] / 1024, 0) ?> KB<?php endif; ?></td>
             <td style="text-align:right"><?= $doc['created_at'] ? h(date('d/m/Y', strtotime($doc['created_at']))) : '' ?></td>
         </tr>

@@ -42,8 +42,7 @@
  *   Prog/Admin/pers*.asp           -> /admin/people       (templates/pages/admin-people.php)
  *   Prog/Admin/coup*.asp           -> /admin/couples      (templates/pages/admin-couples.php)
  *   Prog/Admin/comm*.asp           -> /admin/comments     (templates/pages/admin-comments.php)
- *   Prog/Admin/photo*.asp          -> /admin/photos       (templates/pages/admin-photos.php)
- *   Prog/Admin/doc*.asp            -> /admin/documents    (templates/pages/admin-documents.php)
+ *   Prog/Admin/photo*.asp + doc*.asp -> /admin/documents   (templates/pages/admin-documents.php)
  *   Prog/Admin/info*.asp           -> /admin/info         (templates/pages/admin-info.php)
  *   Prog/Admin/mess*.asp           -> /admin/messages     (templates/pages/admin-messages.php)
  */

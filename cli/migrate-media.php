@@ -9,7 +9,7 @@
  *   php cli/migrate-media.php --dry-run    # same as above
  *   php cli/migrate-media.php --execute    # actually copy files + update DB
  *
- * For each photos row where stored_filename IS NULL and file_name IS NOT NULL:
+ * For each documents row where stored_filename IS NULL and file_name IS NOT NULL:
  *   1. Resolves the legacy disk path: {MEDIA_LEGACY_DIR}/Gene/File/{FamilyName}/Image|Document/{file_name}
  *   2. Copies the file to {MEDIA_DIR}/{family_id}/{uuid}.ext
  *   3. Creates a thumbnail for images.
@@ -79,7 +79,7 @@ while ($f = $stmt->fetch()) {
 // ------------------------------------------------------------------
 $stmt = $pdo->query(
     "SELECT id, uuid, family_id, file_name
-     FROM photos
+     FROM documents
      WHERE stored_filename IS NULL
        AND file_name IS NOT NULL
        AND file_name != ''
@@ -88,11 +88,11 @@ $stmt = $pdo->query(
 $rows = $stmt->fetchAll();
 
 if (empty($rows)) {
-    echo "No legacy photos to migrate. All rows already have stored_filename.\n";
+    echo "No legacy documents to migrate. All rows already have stored_filename.\n";
     exit(0);
 }
 
-echo ($dryRun ? "[DRY RUN] " : "") . "Found " . count($rows) . " photo(s) to migrate.\n\n";
+echo ($dryRun ? "[DRY RUN] " : "") . "Found " . count($rows) . " document(s) to migrate.\n\n";
 
 // ------------------------------------------------------------------
 // UUID generator (same logic as Media::generateUuid)
@@ -114,7 +114,7 @@ $missing  = 0;
 $errors   = 0;
 
 $updateStmt = $pdo->prepare(
-    'UPDATE photos
+    'UPDATE documents
      SET stored_filename  = ?,
          original_filename = ?,
          mime_type         = ?,

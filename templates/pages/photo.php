@@ -17,7 +17,7 @@ $months = $L['months'] ?? [];
 
 $photoUuid = $router->param('id') ?? '';
 
-$stmt = $pdo->prepare('SELECT * FROM photos WHERE uuid = ? AND family_id = ?');
+$stmt = $pdo->prepare('SELECT * FROM documents WHERE uuid = ? AND family_id = ?');
 $stmt->execute([$photoUuid, $fid]);
 $photo = $stmt->fetch();
 
@@ -33,9 +33,9 @@ $isAudioFile = \SeeOurFamily\Media::isAudio($photoMime);
 
 // Date formatting
 $dateStr = '';
-if ($photo['photo_date']) {
-    $d = new DateTime($photo['photo_date']);
-    $prec = $photo['photo_precision'] ?? 'y';
+if ($photo['doc_date']) {
+    $d = new DateTime($photo['doc_date']);
+    $prec = $photo['doc_precision'] ?? 'y';
     $parts = [];
     if (($prec === 'ymd') && (int)$d->format('j') > 0) $parts[] = $d->format('j');
     if ($prec === 'ymd' || $prec === 'ym') {
@@ -52,8 +52,8 @@ $stmt = $pdo->prepare(
             IFNULL(DATE_FORMAT(p.birth_date, "%Y"), "") AS birth,
             IFNULL(DATE_FORMAT(p.death_date, "%Y"), "") AS death
      FROM people p
-     JOIN photo_person_link ppl ON ppl.person_id = p.id
-     WHERE ppl.photo_id = ?
+     JOIN document_person_link dpl ON dpl.person_id = p.id
+     WHERE dpl.document_id = ?
      ORDER BY p.last_name, p.first_name'
 );
 $stmt->execute([$photoId]);
@@ -61,10 +61,10 @@ $people = $stmt->fetchAll();
 
 // Face tags
 $stmt = $pdo->prepare(
-    'SELECT pt.person_id, pt.x_pct, pt.y_pct, p.uuid, p.first_name, p.last_name
-     FROM photo_tags pt
-     JOIN people p ON pt.person_id = p.id
-     WHERE pt.photo_id = ?'
+    'SELECT dt.person_id, dt.x_pct, dt.y_pct, p.uuid, p.first_name, p.last_name
+     FROM document_tags dt
+     JOIN people p ON dt.person_id = p.id
+     WHERE dt.document_id = ?'
 );
 $stmt->execute([$photoId]);
 $tags = $stmt->fetchAll();

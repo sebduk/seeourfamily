@@ -23,7 +23,6 @@ if (!$isAdmin) {
         [<a href="/admin/people"><b><?= $L['menu_people'] ?></b></a>]
         [<a href="/admin/couples"><b><?= $L['menu_couples'] ?></b></a>]
         [<a href="/admin/comments"><b><?= $L['menu_comments'] ?></b></a>]
-        [<a href="/admin/photos"><b><?= $L['menu_pictures'] ?></b></a>]
         [<a href="/admin/documents"><b><?= $L['menu_documents'] ?></b></a>]
         [<a href="/admin/folders"><b><?= $L['menu_folders'] ?? 'folders' ?></b></a>]
         [<a href="/admin/info"><b><?= $L['news'] ?></b></a>]

@@ -7,7 +7,8 @@ namespace SeeOurFamily;
 use PDO;
 
 /**
- * Media service: stores and serves photos/documents outside the web root.
+ * Media service: stores and serves documents (photos, videos, audio, PDFs, etc.)
+ * outside the web root.
  *
  * Replaces the legacy layout where files lived under:
  *   /Gene/File/{FamilyName}/Image/   (images)
@@ -26,7 +27,7 @@ use PDO;
  */
 class Media
 {
-    private const VIDEO_EXT = ['mp4', 'avi', 'webm', 'mov'];
+    private const VIDEO_EXT = ['mp4', 'avi', 'webm', 'mov', 'm4v'];
     private const AUDIO_EXT = ['mp3', 'ogg', 'wav'];
     private const IMAGE_EXT = ['jpg', 'jpeg', 'gif', 'png', 'webp'];
 
@@ -75,7 +76,13 @@ class Media
         return in_array(strtolower($mimeOrExt), self::IMAGE_EXT, true);
     }
 
-    /** Detect MIME type from a photo row (mime_type column, or fall back to extension). */
+    /** Check if a MIME type represents a "visual" file (image, video, or audio) — the photo-grid types. */
+    public static function isVisual(?string $mimeOrExt): bool
+    {
+        return self::isImage($mimeOrExt) || self::isVideo($mimeOrExt) || self::isAudio($mimeOrExt);
+    }
+
+    /** Detect MIME type from a document row (mime_type column, or fall back to extension). */
     public static function mimeFromRow(array $row): string
     {
         if (!empty($row['mime_type'])) return $row['mime_type'];
@@ -85,14 +92,22 @@ class Media
             'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'gif' => 'image/gif',
             'png' => 'image/png', 'webp' => 'image/webp',
             'mp4' => 'video/mp4', 'avi' => 'video/x-msvideo', 'webm' => 'video/webm',
+            'mov' => 'video/quicktime', 'm4v' => 'video/x-m4v',
             'mp3' => 'audio/mpeg', 'ogg' => 'audio/ogg', 'wav' => 'audio/wav',
             'pdf' => 'application/pdf',
+            'txt' => 'text/plain',
+            'doc' => 'application/msword',
+            'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'ppt' => 'application/vnd.ms-powerpoint',
+            'pptx' => 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            'xls' => 'application/vnd.ms-excel',
+            'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         ];
         return $map[$ext] ?? 'application/octet-stream';
     }
 
     /**
-     * Resolve the absolute disk path for a photo/document row.
+     * Resolve the absolute disk path for a document row.
      * Returns null if the file does not exist.
      */
     public function diskPath(array $row, string $familyName = ''): ?string
@@ -159,7 +174,12 @@ class Media
         }
 
         // Validate extension
-        $allowedExt = ['jpg', 'jpeg', 'gif', 'png', 'mp3', 'mp4', 'avi', 'pdf'];
+        $allowedExt = [
+            'jpg', 'jpeg', 'gif', 'png', 'webp',
+            'mp3', 'ogg', 'wav',
+            'mp4', 'avi', 'webm', 'mov', 'm4v',
+            'pdf', 'txt', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx',
+        ];
         $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
         if (!in_array($ext, $allowedExt, true)) {
             return null;
@@ -169,9 +189,21 @@ class Media
         $finfo = new \finfo(FILEINFO_MIME_TYPE);
         $mime = $finfo->file($file['tmp_name']);
         $allowedMime = [
-            'image/jpeg', 'image/gif', 'image/png',
-            'audio/mpeg', 'video/mp4', 'video/x-msvideo', 'video/avi',
+            'image/jpeg', 'image/gif', 'image/png', 'image/webp',
+            'audio/mpeg', 'audio/ogg', 'audio/wav',
+            'video/mp4', 'video/x-msvideo', 'video/avi', 'video/webm',
+            'video/quicktime', 'video/x-m4v',
             'application/pdf',
+            'text/plain',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/vnd.ms-powerpoint',
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            'application/vnd.ms-excel',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            // Office files often detected as generic zip
+            'application/zip',
+            'application/octet-stream',
         ];
         if (!in_array($mime, $allowedMime, true)) {
             return null;
@@ -249,7 +281,7 @@ class Media
     public function serve(string $uuid, ?int $familyId, string $familyName = '', bool $thumbnail = false, bool $poster = false): bool
     {
         $pdo = $this->db->pdo();
-        $sql = 'SELECT * FROM photos WHERE uuid = ?';
+        $sql = 'SELECT * FROM documents WHERE uuid = ?';
         $params = [$uuid];
         if ($familyId !== null) {
             $sql .= ' AND family_id = ?';

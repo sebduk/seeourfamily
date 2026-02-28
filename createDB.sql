@@ -18,7 +18,7 @@
 --   updated_by: application user id who last modified
 --   updated_at: auto-set on insert and update
 --
--- Content tables (people, couples, photos, etc.) all have a family_id.
+-- Content tables (people, couples, documents, etc.) all have a family_id.
 -- No content is ever shown without filtering on the family in session.
 --
 -- Date precision: dates that may be partially known (birth, death,
@@ -28,8 +28,9 @@
 --   'y'   = only year known
 --   NULL  = date itself is NULL
 --
--- Photo/document files are stored on disk. The database holds metadata
--- and the file path. Thumbnails are generated or stored alongside.
+-- Document files (photos, videos, PDFs, etc.) are stored on disk.
+-- The database holds metadata and the file path. Thumbnails are
+-- generated or stored alongside.
 -- =======================================================================
 
 DROP DATABASE IF EXISTS `seeourfamily`;
@@ -165,12 +166,11 @@ CREATE TABLE `couples` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
--- folders: virtual folder management for photos and documents
+-- folders: virtual folder management for documents (any file type)
 CREATE TABLE `folders` (
   `id`              INT          NOT NULL AUTO_INCREMENT,
   `uuid`            CHAR(36)     NOT NULL COMMENT 'Public-facing identifier (UUIDv4)',
   `family_id`       INT          NOT NULL,
-  `type`            VARCHAR(10)  NOT NULL COMMENT 'image or document',
   `name`            VARCHAR(255) NOT NULL,
   `parent_folder_id` INT                  DEFAULT NULL COMMENT 'Nullable, for nested folders',
   `is_online`       TINYINT      NOT NULL DEFAULT 1,
@@ -186,8 +186,8 @@ CREATE TABLE `folders` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
--- photos: photo and document metadata (files stored on disk)
-CREATE TABLE `photos` (
+-- documents: all file metadata (photos, videos, audio, PDFs, etc.)
+CREATE TABLE `documents` (
   `id`              INT          NOT NULL AUTO_INCREMENT,
   `uuid`            CHAR(36)     NOT NULL COMMENT 'Public-facing identifier (UUIDv4)',
   `family_id`       INT          NOT NULL,
@@ -199,46 +199,46 @@ CREATE TABLE `photos` (
   `file_size`       BIGINT                DEFAULT NULL COMMENT 'Size in bytes',
   `poster_uuid`     CHAR(36)              DEFAULT NULL COMMENT 'Poster image UUID for video/audio files',
   `description`     TEXT,
-  `photo_date`      DATE                  DEFAULT NULL,
-  `photo_precision` VARCHAR(3)            DEFAULT NULL COMMENT 'ymd, ym, or y',
+  `doc_date`        DATE                  DEFAULT NULL,
+  `doc_precision`   VARCHAR(3)            DEFAULT NULL COMMENT 'ymd, ym, or y',
   `is_online`       TINYINT      NOT NULL DEFAULT 1,
   `created_at`      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_by`      INT                   DEFAULT NULL,
   `updated_at`      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_photos_uuid` (`uuid`),
-  KEY `idx_photos_family` (`family_id`),
-  KEY `idx_photos_folder` (`folder_id`),
-  CONSTRAINT `fk_photos_family` FOREIGN KEY (`family_id`) REFERENCES `families` (`id`),
-  CONSTRAINT `fk_photos_folder` FOREIGN KEY (`folder_id`) REFERENCES `folders` (`id`) ON DELETE SET NULL
+  UNIQUE KEY `uq_documents_uuid` (`uuid`),
+  KEY `idx_documents_family` (`family_id`),
+  KEY `idx_documents_folder` (`folder_id`),
+  CONSTRAINT `fk_documents_family` FOREIGN KEY (`family_id`) REFERENCES `families` (`id`),
+  CONSTRAINT `fk_documents_folder` FOREIGN KEY (`folder_id`) REFERENCES `folders` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
--- photo_person_link: which people appear in which photos
-CREATE TABLE `photo_person_link` (
-  `photo_id`        INT          NOT NULL,
+-- document_person_link: which people appear in which documents
+CREATE TABLE `document_person_link` (
+  `document_id`     INT          NOT NULL,
   `person_id`       INT          NOT NULL,
   `sort_order`      INT          NOT NULL DEFAULT 0,
-  PRIMARY KEY (`photo_id`, `person_id`),
-  KEY `idx_ppl_photo`  (`photo_id`),
-  KEY `idx_ppl_person` (`person_id`),
-  CONSTRAINT `fk_ppl_photo`  FOREIGN KEY (`photo_id`)  REFERENCES `photos` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_ppl_person` FOREIGN KEY (`person_id`) REFERENCES `people` (`id`) ON DELETE CASCADE
+  PRIMARY KEY (`document_id`, `person_id`),
+  KEY `idx_dpl_document` (`document_id`),
+  KEY `idx_dpl_person`   (`person_id`),
+  CONSTRAINT `fk_dpl_document` FOREIGN KEY (`document_id`) REFERENCES `documents` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_dpl_person`   FOREIGN KEY (`person_id`)   REFERENCES `people`    (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
--- photo_tags: face/position tags on photos (coordinates as percentages for resize safety)
-CREATE TABLE `photo_tags` (
+-- document_tags: face/position tags on images (coordinates as percentages for resize safety)
+CREATE TABLE `document_tags` (
   `id`              INT            NOT NULL AUTO_INCREMENT,
-  `photo_id`        INT            NOT NULL,
+  `document_id`     INT            NOT NULL,
   `person_id`       INT            NOT NULL,
   `x_pct`           DECIMAL(5,2)   NOT NULL COMMENT '0.00–100.00 from left',
   `y_pct`           DECIMAL(5,2)   NOT NULL COMMENT '0.00–100.00 from top',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_photo_person` (`photo_id`, `person_id`),
-  KEY `idx_pt_photo` (`photo_id`),
-  CONSTRAINT `fk_pt_photo`  FOREIGN KEY (`photo_id`)  REFERENCES `photos` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_pt_person` FOREIGN KEY (`person_id`) REFERENCES `people` (`id`) ON DELETE CASCADE
+  UNIQUE KEY `uq_document_person` (`document_id`, `person_id`),
+  KEY `idx_dt_document` (`document_id`),
+  CONSTRAINT `fk_dt_document` FOREIGN KEY (`document_id`) REFERENCES `documents` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_dt_person`   FOREIGN KEY (`person_id`)   REFERENCES `people`    (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
@@ -453,17 +453,17 @@ CREATE TABLE `invitations` (
 --   LastUpdateWhen            -> updated_at
 --   (new)                     -> family_id
 --
--- Photo (family .mdb)         -> photos
+-- Photo (family .mdb)         -> documents
 --   IDPhoto                   -> id
 --   NomPhoto                  -> file_name
 --   DescrPhoto                -> description
---   DtYear/DtMonth/DtDay/Date -> photo_date + photo_precision
+--   DtYear/DtMonth/DtDay/Date -> doc_date + doc_precision
 --   LastUpdateWho             -> updated_by
 --   LastUpdateWhen            -> updated_at
 --   (new)                     -> family_id
 --
--- LienPhotoPerso              -> photo_person_link
---   IdPhoto                   -> photo_id
+-- LienPhotoPerso              -> document_person_link
+--   IdPhoto                   -> document_id
 --   IdPersonne                -> person_id
 --   SortKey                   -> sort_order
 --

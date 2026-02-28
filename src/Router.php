@@ -52,7 +52,6 @@ class Router
         'admin-people',
         'admin-couples',
         'admin-comments',
-        'admin-photos',
         'admin-documents',
         'admin-info',
         'admin-folders',

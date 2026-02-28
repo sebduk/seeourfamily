@@ -9,7 +9,6 @@
     <a href="/admin/people"><?= $L['menu_people'] ?></a> |
     <a href="/admin/couples"><?= $L['menu_couples'] ?></a> |
     <a href="/admin/comments"><?= $L['menu_comments'] ?></a> |
-    <a href="/admin/photos"><?= $L['menu_pictures'] ?></a> |
     <a href="/admin/documents"><?= $L['menu_documents'] ?></a> |
     <a href="/admin/folders"><?= $L['menu_folders'] ?? 'Folders' ?></a> |
     <a href="/admin/info"><?= $L['news'] ?></a>

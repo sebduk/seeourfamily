@@ -28,7 +28,7 @@ $mediaFilter = "(
 )";
 
 // Count total photos
-$countSql = "SELECT COUNT(*) FROM photos p WHERE p.family_id = ? AND $mediaFilter";
+$countSql = "SELECT COUNT(*) FROM documents p WHERE p.family_id = ? AND $mediaFilter";
 $countParams = [$fid];
 if ($folderId !== null) {
     if ($folderId === 0) {
@@ -44,8 +44,8 @@ $totalPhotos = (int)$stmt->fetchColumn();
 $totalPages = max(1, (int)ceil($totalPhotos / $perPage));
 
 // Load current page of photos
-$sql = "SELECT p.id, p.uuid, p.file_name, p.original_filename, p.stored_filename, p.description, p.photo_date, p.mime_type, p.poster_uuid
-        FROM photos p
+$sql = "SELECT p.id, p.uuid, p.file_name, p.original_filename, p.stored_filename, p.description, p.doc_date, p.mime_type, p.poster_uuid
+        FROM documents p
         WHERE p.family_id = ? AND $mediaFilter";
 $params = [$fid];
 if ($folderId !== null) {
@@ -56,7 +56,7 @@ if ($folderId !== null) {
         $params[] = $folderId;
     }
 }
-$sql .= ' ORDER BY p.photo_date, COALESCE(p.original_filename, p.file_name) LIMIT ? OFFSET ?';
+$sql .= ' ORDER BY p.doc_date, COALESCE(p.original_filename, p.file_name) LIMIT ? OFFSET ?';
 $params[] = $perPage;
 $params[] = $start;
 $stmt = $pdo->prepare($sql);
@@ -65,18 +65,19 @@ $photos = $stmt->fetchAll();
 
 // Virtual folders (from DB)
 $fStmt = $pdo->prepare(
-    'SELECT f.id, f.name, COUNT(p.id) AS cnt
+    "SELECT f.id, f.name, COUNT(p.id) AS cnt
      FROM folders f
-     LEFT JOIN photos p ON p.folder_id = f.id AND p.family_id = f.family_id
-     WHERE f.family_id = ? AND f.type = ? AND f.is_online = 1
+     LEFT JOIN documents p ON p.folder_id = f.id AND p.family_id = f.family_id
+       AND $mediaFilter
+     WHERE f.family_id = ? AND f.is_online = 1
      GROUP BY f.id, f.name
-     ORDER BY f.name'
+     ORDER BY f.name"
 );
-$fStmt->execute([$fid, 'image']);
+$fStmt->execute([$fid]);
 $folders = $fStmt->fetchAll();
 
 // Also count unfiled photos
-$unfStmt = $pdo->prepare("SELECT COUNT(*) FROM photos p WHERE p.family_id = ? AND p.folder_id IS NULL AND $mediaFilter");
+$unfStmt = $pdo->prepare("SELECT COUNT(*) FROM documents p WHERE p.family_id = ? AND p.folder_id IS NULL AND $mediaFilter");
 $unfStmt->execute([$fid]);
 $unfiledCount = (int)$unfStmt->fetchColumn();
 

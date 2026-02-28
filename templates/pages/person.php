@@ -84,25 +84,25 @@ $comments = $stmt->fetchAll();
 
 // Pictures (images + video + audio)
 $stmt = $pdo->prepare(
-    "SELECT ph.* FROM photos ph
-     JOIN photo_person_link ppl ON ppl.photo_id = ph.id
-     WHERE ppl.person_id = ? AND ph.family_id = ?
+    "SELECT ph.* FROM documents ph
+     JOIN document_person_link dpl ON dpl.document_id = ph.id
+     WHERE dpl.person_id = ? AND ph.family_id = ?
        AND (
          (ph.file_name IS NOT NULL
            AND (LOWER(RIGHT(ph.file_name, 3)) IN ('jpg','gif','png','mp4','avi','mp3','ogg','wav') OR LOWER(RIGHT(ph.file_name, 4)) IN ('jpeg','webm')))
          OR (ph.stored_filename IS NOT NULL AND ph.file_name IS NULL
            AND (LOWER(RIGHT(ph.stored_filename, 3)) IN ('jpg','gif','png','mp4','avi','mp3','ogg','wav') OR LOWER(RIGHT(ph.stored_filename, 4)) IN ('jpeg','webm')))
        )
-     ORDER BY ph.photo_date, COALESCE(ph.original_filename, ph.file_name)"
+     ORDER BY ph.doc_date, COALESCE(ph.original_filename, ph.file_name)"
 );
 $stmt->execute([$personId, $fid]);
 $pictures = $stmt->fetchAll();
 
 // Documents (non-image, non-video, non-audio files)
 $stmt = $pdo->prepare(
-    "SELECT ph.* FROM photos ph
-     JOIN photo_person_link ppl ON ppl.photo_id = ph.id
-     WHERE ppl.person_id = ? AND ph.family_id = ?
+    "SELECT ph.* FROM documents ph
+     JOIN document_person_link dpl ON dpl.document_id = ph.id
+     WHERE dpl.person_id = ? AND ph.family_id = ?
        AND (
          (ph.file_name IS NOT NULL
            AND LOWER(RIGHT(ph.file_name, 3)) NOT IN ('jpg','gif','png','mp4','avi','mp3','ogg','wav')
@@ -111,7 +111,7 @@ $stmt = $pdo->prepare(
            AND LOWER(RIGHT(ph.stored_filename, 3)) NOT IN ('jpg','gif','png','mp4','avi','mp3','ogg','wav')
            AND LOWER(RIGHT(ph.stored_filename, 4)) NOT IN ('jpeg','webm'))
        )
-     ORDER BY ph.photo_date, COALESCE(ph.original_filename, ph.file_name)"
+     ORDER BY ph.doc_date, COALESCE(ph.original_filename, ph.file_name)"
 );
 $stmt->execute([$personId, $fid]);
 $docs = $stmt->fetchAll();
@@ -201,8 +201,8 @@ $docs = $stmt->fetchAll();
     <?php foreach ($pictures as $pic):
         $stmt = $pdo->prepare(
             'SELECT p.id, p.uuid, p.first_name, p.last_name FROM people p
-             JOIN photo_person_link ppl ON ppl.person_id = p.id
-             WHERE ppl.photo_id = ? AND p.id <> ?
+             JOIN document_person_link dpl ON dpl.person_id = p.id
+             WHERE dpl.document_id = ? AND p.id <> ?
              ORDER BY p.last_name, p.first_name'
         );
         $stmt->execute([$pic['id'], $personId]);
@@ -225,7 +225,7 @@ $docs = $stmt->fetchAll();
             <?php endif; ?>
         </div>
         <div>
-            <?= formatPhotoDate($pic['photo_date'], $pic['photo_precision'] ?? 'y', $months) ?>
+            <?= formatPhotoDate($pic['doc_date'], $pic['doc_precision'] ?? 'y', $months) ?>
             <?php if ($pic['description']): ?><?= nl2br(h($pic['description'])) ?><br><?php endif; ?>
             <?php if ($others): ?>
                 <i><?= $L['with'] ?>:
@@ -249,8 +249,8 @@ $docs = $stmt->fetchAll();
     <?php foreach ($docs as $doc):
         $stmt = $pdo->prepare(
             'SELECT p.id, p.uuid, p.first_name, p.last_name FROM people p
-             JOIN photo_person_link ppl ON ppl.person_id = p.id
-             WHERE ppl.photo_id = ? AND p.id <> ?
+             JOIN document_person_link dpl ON dpl.person_id = p.id
+             WHERE dpl.document_id = ? AND p.id <> ?
              ORDER BY p.last_name, p.first_name'
         );
         $stmt->execute([$doc['id'], $personId]);
@@ -268,7 +268,7 @@ $docs = $stmt->fetchAll();
             <a href="/media/<?= h($doc['uuid']) ?>"><b><?= h($baseName) ?></b></a>
         </div>
         <div>
-            <?php if ($doc['photo_date']): ?><b>(<?= h($doc['photo_date']) ?>)</b> <?php endif; ?>
+            <?php if ($doc['doc_date']): ?><b>(<?= h($doc['doc_date']) ?>)</b> <?php endif; ?>
             <?php if ($doc['description']): ?><?= nl2br(h($doc['description'])) ?><br><?php endif; ?>
             <?php if ($others): ?>
                 <i><?= $L['with'] ?>:

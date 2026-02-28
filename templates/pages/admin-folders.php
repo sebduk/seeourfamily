@@ -3,9 +3,8 @@
 /**
  * Admin: Virtual folder management.
  *
- * Manages folders table for organizing photos and documents.
+ * Manages folders table for organizing documents (all file types).
  * Supports nested folders (parent_folder_id), rename, delete.
- * Two folder types: 'image' and 'document'.
  */
 
 if (!$isAdmin) { echo '<p>Admin access required.</p>'; return; }
@@ -21,23 +20,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($todo === 'create') {
         $name     = trim($_POST['name'] ?? '');
-        $type     = in_array($_POST['type'] ?? '', ['image', 'document'], true) ? $_POST['type'] : 'image';
         $parentId = (int)($_POST['parent_folder_id'] ?? 0) ?: null;
         if ($name === '') {
             $msg = 'Folder name is required.';
         } else {
-            // Verify parent belongs to same family+type if specified
+            // Verify parent belongs to same family if specified
             if ($parentId !== null) {
-                $chk = $pdo->prepare('SELECT id FROM folders WHERE id = ? AND family_id = ? AND type = ?');
-                $chk->execute([$parentId, $fid, $type]);
+                $chk = $pdo->prepare('SELECT id FROM folders WHERE id = ? AND family_id = ?');
+                $chk->execute([$parentId, $fid]);
                 if (!$chk->fetch()) {
                     $parentId = null; // invalid parent, put in root
                 }
             }
             $uuid = self_uuid();
             $pdo->prepare(
-                'INSERT INTO folders (uuid, family_id, type, name, parent_folder_id) VALUES (?, ?, ?, ?, ?)'
-            )->execute([$uuid, $fid, $type, $name, $parentId]);
+                'INSERT INTO folders (uuid, family_id, name, parent_folder_id) VALUES (?, ?, ?, ?)'
+            )->execute([$uuid, $fid, $name, $parentId]);
             $msg = 'Folder created.';
         }
     } elseif ($todo === 'rename' && $id > 0) {
@@ -74,8 +72,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     } elseif ($todo === 'delete' && $id > 0) {
-        // Unlink photos from this folder (set folder_id = NULL)
-        $pdo->prepare('UPDATE photos SET folder_id = NULL WHERE folder_id = ? AND family_id = ?')
+        // Unlink documents from this folder (set folder_id = NULL)
+        $pdo->prepare('UPDATE documents SET folder_id = NULL WHERE folder_id = ? AND family_id = ?')
             ->execute([$id, $fid]);
         // Move child folders up to parent
         $parent = $pdo->prepare('SELECT parent_folder_id FROM folders WHERE id = ? AND family_id = ?');
@@ -87,7 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Delete the folder
         $pdo->prepare('DELETE FROM folders WHERE id = ? AND family_id = ?')
             ->execute([$id, $fid]);
-        $msg = 'Folder deleted. Photos moved to root; subfolders moved to parent.';
+        $msg = 'Folder deleted. Documents moved to root; subfolders moved to parent.';
     }
 }
 
@@ -101,17 +99,13 @@ function self_uuid(): string {
 
 // Load all folders for this family
 $stmt = $pdo->prepare(
-    'SELECT f.*, (SELECT COUNT(*) FROM photos p WHERE p.folder_id = f.id) AS photo_count
+    'SELECT f.*, (SELECT COUNT(*) FROM documents d WHERE d.folder_id = f.id) AS doc_count
      FROM folders f
      WHERE f.family_id = ? AND f.is_online = 1
-     ORDER BY f.type, f.name'
+     ORDER BY f.name'
 );
 $stmt->execute([$fid]);
 $allFolders = $stmt->fetchAll();
-
-// Separate by type
-$imageFolders = array_filter($allFolders, fn($f) => $f['type'] === 'image');
-$docFolders   = array_filter($allFolders, fn($f) => $f['type'] === 'document');
 
 // Build a nested tree structure
 function buildTree(array $folders, ?int $parentId = null): array {
@@ -126,14 +120,13 @@ function buildTree(array $folders, ?int $parentId = null): array {
     return $tree;
 }
 
-$imageTree = buildTree($imageFolders);
-$docTree   = buildTree($docFolders);
+$folderTree = buildTree($allFolders);
 
 // Recursive render helper
 function renderFolderTree(array $tree, int $depth = 0): void {
     foreach ($tree as $f) {
         $indent = str_repeat('&nbsp;&nbsp;&nbsp;', $depth);
-        $count = (int)$f['photo_count'];
+        $count = (int)$f['doc_count'];
         echo '<div class="folder-row">';
         echo '<span class="folder-indent">' . $indent . '</span>';
         echo '<span class="folder-icon">&#128193;</span> ';
@@ -191,21 +184,14 @@ function folderOptions(array $folders, ?int $excludeId = null, ?int $parentId = 
             <input type="hidden" name="todo" value="create">
             <h3>Create Folder</h3>
             <div class="form-row">
-                <label>Type</label>
-                <select name="type" id="newFolderType" onchange="updateParentOptions()">
-                    <option value="image">Image</option>
-                    <option value="document">Document</option>
-                </select>
-            </div>
-            <div class="form-row">
                 <label>Name</label>
                 <input type="text" name="name" size="30" required>
             </div>
             <div class="form-row">
                 <label>Parent</label>
-                <select name="parent_folder_id" id="newFolderParent">
+                <select name="parent_folder_id">
                     <option value="">(root)</option>
-                    <?php /* filled by JS */ ?>
+                    <?= folderOptions($allFolders) ?>
                 </select>
             </div>
             <div class="form-actions"><input type="submit" value="Create"></div>
@@ -213,26 +199,14 @@ function folderOptions(array $folders, ?int $excludeId = null, ?int $parentId = 
 
         <hr>
 
-        <!-- Image folders -->
-        <h3>Image Folders</h3>
-        <?php if ($imageTree): ?>
+        <!-- All folders -->
+        <h3>Folders</h3>
+        <?php if ($folderTree): ?>
             <div class="folder-tree">
-                <?php renderFolderTree($imageTree); ?>
+                <?php renderFolderTree($folderTree); ?>
             </div>
         <?php else: ?>
-            <p><small>No image folders yet.</small></p>
-        <?php endif; ?>
-
-        <hr>
-
-        <!-- Document folders -->
-        <h3>Document Folders</h3>
-        <?php if ($docTree): ?>
-            <div class="folder-tree">
-                <?php renderFolderTree($docTree); ?>
-            </div>
-        <?php else: ?>
-            <p><small>No document folders yet.</small></p>
+            <p><small>No folders yet.</small></p>
         <?php endif; ?>
 
         <script>
@@ -247,34 +221,6 @@ function folderOptions(array $folders, ?int $excludeId = null, ?int $parentId = 
                 });
             }
         });
-
-        // Update parent folder options based on selected type
-        var imageFoldersData = <?= json_encode(array_values($imageFolders)) ?>;
-        var docFoldersData = <?= json_encode(array_values($docFolders)) ?>;
-
-        function updateParentOptions() {
-            var type = document.getElementById('newFolderType').value;
-            var sel = document.getElementById('newFolderParent');
-            var folders = type === 'image' ? imageFoldersData : docFoldersData;
-            sel.innerHTML = '<option value="">(root)</option>';
-            buildFolderOpts(sel, folders, null, 0);
-        }
-
-        function buildFolderOpts(sel, folders, parentId, depth) {
-            for (var i = 0; i < folders.length; i++) {
-                var f = folders[i];
-                var fpid = f.parent_folder_id ? parseInt(f.parent_folder_id) : null;
-                if (fpid !== parentId) continue;
-                var indent = '\u2014 '.repeat(depth);
-                var opt = document.createElement('option');
-                opt.value = f.id;
-                opt.textContent = indent + f.name;
-                sel.appendChild(opt);
-                buildFolderOpts(sel, folders, parseInt(f.id), depth + 1);
-            }
-        }
-
-        updateParentOptions();
         </script>
     </div>
 </div>
