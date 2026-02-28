@@ -266,9 +266,6 @@ class Media
         if ($ext === 'jpg' || $ext === 'jpeg') imagejpeg($tn, $tnPath, 85);
         elseif ($ext === 'png')                imagepng($tn, $tnPath);
         elseif ($ext === 'gif')                imagegif($tn, $tnPath);
-
-        imagedestroy($src);
-        imagedestroy($tn);
     }
 
     /**
