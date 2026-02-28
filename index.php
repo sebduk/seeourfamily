@@ -133,6 +133,16 @@ if ($domKey !== null) {
     }
 }
 
+// Family switch: ?switch_family=123 (used by settings dropdown)
+if (isset($_GET['switch_family'])) {
+    $switchId = (int)$_GET['switch_family'];
+    if ($switchId > 0 && $auth->userId() !== null) {
+        $auth->setFamilyById($switchId);
+    }
+    header('Location: /home');
+    exit;
+}
+
 // Language switch: ?lang=FRA
 if (isset($_GET['lang'])) {
     $auth->setLanguage($_GET['lang']);

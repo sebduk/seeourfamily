@@ -101,6 +101,26 @@ if ($cookieSize >= 8 && $cookieSize <= 16) $bodyStyle .= 'font-size:' . $cookieS
             <div class="settings-wrap">
                 <a href="#" class="settings-toggle" onclick="toggleSettings(event)" title="<?= h(strip_tags($L['menu_settings'])) ?>">&#9881;</a>
                 <div class="settings-panel" id="settingsPanel">
+                    <?php
+                    $userFamilies = [];
+                    if ($isLoggedIn && $auth->userId() !== null) {
+                        $userFamilies = $isSuperAdmin
+                            ? $auth->allFamilies()
+                            : $auth->userFamilies($auth->userId());
+                    }
+                    ?>
+                    <?php if (count($userFamilies) > 1): ?>
+                    <div class="settings-section">
+                        <div class="settings-section-title"><?= $L['family'] ?? 'Family' ?></div>
+                        <?php foreach ($userFamilies as $uf): ?>
+                            <?php if ((int)$uf['family_id'] === $auth->familyId()): ?>
+                                <b><?= h($uf['title'] ?: $uf['name']) ?></b><br>
+                            <?php else: ?>
+                                <a href="?switch_family=<?= (int)$uf['family_id'] ?>"><?= h($uf['title'] ?: $uf['name']) ?></a><br>
+                            <?php endif; ?>
+                        <?php endforeach; ?>
+                    </div>
+                    <?php endif; ?>
                     <div class="settings-section">
                         <div class="settings-section-title">Font</div>
                         <div class="font-btns">
