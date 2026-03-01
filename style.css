@@ -355,7 +355,7 @@ hr { border: none; border-top: 1px solid #666; }
 
 /* Visitor: hover-reveal face tags */
 .photo-tags-container { position: relative; display: inline-block; }
-.photo-tags-container img { max-width: 100%; max-height: 80vh; border: 0; image-rendering: smooth; }
+.photo-tags-container img { max-width: 100%; max-height: 80vh; height: auto; border: 0; image-rendering: smooth; }
 .photo-tag {
     position: absolute; transform: translate(-50%, -100%);
     background: rgba(0,0,0,0.75); color: #fff;
@@ -367,6 +367,14 @@ hr { border: none; border-top: 1px solid #666; }
 }
 .photo-tags-container:hover .photo-tag { opacity: 1; pointer-events: auto; }
 .photo-tag:hover { background: rgba(0,0,0,0.95); color: #fff; text-decoration: none; }
+
+/* Clickable prev/next overlay areas on left/right 10% of photo */
+.photo-nav-overlay {
+    position: absolute; top: 0; width: 10%; height: 100%;
+    cursor: pointer; z-index: 5; text-decoration: none;
+}
+.photo-nav-overlay-prev { left: 0; }
+.photo-nav-overlay-next { right: 0; }
 
 /* ============================================================
  * PHOTO TAGGING (Admin)

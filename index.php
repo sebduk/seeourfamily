@@ -393,6 +393,19 @@ $isSuperAdmin  = $auth->isSuperAdmin();
 $userName      = $auth->userName();
 
 // =========================================================================
+// PRE-RENDER COOKIE HANDLING (must happen before any output)
+// =========================================================================
+
+// Photos per-page preference (cookie must be set before layout output)
+if ($page === 'photos' && isset($_GET['pp'])) {
+    $allowedPp = [25, 50, 75, 100];
+    $ppVal = (int)$_GET['pp'];
+    if (in_array($ppVal, $allowedPp, true)) {
+        setcookie('sof_photos_pp', (string)$ppVal, time() + 86400 * 365, '/');
+    }
+}
+
+// =========================================================================
 // RENDER
 // =========================================================================
 

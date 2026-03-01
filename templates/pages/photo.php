@@ -121,6 +121,12 @@ $tags = $stmt->fetchAll();
             <?= h($tag['first_name']) ?> <?= h($tag['last_name']) ?>
         </a>
         <?php endforeach; ?>
+        <?php if ($prevUuid): ?>
+        <a class="photo-nav-overlay photo-nav-overlay-prev" href="/photo/<?= h($prevUuid) ?>" title="<?= $L['nav_prev'] ?? 'Previous' ?>"></a>
+        <?php endif; ?>
+        <?php if ($nextUuid): ?>
+        <a class="photo-nav-overlay photo-nav-overlay-next" href="/photo/<?= h($nextUuid) ?>" title="<?= $L['nav_next'] ?? 'Next' ?>"></a>
+        <?php endif; ?>
     </div>
     <?php endif; ?>
 
@@ -178,8 +184,7 @@ $tags = $stmt->fetchAll();
         var maxH = window.innerHeight * 0.8;
         var scale = Math.min(2, maxH / img.naturalHeight);
         if (scale > 1) {
-            img.style.width = Math.round(img.naturalWidth * scale) + 'px';
-            img.style.height = Math.round(img.naturalHeight * scale) + 'px';
+            img.style.maxWidth = Math.round(img.naturalWidth * scale) + 'px';
         }
     }
     if (img.complete) scaleUp(); else img.addEventListener('load', scaleUp);

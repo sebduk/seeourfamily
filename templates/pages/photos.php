@@ -21,9 +21,7 @@ $perPage = isset($_GET['pp']) ? (int)$_GET['pp'] : (isset($_COOKIE['sof_photos_p
 if (!in_array($perPage, $allowedPerPage, true)) {
     $perPage = 50;
 }
-if (isset($_GET['pp'])) {
-    setcookie('sof_photos_pp', (string)$perPage, time() + 86400 * 365, '/');
-}
+// Note: setcookie() for pp is handled in index.php (before output starts)
 
 $currentPage = max(1, (int)($_GET['page'] ?? 1));
 $folderId = isset($_GET['folder']) ? (int)$_GET['folder'] : null;
