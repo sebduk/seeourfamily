@@ -41,8 +41,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($todo === 'rename' && $id > 0) {
         $name = trim($_POST['name'] ?? '');
         if ($name !== '') {
+            // Get old folder name to update document file_name prefixes
+            $oldNameStmt = $pdo->prepare('SELECT name FROM folders WHERE id = ? AND family_id = ?');
+            $oldNameStmt->execute([$id, $fid]);
+            $oldFolderName = $oldNameStmt->fetchColumn();
+
             $pdo->prepare('UPDATE folders SET name = ?, updated_at = NOW() WHERE id = ? AND family_id = ?')
                 ->execute([$name, $id, $fid]);
+
+            // Update file_name prefix in documents that belong to this folder
+            if ($oldFolderName) {
+                $pdo->prepare(
+                    "UPDATE documents
+                     SET file_name = CONCAT(?, '/', SUBSTRING_INDEX(file_name, '/', -1))
+                     WHERE folder_id = ? AND family_id = ?
+                       AND file_name LIKE CONCAT(?, '/%')"
+                )->execute([$name, $id, $fid, $oldFolderName]);
+            }
             $msg = 'Folder renamed.';
         }
     } elseif ($todo === 'move' && $id > 0) {
@@ -72,7 +87,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     } elseif ($todo === 'delete' && $id > 0) {
-        // Unlink documents from this folder (set folder_id = NULL)
+        // Get folder name to strip prefix from document file_names
+        $delNameStmt = $pdo->prepare('SELECT name FROM folders WHERE id = ? AND family_id = ?');
+        $delNameStmt->execute([$id, $fid]);
+        $delFolderName = $delNameStmt->fetchColumn();
+
+        // Strip folder prefix from file_name and unlink documents
+        if ($delFolderName) {
+            $pdo->prepare(
+                "UPDATE documents
+                 SET folder_id = NULL,
+                     file_name = SUBSTRING_INDEX(file_name, '/', -1)
+                 WHERE folder_id = ? AND family_id = ?
+                   AND file_name LIKE CONCAT(?, '/%')"
+            )->execute([$id, $fid, $delFolderName]);
+        }
+        // Also unlink any remaining documents without the prefix
         $pdo->prepare('UPDATE documents SET folder_id = NULL WHERE folder_id = ? AND family_id = ?')
             ->execute([$id, $fid]);
         // Move child folders up to parent

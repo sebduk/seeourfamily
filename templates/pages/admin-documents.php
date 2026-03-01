@@ -56,20 +56,66 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     } elseif ($todo === 'add' || $todo === 'update') {
         $newFileName = $val('file_name');
-        // On update: preserve original extension — only the basename can change
-        if ($todo === 'update' && $newFileName !== null && $id > 0) {
-            $origStmt = $pdo->prepare('SELECT file_name FROM documents WHERE id = ? AND family_id = ?');
-            $origStmt->execute([$id, $fid]);
-            $origFile = $origStmt->fetchColumn();
-            if ($origFile) {
-                $origExt = strtolower(pathinfo($origFile, PATHINFO_EXTENSION));
-                $newExt  = strtolower(pathinfo($newFileName, PATHINFO_EXTENSION));
-                if ($newExt !== $origExt) {
-                    $newFileName = pathinfo($newFileName, PATHINFO_FILENAME) . '.' . $origExt;
-                }
-            }
-        }
         $folderId = (int)($_POST['folder_id'] ?? 0) ?: null;
+
+        // Resolve folder display name for the "folder/name.ext" convention
+        $folderDisplayName = null;
+        if ($folderId !== null) {
+            $fnStmt = $pdo->prepare('SELECT name FROM folders WHERE id = ? AND family_id = ?');
+            $fnStmt->execute([$folderId, $fid]);
+            $folderDisplayName = $fnStmt->fetchColumn() ?: null;
+        }
+
+        if ($todo === 'update' && $id > 0) {
+            // Fetch current record for comparison
+            $origStmt = $pdo->prepare(
+                'SELECT file_name, folder_id, stored_filename, original_filename FROM documents WHERE id = ? AND family_id = ?'
+            );
+            $origStmt->execute([$id, $fid]);
+            $origRow = $origStmt->fetch();
+
+            if ($origRow) {
+                // Determine the bare name (without folder prefix)
+                if ($newFileName !== null) {
+                    // Admin submitted a name — validate: only the name part may change
+                    $origSrc  = $origRow['file_name'] ?? $origRow['original_filename'] ?? '';
+                    $origBare = str_contains($origSrc, '/') ? substr($origSrc, strrpos($origSrc, '/') + 1) : $origSrc;
+                    $origExt  = strtolower(pathinfo($origBare, PATHINFO_EXTENSION));
+
+                    // Strip any folder prefix the admin may have typed
+                    $inputBare = str_contains($newFileName, '/') ? substr($newFileName, strrpos($newFileName, '/') + 1) : $newFileName;
+                    $inputExt  = strtolower(pathinfo($inputBare, PATHINFO_EXTENSION));
+
+                    $nameWarnings = [];
+                    if (str_contains($newFileName, '/')) {
+                        $nameWarnings[] = 'Use the Folder dropdown to change the folder.';
+                    }
+                    if ($origExt !== '' && $inputExt !== $origExt) {
+                        $nameWarnings[] = 'File extension cannot be changed (.' . $origExt . ' → .' . $inputExt . ').';
+                    }
+
+                    if ($nameWarnings) {
+                        $msg = 'Warning: ' . implode(' ', $nameWarnings) . ' Only the file name can be changed.';
+                        $bareName = pathinfo($inputBare, PATHINFO_FILENAME) . ($origExt ? '.' . $origExt : '');
+                    } else {
+                        $bareName = $inputBare;
+                    }
+                } else {
+                    // No file_name in POST (legacy flow) — derive bare name from current data
+                    $baseSrc  = $origRow['file_name'] ?? $origRow['original_filename'] ?? $origRow['stored_filename'] ?? '';
+                    $bareName = str_contains($baseSrc, '/') ? substr($baseSrc, strrpos($baseSrc, '/') + 1) : $baseSrc;
+                }
+
+                // Construct file_name with folder prefix
+                $newFileName = ($folderDisplayName && $bareName !== '')
+                    ? ($folderDisplayName . '/' . $bareName)
+                    : ($bareName !== '' ? $bareName : null);
+            }
+        } elseif ($todo === 'add' && $newFileName !== null && $folderDisplayName !== null) {
+            // New document: prepend folder prefix (strip any typed prefix first)
+            $bare = str_contains($newFileName, '/') ? substr($newFileName, strrpos($newFileName, '/') + 1) : $newFileName;
+            $newFileName = $folderDisplayName . '/' . $bare;
+        }
         $fields = [
             'file_name'      => $newFileName,
             'description'    => $val('description'),
@@ -382,7 +428,7 @@ $isAudioFile = \SeeOurFamily\Media::isAudio($docMime);
             } else {
                 $dotClass = 'tag-status-red';
             }
-            $rawName = $p['original_filename'] ?? $p['file_name'] ?? '';
+            $rawName = $p['file_name'] ?? $p['original_filename'] ?? '';
             $baseName = pathinfo($rawName, PATHINFO_FILENAME);
             $extPart = pathinfo($rawName, PATHINFO_EXTENSION);
             $displayName = $extPart ? $baseName . ' (.' . $extPart . ')' : $baseName;
@@ -454,11 +500,17 @@ $isAudioFile = \SeeOurFamily\Media::isAudio($docMime);
             </div>
             <?php endif; ?>
 
+            <?php
+                $displayFileName = '';
+                if ($doc) {
+                    $nameSrc = $doc['file_name'] ?? $doc['original_filename'] ?? $doc['stored_filename'] ?? '';
+                    $displayFileName = str_contains($nameSrc, '/') ? substr($nameSrc, strrpos($nameSrc, '/') + 1) : $nameSrc;
+                }
+            ?>
             <?php if ($doc && $doc['stored_filename']): ?>
-            <div class="form-row"><label>File</label><span><?= h($doc['original_filename'] ?? $doc['stored_filename']) ?></span></div>
-            <?php else: ?>
-            <div class="form-row"><label>File Name</label><input type="text" name="file_name" size="40" value="<?= h($doc['file_name'] ?? '') ?>"></div>
+            <div class="form-row"><label>Stored As</label><span class="form-hint"><?= h($doc['stored_filename']) ?></span></div>
             <?php endif; ?>
+            <div class="form-row"><label>File Name</label><input type="text" name="file_name" id="fileNameInput" size="40" value="<?= h($displayFileName) ?>"></div>
             <div class="form-row"><label>Description</label><textarea name="description" cols="60" rows="3"><?= h($doc['description'] ?? '') ?></textarea></div>
             <div class="form-row"><label>Date</label><input type="date" name="doc_date" value="<?= h($doc['doc_date'] ?? '') ?>"></div>
             <div class="form-row"><label>Precision</label><select name="doc_precision"><option value="">-</option><option value="ymd"<?= ($doc['doc_precision'] ?? '') === 'ymd' ? ' selected' : '' ?>>Day</option><option value="ym"<?= ($doc['doc_precision'] ?? '') === 'ym' ? ' selected' : '' ?>>Month</option><option value="y"<?= ($doc['doc_precision'] ?? '') === 'y' ? ' selected' : '' ?>>Year</option></select></div>
@@ -630,6 +682,34 @@ $isAudioFile = \SeeOurFamily\Media::isAudio($docMime);
             document.getElementById('tagsJson').value = JSON.stringify(arr);
             return true;
         }
+        // ---- File name validation: warn on folder/extension changes ----
+        (function() {
+            var fnInput = document.getElementById('fileNameInput');
+            if (!fnInput || !fnInput.value) return;
+            var origVal = fnInput.value;
+
+            fnInput.addEventListener('blur', function() {
+                var warns = [];
+                // Reject folder prefix typed into the name field
+                if (this.value.indexOf('/') !== -1) {
+                    warns.push('Use the Folder dropdown to move files between folders.');
+                    this.value = this.value.substring(this.value.lastIndexOf('/') + 1);
+                }
+                // Reject extension changes
+                var origDot = origVal.lastIndexOf('.');
+                var newDot  = this.value.lastIndexOf('.');
+                var origExt = origDot !== -1 ? origVal.substring(origDot + 1).toLowerCase() : '';
+                var newExt  = newDot  !== -1 ? this.value.substring(newDot + 1).toLowerCase() : '';
+                if (origExt && newExt !== origExt) {
+                    warns.push('The file extension cannot be changed (.' + origExt + ').');
+                    var newName = newDot !== -1 ? this.value.substring(0, newDot) : this.value;
+                    this.value = newName + '.' + origExt;
+                }
+                if (warns.length) {
+                    alert('Warning: ' + warns.join('\n') + '\nOnly the file name can be changed.');
+                }
+            });
+        })();
         </script>
     </div>
 </div>
