@@ -11,7 +11,7 @@ return [
     'menu_names'      => '<b>n</b>ames',
     'menu_years'      => '<b>y</b>ears',
     'menu_calendar'   => '<b>b</b>irthdays',
-    'menu_pictures'   => '<b>p</b>ictures',
+    'menu_pictures'   => '<b>p</b>hoto/video',
     'menu_documents'  => '<b>d</b>ocuments',
     'menu_folders'    => '<b>f</b>olders',
     'menu_messages'   => '<b>m</b>essages',

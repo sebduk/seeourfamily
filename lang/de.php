@@ -10,7 +10,7 @@ return [
     'menu_names'      => '<b>N</b>amen',
     'menu_years'      => '<b>J</b>ahre',
     'menu_calendar'   => '<b>G</b>eburtstag',
-    'menu_pictures'   => '<b>B</b>ilder',
+    'menu_pictures'   => '<b>F</b>oto/Video',
     'menu_documents'  => '<b>D</b>okumenten',
     'menu_messages'   => '<b>m</b>essages',
     'menu_intro'      => '<b>I</b>ntro',

@@ -10,7 +10,7 @@ return [
     'menu_names'      => '<b>n</b>amen',
     'menu_years'      => '<b>g</b>eboortejaren',
     'menu_calendar'   => '<b>v</b>erjaardagen',
-    'menu_pictures'   => '<b>a</b>fbeeldingen',
+    'menu_pictures'   => '<b>f</b>oto/video',
     'menu_documents'  => '<b>d</b>ocumenten',
     'menu_messages'   => '<b>b</b>erichten',
     'menu_intro'      => '<b>i</b>ntro',

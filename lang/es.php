@@ -10,7 +10,7 @@ return [
     'menu_names'      => '<b>n</b>ombres',
     'menu_years'      => '<b>a</b>&ntilde;os',
     'menu_calendar'   => '<b>c</b>umplea&ntilde;os',
-    'menu_pictures'   => '<b>f</b>otos',
+    'menu_pictures'   => '<b>f</b>oto/v&iacute;deo',
     'menu_documents'  => '<b>d</b>ocumentos',
     'menu_messages'   => '<b>m</b>ensajes',
     'menu_intro'      => '<b>i</b>ntro',

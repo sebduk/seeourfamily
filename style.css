@@ -111,15 +111,63 @@ hr { border: none; border-top: 1px solid #666; }
 }
 .photo-pagination {
     text-align: center;
-    padding: 4px;
+    padding: 4px 8px;
     background: silver;
     border: 1px solid silver;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.photo-pagination .media-type-tag {
+    font-weight: bold;
+    font-size: 0.85em;
+    color: #333;
+}
+.photo-pagination .pager a,
+.photo-pagination .pager .pager-disabled {
+    display: inline-block;
+    padding: 1px 6px;
+    margin: 0 1px;
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 1.1em;
+}
+.photo-pagination .pager a { color: #000; }
+.photo-pagination .pager a:hover { text-decoration: underline; }
+.photo-pagination .pager .pager-disabled { color: #999; }
+.photo-pagination .pager .pager-info {
+    display: inline-block;
+    padding: 0 4px;
+    font-size: 0.9em;
+}
+.photo-pagination .per-page-wrap {
+    font-size: 0.85em;
+    color: #333;
+}
+.photo-pagination .per-page-select {
+    border: 1px solid #999;
+    background: #f5f5f5;
+    padding: 1px 2px;
+    font-size: 0.95em;
 }
 .photo-folders {
     text-align: center;
     padding: 4px;
     background: silver;
     border: 1px solid silver;
+}
+.photo-folders .active-folder { font-weight: bold; }
+.thumb-badge {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    background: rgba(0,0,0,.6);
+    color: #fff;
+    font-size: .7rem;
+    padding: 1px 4px;
+    border-radius: 2px;
 }
 
 
