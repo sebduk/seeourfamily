@@ -140,14 +140,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$editUuid = $router->param('id') ?? $_GET['id'] ?? '';
-if ($editUuid !== '' && !ctype_digit($editUuid)) {
-    $stmt = $pdo->prepare('SELECT id FROM documents WHERE uuid = ? AND family_id = ?');
-    $stmt->execute([$editUuid, $fid]);
-    $resolved = $stmt->fetch();
-    $editId = $resolved ? (int)$resolved['id'] : 0;
+// After POST, continue editing the saved document
+if (isset($id) && $id > 0) {
+    $editId = $id;
 } else {
-    $editId = (int)$editUuid;
+    $editUuid = $router->param('id') ?? $_GET['id'] ?? '';
+    if ($editUuid !== '' && !ctype_digit($editUuid)) {
+        $stmt = $pdo->prepare('SELECT id FROM documents WHERE uuid = ? AND family_id = ?');
+        $stmt->execute([$editUuid, $fid]);
+        $resolved = $stmt->fetch();
+        $editId = $resolved ? (int)$resolved['id'] : 0;
+    } else {
+        $editId = (int)$editUuid;
+    }
 }
 
 // ---- Maintenance: check for missing files ----
@@ -170,6 +175,28 @@ $folderStmt = $pdo->prepare('SELECT id, name, parent_folder_id FROM folders WHER
 $folderStmt->execute([$fid]);
 $foldersList = $folderStmt->fetchAll();
 
+// Distinct file extensions with counts (for filter dropdown)
+$extStmt = $pdo->prepare(
+    "SELECT LOWER(SUBSTRING_INDEX(COALESCE(p.original_filename, p.file_name, p.stored_filename), '.', -1)) AS ext,
+            COUNT(*) AS cnt
+     FROM documents p
+     WHERE p.family_id = ?
+       AND (p.file_name IS NOT NULL OR p.stored_filename IS NOT NULL)
+       AND COALESCE(p.file_name, '') NOT LIKE '%.tn.%'
+     GROUP BY ext"
+);
+$extStmt->execute([$fid]);
+$extCounts = [];
+foreach ($extStmt->fetchAll() as $e) {
+    $extCounts[$e['ext']] = (int)$e['cnt'];
+}
+$extCategories = [
+    'Photos'    => ['jpg', 'jpeg', 'gif', 'png', 'webp'],
+    'Videos'    => ['mp4', 'avi', 'webm', 'mov', 'm4v'],
+    'Audio'     => ['mp3', 'ogg', 'wav'],
+    'Documents' => ['pdf', 'txt', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx'],
+];
+
 // All people (needed for sidebar filter and dual-list)
 $allPeople = $pdo->prepare('SELECT id, first_name, last_name, YEAR(birth_date) AS birth_year FROM people WHERE family_id = ? ORDER BY last_name, first_name');
 $allPeople->execute([$fid]);
@@ -184,13 +211,15 @@ $pname = function(array $p): string {
 
 // Sidebar filters
 $filterPerson = (int)($_GET['person'] ?? 0);
+$filterFolder = $_GET['folder'] ?? '';
+$filterExt    = strtolower($_GET['ext'] ?? '');
 $filterTagged = in_array($_GET['tagged'] ?? '', ['done', 'partial', 'none'], true) ? $_GET['tagged'] : '';
 $sortBy       = in_array($_GET['sort'] ?? '', ['name', 'year'], true) ? $_GET['sort'] : 'path';
 
 // Build query string helper (preserves filter/sort when navigating)
 $qs = function(array $extra = []): string {
     $params = [];
-    foreach (['person', 'tagged', 'sort'] as $k) {
+    foreach (['person', 'folder', 'ext', 'tagged', 'sort'] as $k) {
         if (!empty($_GET[$k])) $params[$k] = $_GET[$k];
     }
     $params = array_merge($params, $extra);
@@ -204,7 +233,8 @@ $sql = "SELECT p.id, p.uuid, p.file_name, p.original_filename, p.doc_date, p.mim
                COUNT(DISTINCT dt.person_id)  AS tagged_count
         FROM documents p
         LEFT JOIN document_person_link dpl ON dpl.document_id = p.id
-        LEFT JOIN document_tags dt ON dt.document_id = p.id";
+        LEFT JOIN document_tags dt ON dt.document_id = p.id
+        LEFT JOIN folders fl_sort ON fl_sort.id = p.folder_id";
 $sql .= " WHERE p.family_id = ?
            AND (p.file_name IS NOT NULL OR p.stored_filename IS NOT NULL)
            AND COALESCE(p.file_name, '') NOT LIKE '%.tn.%'";
@@ -215,7 +245,19 @@ if ($filterPerson > 0) {
     $params[] = $filterPerson;
 }
 
-$sql .= " GROUP BY p.id, p.uuid, p.file_name, p.original_filename, p.doc_date, p.mime_type";
+if ($filterFolder === 'none') {
+    $sql .= " AND p.folder_id IS NULL";
+} elseif ($filterFolder !== '' && ctype_digit($filterFolder)) {
+    $sql .= " AND p.folder_id = ?";
+    $params[] = (int)$filterFolder;
+}
+
+if ($filterExt !== '') {
+    $sql .= " AND LOWER(SUBSTRING_INDEX(COALESCE(p.original_filename, p.file_name, p.stored_filename), '.', -1)) = ?";
+    $params[] = $filterExt;
+}
+
+$sql .= " GROUP BY p.id, p.uuid, p.file_name, p.original_filename, p.doc_date, p.mime_type, fl_sort.name";
 
 if ($filterTagged === 'done') {
     $sql .= " HAVING COUNT(DISTINCT dpl.person_id) > 0 AND COUNT(DISTINCT dt.person_id) >= COUNT(DISTINCT dpl.person_id)";
@@ -227,10 +269,10 @@ if ($filterTagged === 'done') {
 
 if ($sortBy === 'year') {
     $sql .= " ORDER BY p.doc_date DESC, COALESCE(p.original_filename, p.file_name)";
-} elseif ($sortBy === 'path') {
-    $sql .= " ORDER BY COALESCE(p.original_filename, p.file_name), p.doc_date";
-} else {
+} elseif ($sortBy === 'name') {
     $sql .= " ORDER BY SUBSTRING_INDEX(COALESCE(p.original_filename, p.file_name), '/', -1), p.doc_date";
+} else {
+    $sql .= " ORDER BY COALESCE(fl_sort.name, ''), SUBSTRING_INDEX(COALESCE(p.original_filename, p.file_name), '/', -1), p.doc_date";
 }
 
 $stmt = $pdo->prepare($sql);
@@ -297,6 +339,25 @@ $isAudioFile = \SeeOurFamily\Media::isAudio($docMime);
                 <option value="<?= $fp['id'] ?>"<?= $filterPerson === (int)$fp['id'] ? ' selected' : '' ?>><?= h($pname($fp)) ?></option>
                 <?php endforeach; ?>
             </select>
+            <select name="folder" onchange="this.form.submit()">
+                <option value="">All folders</option>
+                <option value="none"<?= $filterFolder === 'none' ? ' selected' : '' ?>>No Folder / Root</option>
+                <?php foreach ($foldersList as $fl): ?>
+                <option value="<?= $fl['id'] ?>"<?= $filterFolder === (string)$fl['id'] ? ' selected' : '' ?>><?= h($fl['name']) ?></option>
+                <?php endforeach; ?>
+            </select>
+            <select name="ext" onchange="this.form.submit()">
+                <option value="">All types</option>
+                <?php foreach ($extCategories as $catName => $exts):
+                    $catExts = array_filter($exts, fn($e) => isset($extCounts[$e]));
+                    if ($catExts): ?>
+                <optgroup label="<?= $catName ?>">
+                    <?php foreach ($catExts as $e): ?>
+                    <option value="<?= $e ?>"<?= $filterExt === $e ? ' selected' : '' ?>>.<?= $e ?> (<?= $extCounts[$e] ?>)</option>
+                    <?php endforeach; ?>
+                </optgroup>
+                <?php endif; endforeach; ?>
+            </select>
             <select name="tagged" onchange="this.form.submit()">
                 <option value=""<?= $filterTagged === '' ? ' selected' : '' ?>>Tags: all</option>
                 <option value="done"<?= $filterTagged === 'done' ? ' selected' : '' ?>>Tags: done</option>
@@ -304,8 +365,8 @@ $isAudioFile = \SeeOurFamily\Media::isAudio($docMime);
                 <option value="none"<?= $filterTagged === 'none' ? ' selected' : '' ?>>Tags: none</option>
             </select>
             <select name="sort" onchange="this.form.submit()">
-                <option value="path"<?= $sortBy === 'path' ? ' selected' : '' ?>>Sort: name</option>
-                <option value="name"<?= $sortBy === 'name' ? ' selected' : '' ?>>Sort: filename</option>
+                <option value="path"<?= $sortBy === 'path' ? ' selected' : '' ?>>Sort: folder/name</option>
+                <option value="name"<?= $sortBy === 'name' ? ' selected' : '' ?>>Sort: name only</option>
                 <option value="year"<?= $sortBy === 'year' ? ' selected' : '' ?>>Sort: date</option>
             </select>
         </form>
@@ -321,9 +382,13 @@ $isAudioFile = \SeeOurFamily\Media::isAudio($docMime);
             } else {
                 $dotClass = 'tag-status-red';
             }
+            $rawName = $p['original_filename'] ?? $p['file_name'] ?? '';
+            $baseName = pathinfo($rawName, PATHINFO_FILENAME);
+            $extPart = pathinfo($rawName, PATHINFO_EXTENSION);
+            $displayName = $extPart ? $baseName . ' (.' . $extPart . ')' : $baseName;
+            $isCurrent = ($editId > 0 && (int)$p['id'] === $editId);
         ?>
-            <?php $displayName = preg_replace('/\.[^.]+$/', '', $p['original_filename'] ?? $p['file_name'] ?? ''); ?>
-            <a href="/admin/documents?id=<?= $p['uuid'] ?><?= h(substr($qs(), 1) ? '&' . substr($qs(), 1) : '') ?>"><span class="tag-status-dot <?= $dotClass ?>">&#9679;</span> <?= h($displayName) ?></a>
+            <a href="/admin/documents?id=<?= $p['uuid'] ?><?= h(substr($qs(), 1) ? '&' . substr($qs(), 1) : '') ?>"<?= $isCurrent ? ' id="currentDoc" style="font-weight:bold"' : '' ?>><span class="tag-status-dot <?= $dotClass ?>">&#9679;</span> <?= h($displayName) ?></a>
         <?php endforeach; ?>
     </div>
 
@@ -568,3 +633,7 @@ $isAudioFile = \SeeOurFamily\Media::isAudio($docMime);
         </script>
     </div>
 </div>
+<script>
+var currentDoc = document.getElementById('currentDoc');
+if (currentDoc) currentDoc.scrollIntoView({block: 'center', behavior: 'instant'});
+</script>
