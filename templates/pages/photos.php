@@ -74,6 +74,15 @@ $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $photos = $stmt->fetchAll();
 
+// Store photo navigation list in session (for prev/next on individual photo page)
+$_SESSION['photo_nav_list'] = array_column($photos, 'uuid');
+$galleryUrl = '/photos';
+$galleryQs = [];
+if ($folderId !== null) $galleryQs['folder'] = $folderId;
+if ($perPage !== 50) $galleryQs['pp'] = $perPage;
+if ($currentPage > 1) $galleryQs['page'] = $currentPage;
+$_SESSION['photo_nav_gallery_url'] = $galleryUrl . ($galleryQs ? '?' . http_build_query($galleryQs) : '');
+
 // Virtual folders (from DB)
 $fStmt = $pdo->prepare(
     "SELECT f.id, f.name, COUNT(p.id) AS cnt

@@ -48,6 +48,10 @@ return [
 
     'individuals'   => 'Pessoas',
     'pictures_all'  => 'Todas as fotos',
+    'nav_prev'      => '&lt; anterior',
+    'nav_gallery'   => 'galeria',
+    'nav_next'      => 'seguinte &gt;',
+    'folder'        => 'Pasta',
     'login_message' => 'Conecte para ganhar acesso &agrave;s fun&ccedil;&otilde;es de modifica&ccedil;&atilde;o.',
     'password'         => 'Senha',
     'forgot_password'  => 'Esqueceu a sua senha?',

@@ -57,6 +57,10 @@ return [
     'individuals'     => 'Individuals',
     'calendar_warn'   => 'Only individuals for whom a precise birthdate is known are listed',
     'pictures_all'    => 'View all pictures',
+    'nav_prev'        => '&lt; prev',
+    'nav_gallery'     => 'gallery',
+    'nav_next'        => 'next &gt;',
+    'folder'          => 'Folder',
 
     // Landing page
     'landing_tagline' => 'Share your family tree with the people who matter.',

@@ -49,6 +49,10 @@ return [
 
     'individuals'   => 'Persone',
     'pictures_all'  => 'Tutte le Foto',
+    'nav_prev'      => '&lt; prec',
+    'nav_gallery'   => 'galleria',
+    'nav_next'      => 'succ &gt;',
+    'folder'        => 'Cartella',
     'login_message' => 'Login per cambiare il menu ed avere accesso al sito o all\'aggiornamento.',
     'password'         => 'Password',
     'forgot_password'  => 'Password dimenticata?',

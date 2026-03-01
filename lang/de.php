@@ -48,6 +48,10 @@ return [
 
     'individuals'   => 'Individuen',
     'pictures_all'  => 'Alle Bilder',
+    'nav_prev'      => '&lt; zur&uuml;ck',
+    'nav_gallery'   => 'Galerie',
+    'nav_next'      => 'weiter &gt;',
+    'folder'        => 'Ordner',
     'password'         => 'Kennwort',
     'forgot_password'  => 'Kennwort vergessen?',
     'link_help'        => 'Hilfe',

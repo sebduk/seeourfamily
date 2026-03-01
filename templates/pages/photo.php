@@ -31,6 +31,31 @@ $photoMime = \SeeOurFamily\Media::mimeFromRow($photo);
 $isVideoFile = \SeeOurFamily\Media::isVideo($photoMime);
 $isAudioFile = \SeeOurFamily\Media::isAudio($photoMime);
 
+// Folder name
+$folderName = '';
+if ($photo['folder_id']) {
+    $stmt = $pdo->prepare('SELECT name FROM folders WHERE id = ? AND family_id = ?');
+    $stmt->execute([$photo['folder_id'], $fid]);
+    $folderName = $stmt->fetchColumn() ?: '';
+}
+
+// File name (without extension)
+$docFileName = $photo['original_filename'] ?? $photo['file_name'] ?? $photo['stored_filename'] ?? '';
+$displayFileName = pathinfo($docFileName, PATHINFO_FILENAME);
+
+// Prev / next navigation from session
+$prevUuid = null;
+$nextUuid = null;
+$galleryUrl = $_SESSION['photo_nav_gallery_url'] ?? '/photos';
+$navList = $_SESSION['photo_nav_list'] ?? [];
+if ($navList) {
+    $pos = array_search($photoUuid, $navList);
+    if ($pos !== false) {
+        if ($pos > 0) $prevUuid = $navList[$pos - 1];
+        if ($pos < count($navList) - 1) $nextUuid = $navList[$pos + 1];
+    }
+}
+
 // Date formatting
 $dateStr = '';
 if ($photo['doc_date']) {
@@ -103,6 +128,14 @@ $tags = $stmt->fetchAll();
         <div class="photo-info"><?= nl2br(h($photo['description'])) ?></div>
     <?php endif; ?>
 
+    <?php if ($folderName || $displayFileName): ?>
+        <div class="photo-info">
+            <?php if ($folderName): ?><?= ($L['folder'] ?? 'Folder') ?>: <?= h($folderName) ?><?php endif; ?>
+            <?php if ($folderName && $displayFileName): ?> — <?php endif; ?>
+            <?php if ($displayFileName): ?><?= h($displayFileName) ?><?php endif; ?>
+        </div>
+    <?php endif; ?>
+
     <?php if ($dateStr): ?>
         <div class="photo-info"><?= $dateStr ?></div>
     <?php endif; ?>
@@ -117,6 +150,22 @@ $tags = $stmt->fetchAll();
             <?php endforeach; ?>.
         </div>
     <?php endif; ?>
+
+    <div class="photo-nav-links">
+        <?php if ($prevUuid): ?>
+            <a href="/photo/<?= h($prevUuid) ?>"><?= $L['nav_prev'] ?? '&lt; prev' ?></a>
+        <?php else: ?>
+            <span class="photo-nav-disabled"><?= $L['nav_prev'] ?? '&lt; prev' ?></span>
+        <?php endif; ?>
+        &nbsp;|&nbsp;
+        <a href="<?= h($galleryUrl) ?>"><?= $L['nav_gallery'] ?? 'gallery' ?></a>
+        &nbsp;|&nbsp;
+        <?php if ($nextUuid): ?>
+            <a href="/photo/<?= h($nextUuid) ?>"><?= $L['nav_next'] ?? 'next &gt;' ?></a>
+        <?php else: ?>
+            <span class="photo-nav-disabled"><?= $L['nav_next'] ?? 'next &gt;' ?></span>
+        <?php endif; ?>
+    </div>
 </div>
 
 <?php if (!$isVideoFile && !$isAudioFile): ?>

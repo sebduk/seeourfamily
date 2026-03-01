@@ -349,6 +349,9 @@ hr { border: none; border-top: 1px solid #666; }
 .photo-detail img { max-width: 100%; max-height: 80vh; border: 0; image-rendering: smooth; }
 .photo-detail .photo-info   { margin-top: 0.5rem; }
 .photo-detail .photo-people { font-style: italic; margin-top: 0.25rem; }
+.photo-detail .photo-nav-links { margin-top: 0.75rem; }
+.photo-detail .photo-nav-links a { font-weight: bold; }
+.photo-detail .photo-nav-disabled { color: #999; }
 
 /* Visitor: hover-reveal face tags */
 .photo-tags-container { position: relative; display: inline-block; }

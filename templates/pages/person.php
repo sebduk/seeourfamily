@@ -98,6 +98,12 @@ $stmt = $pdo->prepare(
 $stmt->execute([$personId, $fid]);
 $pictures = $stmt->fetchAll();
 
+// Store photo navigation list in session (for prev/next on individual photo page)
+if ($pictures) {
+    $_SESSION['photo_nav_list'] = array_column($pictures, 'uuid');
+    $_SESSION['photo_nav_gallery_url'] = '/person/' . $personUuid . '#pic';
+}
+
 // Documents (non-image, non-video, non-audio files)
 $stmt = $pdo->prepare(
     "SELECT ph.* FROM documents ph
