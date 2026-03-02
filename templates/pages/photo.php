@@ -43,10 +43,9 @@ if ($photo['folder_id']) {
 $docFileName = $photo['original_filename'] ?? $photo['file_name'] ?? $photo['stored_filename'] ?? '';
 $displayFileName = pathinfo($docFileName, PATHINFO_FILENAME);
 
-// Prev / next navigation from session
+// Prev / next navigation from session (spans all gallery pages)
 $prevUuid = null;
 $nextUuid = null;
-$galleryUrl = $_SESSION['photo_nav_gallery_url'] ?? '/photos';
 $navList = $_SESSION['photo_nav_list'] ?? [];
 if ($navList) {
     $pos = array_search($photoUuid, $navList);
@@ -55,6 +54,15 @@ if ($navList) {
         if ($pos < count($navList) - 1) $nextUuid = $navList[$pos + 1];
     }
 }
+// Compute gallery URL pointing to the page that contains this photo
+$navPerPage = $_SESSION['photo_nav_per_page'] ?? 50;
+$navFolder  = $_SESSION['photo_nav_folder'] ?? null;
+$galleryPage = ($pos !== false && $navPerPage > 0) ? (int)floor($pos / $navPerPage) + 1 : 1;
+$galleryQs = [];
+if ($navFolder !== null) $galleryQs['folder'] = $navFolder;
+if ($navPerPage !== 50) $galleryQs['pp'] = $navPerPage;
+if ($galleryPage > 1) $galleryQs['page'] = $galleryPage;
+$galleryUrl = '/photos' . ($galleryQs ? '?' . http_build_query($galleryQs) : '');
 
 // Date formatting
 $dateStr = '';

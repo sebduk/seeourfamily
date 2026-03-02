@@ -72,14 +72,23 @@ $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $photos = $stmt->fetchAll();
 
-// Store photo navigation list in session (for prev/next on individual photo page)
-$_SESSION['photo_nav_list'] = array_column($photos, 'uuid');
-$galleryUrl = '/photos';
-$galleryQs = [];
-if ($folderId !== null) $galleryQs['folder'] = $folderId;
-if ($perPage !== 50) $galleryQs['pp'] = $perPage;
-if ($currentPage > 1) $galleryQs['page'] = $currentPage;
-$_SESSION['photo_nav_gallery_url'] = $galleryUrl . ($galleryQs ? '?' . http_build_query($galleryQs) : '');
+// Store FULL photo navigation list in session (all pages, for prev/next across page boundaries)
+$navSql = "SELECT p.uuid FROM documents p WHERE p.family_id = ? AND $mediaFilter";
+$navParams = [$fid];
+if ($folderId !== null) {
+    if ($folderId === 0) {
+        $navSql .= ' AND p.folder_id IS NULL';
+    } else {
+        $navSql .= ' AND p.folder_id = ?';
+        $navParams[] = $folderId;
+    }
+}
+$navSql .= ' ORDER BY p.doc_date, COALESCE(p.original_filename, p.file_name)';
+$navStmt = $pdo->prepare($navSql);
+$navStmt->execute($navParams);
+$_SESSION['photo_nav_list'] = $navStmt->fetchAll(\PDO::FETCH_COLUMN, 0);
+$_SESSION['photo_nav_per_page'] = $perPage;
+$_SESSION['photo_nav_folder'] = $folderId;
 
 // Virtual folders (from DB)
 $fStmt = $pdo->prepare(
