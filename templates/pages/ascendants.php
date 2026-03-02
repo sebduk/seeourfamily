@@ -73,6 +73,7 @@ function findParentCouple(PDO $pdo, int $fid, int $personId): array|false
     $stmt = $pdo->prepare(
         'SELECT p.couple_id,
                 c.id AS cid,
+                IFNULL(DATE_FORMAT(c.start_date, "%Y"), "") AS wedding_year,
                 p1.id AS p1_id, p1.uuid AS p1_uuid, p1.first_name AS p1_fn, p1.last_name AS p1_ln,
                 IFNULL(DATE_FORMAT(p1.birth_date, "%Y"), "") AS p1_birth,
                 IFNULL(DATE_FORMAT(p1.death_date, "%Y"), "") AS p1_death,
@@ -107,9 +108,10 @@ function renderAncestors(PDO $pdo, int $fid, int $personId): void
     renderAncestors($pdo, $fid, (int)$couple['p2_id']);
 
     // Then display this couple
+    $wy = !empty($couple['wedding_year']) ? ' ' . h($couple['wedding_year']) : '';
     echo '<div class="desc-pair">';
     echo '<span>' . ascPersonCell($couple['p1_fn'], $couple['p1_ln'], $couple['p1_birth'], $couple['p1_death'], $couple['p1_uuid']) . '</span>';
-    echo '<span class="desc-sep">&amp;</span>';
+    echo '<span class="desc-sep">&amp;' . $wy . '</span>';
     echo '<span>' . ascPersonCell($couple['p2_fn'], $couple['p2_ln'], $couple['p2_birth'], $couple['p2_death'], $couple['p2_uuid']) . '</span>';
     echo '</div>';
 

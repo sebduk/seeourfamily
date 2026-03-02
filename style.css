@@ -189,10 +189,15 @@ hr { border: none; border-top: 1px solid #666; }
 .tree-grid .person-cell a { white-space: nowrap; }
 .tree-gen-2     { grid-column: span 1; }   /* great-grandparents: 8 slots */
 .tree-gen-1     { grid-column: span 2; }   /* grandparents: 4 slots */
-.tree-gen-0     { grid-column: span 4; }   /* parents (level 0): 2 slots */
+.tree-gen-0     { grid-column: span 3; }   /* parents (level 0): 2 slots + wedding year */
+.tree-gen-0-wed { grid-column: span 2; text-align: center; align-self: center; font-size: 0.85em; color: #666; padding: 4px 0; }
 .tree-children  { grid-column: 1 / -1; }   /* children row: full width */
 .tree-grid .align-r { text-align: right; }
 .tree-grid .align-l { text-align: left; }
+
+/* Wedding year indicator (used in grid cells and children row) */
+.wedding-year { font-size: 0.85em; color: #666; white-space: nowrap; }
+.child-family .couple .wedding-year { align-self: center; }
 
 /* Single-person tree (no spouse): 4-column variant */
 .tree-grid-single {

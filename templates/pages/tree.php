@@ -49,17 +49,19 @@ function unknownCell(): string
 
 /** Slots: 1-8 = gen -2 (great-grandparents), 11-14 = gen -1 (grandparents), 21-22 = gen 0 */
 $struct = [];  // $struct[slot] = ['id'=>, 'uuid'=>, 'couple_id'=>, 'first_name'=>, 'last_name'=>, 'birth'=>, 'death'=>]
+$weddingYears = [];  // $weddingYears[odd_slot] = wedding year string for the couple at that pair
 
 /**
  * Find a couple by couple_id and fill parent slots.
  */
 function fillParents(PDO $pdo, int $fid, ?int $coupleId, int $slotM, int $slotF): void
 {
-    global $struct;
+    global $struct, $weddingYears;
     if (!$coupleId) return;
 
     $stmt = $pdo->prepare(
         'SELECT c.id AS couple_id,
+                IFNULL(DATE_FORMAT(c.start_date, "%Y"), "") AS wedding_year,
                 p1.id AS p1_id, p1.uuid AS p1_uuid, p1.couple_id AS p1_couple, p1.first_name AS p1_fn, p1.last_name AS p1_ln,
                 IFNULL(DATE_FORMAT(p1.birth_date, "%Y"), "") AS p1_birth,
                 IFNULL(DATE_FORMAT(p1.death_date, "%Y"), "") AS p1_death,
@@ -85,11 +87,13 @@ function fillParents(PDO $pdo, int $fid, ?int $coupleId, int $slotM, int $slotF)
         'first_name' => $row['p2_fn'], 'last_name' => $row['p2_ln'],
         'birth' => $row['p2_birth'], 'death' => $row['p2_death'],
     ];
+    $weddingYears[$slotM] = $row['wedding_year'];
 }
 
 // Level 0: find the central person and their couple
 $stmt = $pdo->prepare(
     'SELECT c.id AS couple_id,
+            IFNULL(DATE_FORMAT(c.start_date, "%Y"), "") AS wedding_year,
             p1.id AS p1_id, p1.uuid AS p1_uuid, p1.couple_id AS p1_couple, p1.first_name AS p1_fn, p1.last_name AS p1_ln,
             IFNULL(DATE_FORMAT(p1.birth_date, "%Y"), "") AS p1_birth,
             IFNULL(DATE_FORMAT(p1.death_date, "%Y"), "") AS p1_death,
@@ -102,6 +106,7 @@ $stmt = $pdo->prepare(
      WHERE (c.person1_id = ? OR c.person2_id = ?) AND c.family_id = ?
      UNION ALL
      SELECT NULL AS couple_id,
+            "" AS wedding_year,
             p.id AS p1_id, p.uuid AS p1_uuid, p.couple_id AS p1_couple, p.first_name AS p1_fn, p.last_name AS p1_ln,
             IFNULL(DATE_FORMAT(p.birth_date, "%Y"), "") AS p1_birth,
             IFNULL(DATE_FORMAT(p.death_date, "%Y"), "") AS p1_death,
@@ -126,6 +131,7 @@ if (!$central) {
 
 $coupleId = $central['couple_id'] ? (int)$central['couple_id'] : null;
 $hasSpouse = ($coupleId !== null);
+$weddingYears[21] = $central['wedding_year'] ?? '';
 
 // Person name + UUID for the nav bar
 if ($personId == (int)$central['p1_id']) {
@@ -258,6 +264,7 @@ function collectDescendants(PDO $pdo, int $fid, int $personId, int $depth = 0, i
     $couples = [];
     $stmt = $pdo->prepare(
         'SELECT c.id AS couple_id,
+                IFNULL(DATE_FORMAT(c.start_date, "%Y"), "") AS wedding_year,
                 p1.id AS p1_id, p1.uuid AS p1_uuid, p1.first_name AS p1_fn, p1.last_name AS p1_ln,
                 IFNULL(DATE_FORMAT(p1.birth_date, "%Y"), "") AS p1_birth,
                 IFNULL(DATE_FORMAT(p1.death_date, "%Y"), "") AS p1_death,
@@ -293,7 +300,7 @@ function collectDescendants(PDO $pdo, int $fid, int $personId, int $depth = 0, i
             $grandDesc = collectDescendants($pdo, $fid, (int)$child['id'], $depth + 1, $maxDepth);
             $children[] = ['person' => $child, 'descendants' => $grandDesc];
         }
-        $couples[] = ['spouse' => $spouse, 'children' => $children];
+        $couples[] = ['spouse' => $spouse, 'wedding_year' => $cr['wedding_year'], 'children' => $children];
     }
     return $couples;
 }
@@ -398,8 +405,9 @@ elseif ($style === 'horizontal'):
             foreach ($descendants as $coupleInfo) {
                 if (!empty($coupleInfo['spouse'])):
                     $s = $coupleInfo['spouse'];
+                    $wy = !empty($coupleInfo['wedding_year']) ? ' ' . h($coupleInfo['wedding_year']) : '';
                     echo '<tr><td style="padding:2px 6px; color:#666; font-size:9pt;">';
-                    echo '&amp; ' . personCell($s['first_name'], $s['last_name'], $s['birth'], $s['death'], $s['uuid']);
+                    echo '&amp;' . $wy . ' ' . personCell($s['first_name'], $s['last_name'], $s['birth'], $s['death'], $s['uuid']);
                     echo '</td></tr>';
                 endif;
                 foreach ($coupleInfo['children'] as $child) {
@@ -502,15 +510,21 @@ endif; // $style !== ''
 // RENDER: TREE GRID
 // =========================================================================
 
-// Helper to render a slot
-function renderSlot(int $slot, bool $alignRight = false): string
+// Helper to render a slot; $withWeddingYear = true on the first person of a pair
+function renderSlot(int $slot, bool $withWeddingYear = false): string
 {
-    global $struct;
+    global $struct, $weddingYears;
+    $html = '';
     if (isset($struct[$slot])) {
         $s = $struct[$slot];
-        return personCell($s['first_name'], $s['last_name'], $s['birth'], $s['death'], $s['uuid']);
+        $html = personCell($s['first_name'], $s['last_name'], $s['birth'], $s['death'], $s['uuid']);
+    } else {
+        $html = unknownCell();
     }
-    return unknownCell();
+    if ($withWeddingYear && !empty($weddingYears[$slot])) {
+        $html .= '<br><span class="wedding-year">&amp; ' . h($weddingYears[$slot]) . '</span>';
+    }
+    return $html;
 }
 
 if ($hasSpouse):
@@ -520,16 +534,21 @@ if ($hasSpouse):
 <div class="tree-grid">
     <!-- Generation -2 (great-grandparents): 8 cells -->
     <?php for ($i = 1; $i <= 8; $i++): ?>
-        <div class="person-cell tree-gen-2 <?= ($i % 2 !== 0) ? 'align-r' : 'align-l' ?>"><?= renderSlot($i) ?></div>
+        <div class="person-cell tree-gen-2 <?= ($i % 2 !== 0) ? 'align-r' : 'align-l' ?>"><?= renderSlot($i, $i % 2 !== 0) ?></div>
     <?php endfor; ?>
 
     <!-- Generation -1 (grandparents): 4 cells spanning 2 each -->
     <?php for ($i = 11; $i <= 14; $i++): ?>
-        <div class="person-cell tree-gen-1 <?= ($i % 2 !== 0) ? 'align-r' : 'align-l' ?>"><?= renderSlot($i) ?></div>
+        <div class="person-cell tree-gen-1 <?= ($i % 2 !== 0) ? 'align-r' : 'align-l' ?>"><?= renderSlot($i, $i % 2 !== 0) ?></div>
     <?php endfor; ?>
 
-    <!-- Generation 0 (central couple): 2 cells spanning 4 each -->
+    <!-- Generation 0 (central couple): 2 cells + wedding year -->
     <div class="person-cell tree-gen-0 align-r"><b><?= renderSlot(21) ?></b></div>
+    <?php if (!empty($weddingYears[21])): ?>
+        <div class="person-cell tree-gen-0-wed">&amp; <?= h($weddingYears[21]) ?></div>
+    <?php else: ?>
+        <div class="person-cell tree-gen-0-wed">&amp;</div>
+    <?php endif; ?>
     <div class="person-cell tree-gen-0 align-l"><b><?= renderSlot(22) ?></b></div>
 
     <!-- Children row -->
@@ -541,6 +560,7 @@ if ($hasSpouse):
                 // Find if child has a spouse
                 $cStmt = $pdo->prepare(
                     'SELECT c.id AS couple_id,
+                            IFNULL(DATE_FORMAT(c.start_date, "%Y"), "") AS wedding_year,
                             p1.id AS p1_id, p1.uuid AS p1_uuid, p1.first_name AS p1_fn, p1.last_name AS p1_ln,
                             IFNULL(DATE_FORMAT(p1.birth_date, "%Y"), "") AS p1_birth,
                             IFNULL(DATE_FORMAT(p1.death_date, "%Y"), "") AS p1_death,
@@ -560,6 +580,7 @@ if ($hasSpouse):
                 <?php if ($childCouple): ?>
                     <div class="couple">
                         <span class="align-r"><?= personCell($childCouple['p1_fn'], $childCouple['p1_ln'], $childCouple['p1_birth'], $childCouple['p1_death'], $childCouple['p1_uuid']) ?></span>
+                        <span class="wedding-year">&amp;<?= !empty($childCouple['wedding_year']) ? ' ' . h($childCouple['wedding_year']) : '' ?></span>
                         <span><?= personCell($childCouple['p2_fn'], $childCouple['p2_ln'], $childCouple['p2_birth'], $childCouple['p2_death'], $childCouple['p2_uuid']) ?></span>
                     </div>
                     <?php
