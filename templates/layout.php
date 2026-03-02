@@ -97,6 +97,9 @@ if ($cookieSize >= 8 && $cookieSize <= 16) $bodyStyle .= 'font-size:' . $cookieS
             <?php if (!$isLoggedIn): ?>
                 [<a href="/login"><?= $L['menu_login'] ?></a>]
             <?php endif; ?>
+            <?php if ($isAdmin): ?>
+                [<a href="/admin"><?= $L['menu_admin'] ?></a>]
+            <?php endif; ?>
             [<a href="/help"><?= $L['menu_help'] ?></a>]
             <div class="settings-wrap">
                 <a href="#" class="settings-toggle" onclick="toggleSettings(event)" title="<?= h(strip_tags($L['menu_settings'])) ?>">&#9881;</a>
