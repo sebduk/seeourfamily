@@ -120,10 +120,6 @@ $tags = $stmt->fetchAll();
         <?php else: ?>
             <span class="photo-nav-disabled"><?= $L['nav_next'] ?? 'next &gt;' ?></span>
         <?php endif; ?>
-        &nbsp;&nbsp;
-        <?php if ($isAdmin): ?>
-            [<a href="/admin/documents?id=<?= h($photo['uuid']) ?>"><?= $L['menu_admin'] ?? 'admin' ?></a>]
-        <?php endif; ?>
     </div>
 
     <?php if ($isVideoFile): ?>
@@ -188,6 +184,13 @@ $tags = $stmt->fetchAll();
             ?>
                 <a href="/person/<?= h($p['uuid']) ?>" title="<?= $title ?>"><?= h($p['first_name']) ?> <?= h($p['last_name']) ?></a>
             <?php endforeach; ?>.
+        </div>
+    <?php endif; ?>
+
+    <?php if ($isAdmin): ?>
+        <div class="photo-nav-links">
+            </br>
+            [<a href="/admin/documents?id=<?= h($photo['uuid']) ?>"><?= $L['menu_admin'] ?? 'admin' ?></a>]
         </div>
     <?php endif; ?>
 
