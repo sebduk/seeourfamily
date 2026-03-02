@@ -120,6 +120,10 @@ $tags = $stmt->fetchAll();
         <?php else: ?>
             <span class="photo-nav-disabled"><?= $L['nav_next'] ?? 'next &gt;' ?></span>
         <?php endif; ?>
+        &nbsp;&nbsp;
+        <?php if ($isAdmin): ?>
+            [<a href="/admin/documents?id=<?= h($photo['uuid']) ?>"><?= $L['menu_admin'] ?? 'admin' ?></a>]
+        <?php endif; ?>
     </div>
 
     <?php if ($isVideoFile): ?>
