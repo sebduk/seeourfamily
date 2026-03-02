@@ -39,9 +39,11 @@ if ($photo['folder_id']) {
     $folderName = $stmt->fetchColumn() ?: '';
 }
 
-// File name (without extension)
+// File name (with extension)
 $docFileName = $photo['original_filename'] ?? $photo['file_name'] ?? $photo['stored_filename'] ?? '';
+$displayFileExt = pathinfo($docFileName, PATHINFO_EXTENSION);
 $displayFileName = pathinfo($docFileName, PATHINFO_FILENAME);
+if ($displayFileExt) $displayFileName .= '.' . $displayFileExt;
 
 // Prev / next navigation from session (spans all gallery pages)
 $prevUuid = null;
@@ -144,9 +146,13 @@ $tags = $stmt->fetchAll();
 
     <?php if ($folderName || $displayFileName): ?>
         <div class="photo-info">
-            <?php if ($folderName): ?><?= ($L['folder'] ?? 'Folder') ?>: <?= h($folderName) ?><?php endif; ?>
-            <?php if ($folderName && $displayFileName): ?> — <?php endif; ?>
-            <?php if ($displayFileName): ?><?= h($displayFileName) ?><?php endif; ?>
+            <?php if ($folderName && $displayFileName): ?>
+                <?= h($folderName) ?>/<?= h($displayFileName) ?>
+            <?php elseif ($folderName): ?>
+                <?= h($folderName) ?>
+            <?php else: ?>
+                <?= h($displayFileName) ?>
+            <?php endif; ?>
         </div>
     <?php endif; ?>
 

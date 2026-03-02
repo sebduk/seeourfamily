@@ -335,6 +335,13 @@ class Media
             }
         }
 
+        // Suggest original filename for Save-As
+        $saveName = $row['original_filename'] ?? $row['file_name'] ?? $row['stored_filename'] ?? '';
+        if ($saveName !== '') {
+            $saveName = basename($saveName);
+            header('Content-Disposition: inline; filename="' . str_replace('"', '', $saveName) . '"');
+        }
+
         // Full file serving
         header('Content-Type: ' . $mime);
         header('Content-Length: ' . $size);
