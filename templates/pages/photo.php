@@ -106,6 +106,27 @@ $tags = $stmt->fetchAll();
 ?>
 
 <div class="photo-detail">
+    <div class="photo-nav-links">
+        <?php if ($prevUuid): ?>
+            <a href="/photo/<?= h($prevUuid) ?>"><?= $L['nav_prev'] ?? '&lt; prev' ?></a>
+        <?php else: ?>
+            <span class="photo-nav-disabled"><?= $L['nav_prev'] ?? '&lt; prev' ?></span>
+        <?php endif; ?>
+        &nbsp;|&nbsp;
+        <a href="<?= h($galleryUrl) ?>"><?= $L['nav_gallery'] ?? 'gallery' ?></a>
+        &nbsp;|&nbsp;
+        <?php if ($nextUuid): ?>
+            <a href="/photo/<?= h($nextUuid) ?>"><?= $L['nav_next'] ?? 'next &gt;' ?></a>
+        <?php else: ?>
+            <span class="photo-nav-disabled"><?= $L['nav_next'] ?? 'next &gt;' ?></span>
+        <?php endif; ?>
+        &nbsp;&nbsp;
+        <?php if ($isAdmin): ?>
+            [<a href="/admin/documents?id=<?= h($photo['uuid']) ?>"><?= $L['menu_admin'] ?? 'admin' ?></a>]
+        <?php endif; ?>
+        [<a href="/help"><?= $L['menu_help'] ?? 'help' ?></a>]
+    </div>
+
     <?php if ($isVideoFile): ?>
     <div class="media-player">
         <video controls preload="metadata" style="max-width:100%;max-height:80vh"
@@ -171,37 +192,33 @@ $tags = $stmt->fetchAll();
         </div>
     <?php endif; ?>
 
-    <div class="photo-nav-links">
-        <?php if ($prevUuid): ?>
-            <a href="/photo/<?= h($prevUuid) ?>"><?= $L['nav_prev'] ?? '&lt; prev' ?></a>
-        <?php else: ?>
-            <span class="photo-nav-disabled"><?= $L['nav_prev'] ?? '&lt; prev' ?></span>
-        <?php endif; ?>
-        &nbsp;|&nbsp;
-        <a href="<?= h($galleryUrl) ?>"><?= $L['nav_gallery'] ?? 'gallery' ?></a>
-        &nbsp;|&nbsp;
-        <?php if ($nextUuid): ?>
-            <a href="/photo/<?= h($nextUuid) ?>"><?= $L['nav_next'] ?? 'next &gt;' ?></a>
-        <?php else: ?>
-            <span class="photo-nav-disabled"><?= $L['nav_next'] ?? 'next &gt;' ?></span>
-        <?php endif; ?>
-    </div>
 </div>
 
 <?php if (!$isVideoFile && !$isAudioFile): ?>
 <script>
-// Scale small images up to 2x their natural size, capped at 80vh
+// Scale small images up to 2x their natural size, capped by viewport
 (function() {
     var img = document.querySelector('.photo-tags-container img');
     if (!img) return;
     function scaleUp() {
+        if (!img.naturalWidth || !img.naturalHeight) return;
+        // Reset inline constraints so CSS rules apply for measuring
+        img.style.maxWidth = '';
+        img.style.maxHeight = '';
         var maxH = window.innerHeight * 0.8;
-        var scale = Math.min(2, maxH / img.naturalHeight);
+        // Available width = the .photo-detail container (not the inline-block parent)
+        var detail = img.closest('.photo-detail');
+        var maxW = detail ? detail.clientWidth : window.innerWidth;
+        var scaleH = maxH / img.naturalHeight;
+        var scaleW = maxW / img.naturalWidth;
+        var scale = Math.min(2, scaleH, scaleW);
         if (scale > 1) {
             img.style.maxWidth = Math.round(img.naturalWidth * scale) + 'px';
+            img.style.maxHeight = Math.round(img.naturalHeight * scale) + 'px';
         }
     }
     if (img.complete) scaleUp(); else img.addEventListener('load', scaleUp);
+    window.addEventListener('resize', scaleUp);
 })();
 </script>
 <?php endif; ?>
