@@ -25,6 +25,14 @@ $allowedExt = [
 ];
 $acceptAttr = implode(',', array_map(fn($e) => '.' . $e, $allowedExt));
 
+// UUID v4 generator
+$genUuid = function(): string {
+    $data = random_bytes(16);
+    $data[6] = chr(ord($data[6]) & 0x0f | 0x40);
+    $data[8] = chr(ord($data[8]) & 0x3f | 0x80);
+    return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
+};
+
 // Handle POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $todo = $_POST['todo'] ?? '';
@@ -48,9 +56,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         } else {
             $pdo->prepare(
-                'INSERT INTO documents (family_id, stored_filename, original_filename, mime_type, file_size, doc_date)
-                 VALUES (?, ?, ?, ?, ?, NULL)'
-            )->execute([$fid, $result['stored_filename'], $result['original_filename'], $result['mime_type'], $result['file_size']]);
+                'INSERT INTO documents (uuid, family_id, stored_filename, original_filename, mime_type, file_size, doc_date)
+                 VALUES (?, ?, ?, ?, ?, ?, NULL)'
+            )->execute([$genUuid(), $fid, $result['stored_filename'], $result['original_filename'], $result['mime_type'], $result['file_size']]);
             $id = (int)$pdo->lastInsertId();
             $msg = 'File uploaded. Now edit its details below.';
         }
@@ -126,6 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $personIds = $_POST['linked_people'] ?? [];
 
         if ($todo === 'add') {
+            $fields['uuid'] = $genUuid();
             $fields['family_id'] = $fid;
             $cols = implode(', ', array_keys($fields));
             $ph = implode(', ', array_fill(0, count($fields), '?'));
@@ -154,9 +163,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($posterResult !== null) {
                 // Create a hidden document row for the poster image
                 $pdo->prepare(
-                    'INSERT INTO documents (family_id, stored_filename, original_filename, mime_type, file_size)
-                     VALUES (?, ?, ?, ?, ?)'
-                )->execute([$fid, $posterResult['stored_filename'], $posterResult['original_filename'], $posterResult['mime_type'], $posterResult['file_size']]);
+                    'INSERT INTO documents (uuid, family_id, stored_filename, original_filename, mime_type, file_size)
+                     VALUES (?, ?, ?, ?, ?, ?)'
+                )->execute([$genUuid(), $fid, $posterResult['stored_filename'], $posterResult['original_filename'], $posterResult['mime_type'], $posterResult['file_size']]);
                 $posterDocId = (int)$pdo->lastInsertId();
                 $puStmt = $pdo->prepare('SELECT uuid FROM documents WHERE id = ?');
                 $puStmt->execute([$posterDocId]);
