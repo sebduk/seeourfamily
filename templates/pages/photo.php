@@ -200,27 +200,34 @@ $tags = $stmt->fetchAll();
 <script>
 // Scale small images up to 2x their natural size, capped by viewport
 (function() {
-    var img = document.querySelector('.photo-tags-container img');
-    if (!img) return;
-    function scaleUp() {
-        if (!img.naturalWidth || !img.naturalHeight) return;
-        // Reset inline constraints so CSS rules apply for measuring
-        img.style.maxWidth = '';
-        img.style.maxHeight = '';
-        var maxH = window.innerHeight * 0.8;
-        // Available width = the .photo-detail container (not the inline-block parent)
+
+    function scaleUp(img) {
+        if (!img.naturalWidth) return;
+
         var detail = img.closest('.photo-detail');
         var maxW = detail ? detail.clientWidth : window.innerWidth;
-        var scaleH = maxH / img.naturalHeight;
-        var scaleW = maxW / img.naturalWidth;
-        var scale = Math.min(2, scaleH, scaleW);
-        if (scale > 1) {
-            img.style.maxWidth = Math.round(img.naturalWidth * scale) + 'px';
-            img.style.maxHeight = Math.round(img.naturalHeight * scale) + 'px';
-        }
+        var maxH = window.innerHeight * 0.9;
+
+        var scale = Math.min(
+            2,
+            maxW / img.naturalWidth,
+            maxH / img.naturalHeight
+        );
+
+        img.style.width = Math.round(img.naturalWidth * scale) + 'px';
+        img.style.height = 'auto';
     }
-    if (img.complete) scaleUp(); else img.addEventListener('load', scaleUp);
-    window.addEventListener('resize', scaleUp);
+
+    window.addEventListener('load', function() {
+        var img = document.querySelector('.photo-tags-container img');
+        if (!img) return;
+
+        scaleUp(img);
+        window.addEventListener('resize', function() {
+            scaleUp(img);
+        });
+    });
+
 })();
 </script>
 <?php endif; ?>

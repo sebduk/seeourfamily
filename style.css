@@ -360,7 +360,7 @@ hr { border: none; border-top: 1px solid #666; }
 
 /* Visitor: hover-reveal face tags */
 .photo-tags-container { position: relative; display: inline-block; }
-.photo-tags-container img { max-width: 100%; max-height: 80vh; height: auto; border: 0; image-rendering: smooth; }
+.photo-tags-container img { max-width: none !important; max-height: none; height: auto; border: 0; image-rendering: smooth; }
 .photo-tag {
     position: absolute; transform: translate(-50%, -100%);
     background: rgba(0,0,0,0.75); color: #fff;
