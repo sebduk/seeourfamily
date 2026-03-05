@@ -34,6 +34,8 @@ class Router
         'blog',
         'blog-post',
         'tree',
+        'treeP',
+        'treeT',
         'ascendants',
         'descendants',
         'person',
