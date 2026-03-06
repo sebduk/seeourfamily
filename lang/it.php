@@ -32,6 +32,8 @@ return [
     'full_ascendance'  => 'Tutti Genitori',
     'full_descendance' => 'Tutti Figli',
     'heavy_warning'    => 'Processi pesanti.<br>Sia paziente!',
+    'tree_person'      => 'Albero completo',
+    'tree_timeline'    => 'Cronologia',
 
     'born_m'      => 'Nato a',
     'born_f'      => 'Nata a',

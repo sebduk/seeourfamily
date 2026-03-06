@@ -32,6 +32,8 @@ return [
     'full_ascendance'  => 'Ver todos los Padres',
     'full_descendance' => 'Ver todos los Hijos',
     'heavy_warning'    => 'Versiones pesadas.<br>Sea paciente!',
+    'tree_person'      => '&Aacute;rbol completo',
+    'tree_timeline'    => 'Cronolog&iacute;a',
 
     'born_m'      => 'Nacido en',
     'born_f'      => 'Nacida en',

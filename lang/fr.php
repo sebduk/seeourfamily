@@ -38,6 +38,8 @@ return [
     'vertical'         => 'Verticale',
     'table'            => 'Table',
     'heavy_warning'    => 'Versions lourdes &agrave; g&eacute;n&eacute;rer.<br>Soyez patient!',
+    'tree_person'      => 'Arbre complet',
+    'tree_timeline'    => 'Chronologie',
 
     'born_m'      => 'N&eacute; &agrave;',
     'born_f'      => 'N&eacute;e &agrave;',

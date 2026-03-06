@@ -269,6 +269,53 @@ hr { border: none; border-top: 1px solid #666; }
     border-left: 1px solid #ccc;
 }
 
+/* treeP: center highlight for the focal person */
+.treep-center {
+    border-left: 3px solid #369;
+    padding-left: 0.75rem;
+    margin: 0.5rem 0;
+    background: #f0f6ff;
+}
+
+/* ============================================================
+ * PATTERN 4b: TIMELINE TREE (treeT)
+ * Shows all related people grouped by decade
+ * ============================================================ */
+.treet-timeline { max-width: 960px; margin: 0 auto; }
+.treet-decade {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 0.25rem;
+}
+.treet-decade-label {
+    flex: 0 0 50px;
+    font-weight: bold;
+    color: #369;
+    text-align: right;
+    padding-top: 2px;
+    border-right: 2px solid #369;
+    padding-right: 0.5rem;
+}
+.treet-decade-people { flex: 1; }
+.treet-person {
+    padding: 2px 0;
+    display: flex;
+    gap: 0.5rem;
+    align-items: baseline;
+    flex-wrap: wrap;
+}
+.treet-dates {
+    color: #666;
+    font-size: 0.9em;
+    min-width: 70px;
+}
+.treet-relation {
+    color: #999;
+    font-size: 0.8em;
+    font-style: italic;
+}
+.treet-self { background: #ffffdd; }
+
 
 /* ============================================================
  * PATTERN 5: PERSON BIO (CSS GRID)

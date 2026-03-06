@@ -32,6 +32,8 @@ return [
     'full_ascendance'  => 'Alle Vorfahren',
     'full_descendance' => 'Alle Nachfahren',
     'heavy_warning'    => 'Diese Versionen erfordern schwereren Prozess.<br>Seien Sie geduldig!',
+    'tree_person'      => 'Vollst&auml;ndiger Baum',
+    'tree_timeline'    => 'Zeitleiste',
 
     'born_m'      => 'Geboren in',
     'born_f'      => 'Geboren in',

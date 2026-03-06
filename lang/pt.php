@@ -31,6 +31,8 @@ return [
 
     'full_ascendance'  => 'Veja todos os Pais',
     'full_descendance' => 'Veja todas as Crian&ccedil;as',
+    'tree_person'      => '&Aacute;rvore completa',
+    'tree_timeline'    => 'Cronologia',
 
     'born_m'      => 'Nascido em',
     'born_f'      => 'Nascida em',

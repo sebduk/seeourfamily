@@ -36,6 +36,8 @@ return [
     'table'            => 'Table',
     'excel'            => 'Excel',
     'heavy_warning'    => 'These versions require heavier processing.<br>Be patient!',
+    'tree_person'      => 'Full Tree',
+    'tree_timeline'    => 'Timeline',
 
     // Person detail (Prog/View/bio.asp)
     'born_m'      => 'Born in',

@@ -206,6 +206,11 @@ if ($coupleId) {
         <a href="/tree/<?= h($personUuid) ?>?dir=desc&amp;style=excel"><?= $L['excel'] ?></a>
     </span>
     <?php endif; ?>
+    <br>
+    <span class="nav-links">
+        <a href="/treeP/<?= h($personUuid) ?>"><?= $L['tree_person'] ?? 'Full Tree' ?></a> .
+        <a href="/treeT/<?= h($personUuid) ?>"><?= $L['tree_timeline'] ?? 'Timeline' ?></a>
+    </span>
 </div>
 
 <?php
