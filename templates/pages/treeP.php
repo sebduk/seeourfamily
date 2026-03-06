@@ -66,7 +66,7 @@ function treePAddPerson(PDO $pdo, int $fid, int $pid, array &$treePeople): void
  */
 function treePCollectUp(PDO $pdo, int $fid, int $pid, array &$treePeople, array &$treeCouples, array &$coupleChildren, array &$personParentCouple, array &$visitedUp, int $depth = 0): void
 {
-    if (isset($visitedUp[$pid]) || $depth > 15) return;
+    if (isset($visitedUp[$pid]) || $depth > 1) return;
     $visitedUp[$pid] = true;
 
     $stmt = $pdo->prepare(
@@ -229,6 +229,7 @@ $jsonData = json_encode([
     var WED_W   = 30;      // width of the wedding-year connector area
     var H_GAP   = 24;      // horizontal gap between sibling subtrees
     var V_GAP   = 56;      // vertical gap between generations
+    var MAX_ROW_W = 1200;  // max width before wrapping children to next row
 
     var container = document.getElementById('treep-container');
 
@@ -251,23 +252,64 @@ $jsonData = json_encode([
     DATA.couples.forEach(function(c) { couplesById[c.id] = c; });
 
     // =====================================================================
-    // LAYOUT: Recursive width calculation
+    // LAYOUT: Row grouping for children
     // =====================================================================
 
-    // Couple subtree width = max(couple_pair_width, sum_of_children_widths)
-    // Person without couple = NODE_W
+    // Group a couple's children into rows that fit within MAX_ROW_W
+    var childRowsCache = {};
+
+    function getChildRows(cid) {
+        if (childRowsCache[cid]) return childRowsCache[cid];
+        var children = DATA.coupleChildren[cid] || [];
+        if (children.length === 0) { childRowsCache[cid] = []; return []; }
+
+        var childWidths = children.map(function(chId) {
+            return personSubtreeWidthDown(chId, {});
+        });
+
+        var rows = [];
+        var currentRow = [];
+        var currentW = 0;
+
+        for (var i = 0; i < children.length; i++) {
+            var w = childWidths[i];
+            var newW = currentW + (currentRow.length > 0 ? H_GAP : 0) + w;
+            if (currentRow.length > 0 && newW > MAX_ROW_W) {
+                rows.push(currentRow);
+                currentRow = [];
+                currentW = 0;
+                newW = w;
+            }
+            currentRow.push({ id: children[i], w: w, idx: i });
+            currentW = newW;
+        }
+        if (currentRow.length > 0) rows.push(currentRow);
+        childRowsCache[cid] = rows;
+        return rows;
+    }
+
+    function rowWidth(row) {
+        var w = 0;
+        row.forEach(function(item, idx) {
+            if (idx > 0) w += H_GAP;
+            w += item.w;
+        });
+        return w;
+    }
+
+    // =====================================================================
+    // LAYOUT: Recursive width & height calculation
+    // =====================================================================
 
     var coupleWidthCache = {};
     var personWidthCacheDown = {};
 
-    // Width of a person's descendant subtree (from this person downward)
     function personSubtreeWidthDown(pid, visited) {
         if (!visited) visited = {};
         if (visited[pid]) return NODE_W;
         visited[pid] = true;
         if (personWidthCacheDown[pid] !== undefined) return personWidthCacheDown[pid];
 
-        // Find couples involving this person
         var pCouples = DATA.couples.filter(function(c) {
             return c.p1 === pid || c.p2 === pid;
         });
@@ -296,15 +338,49 @@ $jsonData = json_encode([
             return pairW;
         }
 
-        var childrenW = 0;
-        children.forEach(function(chId, idx) {
-            if (idx > 0) childrenW += H_GAP;
-            childrenW += personSubtreeWidthDown(chId, Object.assign({}, visited));
-        });
+        var rows = getChildRows(cid);
+        var maxRowW = 0;
+        rows.forEach(function(row) { maxRowW = Math.max(maxRowW, rowWidth(row)); });
 
-        var w = Math.max(pairW, childrenW);
+        var w = Math.max(pairW, maxRowW);
         coupleWidthCache[cid] = w;
         return w;
+    }
+
+    // Height of a person's subtree (for multi-row spacing)
+    function personSubtreeHeightDown(pid, visited) {
+        if (!visited) visited = {};
+        if (visited[pid]) return NODE_H;
+        visited[pid] = true;
+        var pCouples = DATA.couples.filter(function(c) {
+            return c.p1 === pid || c.p2 === pid;
+        });
+        if (pCouples.length === 0) return NODE_H;
+        var maxH = 0;
+        pCouples.forEach(function(c) {
+            maxH = Math.max(maxH, coupleSubtreeHeightDown(c.id, Object.assign({}, visited)));
+        });
+        return maxH;
+    }
+
+    function coupleSubtreeHeightDown(cid, visited) {
+        if (!visited) visited = {};
+        if (visited[cid]) return NODE_H;
+        visited[cid] = true;
+        var children = DATA.coupleChildren[cid] || [];
+        if (children.length === 0) return NODE_H;
+
+        var rows = getChildRows(cid);
+        var totalRowH = 0;
+        rows.forEach(function(row, rowIdx) {
+            var maxH = 0;
+            row.forEach(function(item) {
+                maxH = Math.max(maxH, personSubtreeHeightDown(item.id, Object.assign({}, visited)));
+            });
+            totalRowH += maxH;
+            if (rowIdx < rows.length - 1) totalRowH += V_GAP;
+        });
+        return NODE_H + V_GAP + totalRowH;
     }
 
     // Ancestor subtree width (upward from a couple)
@@ -375,7 +451,7 @@ $jsonData = json_encode([
         return nid;
     }
 
-    // Layout descendants from a couple downward
+    // Layout descendants from a couple downward (multi-row support)
     function layoutCoupleDown(cid, left, top, visited) {
         if (!visited) visited = {};
         if (visited[cid]) return;
@@ -391,11 +467,8 @@ $jsonData = json_encode([
         var isP1Root = couple.p1 === DATA.rootId;
         var isP2Root = couple.p2 === DATA.rootId;
 
-        // Person 1
         var p1Nid = makePersonNode(couple.p1, pairLeft, top, isP1Root);
-        // Wedding joint
         var jointNid = makeCoupleJoint(cid, pairLeft + NODE_W, top + NODE_H / 2 - 6, couple.wy);
-        // Person 2
         var p2Nid = makePersonNode(couple.p2, pairLeft + NODE_W + WED_W, top, isP2Root);
 
         if (p1Nid && p2Nid) {
@@ -403,48 +476,45 @@ $jsonData = json_encode([
             connections.push({ from: jointNid, to: p2Nid, type: 'couple' });
         }
 
-        // Children
         var children = DATA.coupleChildren[cid] || [];
         if (children.length === 0) return;
 
-        var childTop = top + NODE_H + V_GAP;
-        var childrenTotalW = 0;
-        var childWidths = children.map(function(chId) {
-            return personSubtreeWidthDown(chId, {});
-        });
-        childWidths.forEach(function(w, idx) {
-            if (idx > 0) childrenTotalW += H_GAP;
-            childrenTotalW += w;
-        });
+        // Group children into rows
+        var rows = getChildRows(cid);
+        var rowTop = top + NODE_H + V_GAP;
 
-        var childLeft = left + (subtreeW - childrenTotalW) / 2;
+        rows.forEach(function(row) {
+            var rw = rowWidth(row);
+            var childLeft = left + (subtreeW - rw) / 2;
+            var maxRowH = NODE_H;
 
-        children.forEach(function(chId, idx) {
-            var chW = childWidths[idx];
-            var chCenterX = childLeft + chW / 2;
+            row.forEach(function(item) {
+                var chId = item.id;
+                var chW = item.w;
 
-            // Does this child have couples?
-            var chCouples = DATA.couples.filter(function(cc) {
-                return (cc.p1 === chId || cc.p2 === chId) && !visited[cc.id];
+                var chCouples = DATA.couples.filter(function(cc) {
+                    return (cc.p1 === chId || cc.p2 === chId) && !visited[cc.id];
+                });
+
+                if (chCouples.length > 0) {
+                    chCouples.forEach(function(cc) {
+                        layoutCoupleDown(cc.id, childLeft, rowTop, visited);
+                        var h = coupleSubtreeHeightDown(cc.id, {});
+                        maxRowH = Math.max(maxRowH, h);
+                    });
+                    connections.push({ from: jointNid, to: 'p' + chId, type: 'child' });
+                } else {
+                    var singleX = childLeft + (chW - NODE_W) / 2;
+                    var chNid = makePersonNode(chId, singleX, rowTop, false);
+                    if (chNid) {
+                        connections.push({ from: jointNid, to: chNid, type: 'child' });
+                    }
+                }
+
+                childLeft += chW + H_GAP;
             });
 
-            if (chCouples.length > 0) {
-                chCouples.forEach(function(cc) {
-                    layoutCoupleDown(cc.id, childLeft, childTop, visited);
-                });
-                // Connect joint to child's first person node
-                var chNid = 'p' + chId;
-                connections.push({ from: jointNid, to: chNid, type: 'child' });
-            } else {
-                // Single person, no spouse
-                var singleX = childLeft + (chW - NODE_W) / 2;
-                var chNid2 = makePersonNode(chId, singleX, childTop, false);
-                if (chNid2) {
-                    connections.push({ from: jointNid, to: chNid2, type: 'child' });
-                }
-            }
-
-            childLeft += chW + H_GAP;
+            rowTop += maxRowH + V_GAP;
         });
     }
 
@@ -536,7 +606,6 @@ $jsonData = json_encode([
     if (rootCoupleId) {
         ancDepth = maxAncestorDepth(rootCoupleId, 0, {});
     } else {
-        // Person without couple — check if they have parents
         var rootParent = DATA.parentCouple[DATA.rootId];
         if (rootParent) ancDepth = maxAncestorDepth(rootParent, 1, {});
     }
@@ -544,19 +613,24 @@ $jsonData = json_encode([
     var rootTop = ancDepth * (NODE_H + V_GAP) + 20;
 
     if (rootCoupleId) {
-        // Layout descendants first (positions root couple + everything below)
-        layoutCoupleDown(rootCoupleId, 0, rootTop, {});
+        var downW = coupleSubtreeWidthDown(rootCoupleId, {});
+        var upW = ancestorSubtreeWidth(rootCoupleId, {});
+        var totalLayoutW = Math.max(downW, upW);
 
-        // Layout ancestors above
-        layoutCoupleUp(rootCoupleId, 0, rootTop, {});
+        // Center both descendant and ancestor trees within the same total width
+        layoutCoupleDown(rootCoupleId, (totalLayoutW - downW) / 2, rootTop, {});
+        layoutCoupleUp(rootCoupleId, (totalLayoutW - upW) / 2, rootTop, {});
     } else {
         // Single person, no couple
         var rootParent = DATA.parentCouple[DATA.rootId];
-        makePersonNode(DATA.rootId, 0, rootTop, true);
+        var upW = rootParent ? ancestorSubtreeWidth(rootParent, {}) : NODE_W;
+        var totalLayoutW = Math.max(NODE_W, upW);
+        var personLeft = (totalLayoutW - NODE_W) / 2;
+
+        makePersonNode(DATA.rootId, personLeft, rootTop, true);
 
         if (rootParent) {
-            var aW = ancestorSubtreeWidth(rootParent, {});
-            layoutCoupleUp(rootParent, NODE_W / 2 - aW / 2, rootTop - V_GAP, {});
+            layoutCoupleUp(rootParent, (totalLayoutW - upW) / 2, rootTop - V_GAP, {});
             connections.push({ from: 'cj' + rootParent, to: 'p' + DATA.rootId, type: 'child' });
         }
     }
