@@ -227,8 +227,8 @@ $jsonData = json_encode([
     var NODE_H  = 52;
     var COUPLE_GAP = 16;   // gap between two person cards in a couple
     var WED_W   = 30;      // width of the wedding-year connector area
-    var H_GAP   = 24;      // horizontal gap between sibling subtrees
-    var V_GAP   = 56;      // vertical gap between generations
+    var H_GAP   = 40;      // horizontal gap between sibling subtrees
+    var V_GAP   = 64;      // vertical gap between generations
     var MAX_ROW_W = 1200;  // max width before wrapping children to next row
 
     var container = document.getElementById('treep-container');
@@ -250,6 +250,27 @@ $jsonData = json_encode([
     // Index couples by id
     var couplesById = {};
     DATA.couples.forEach(function(c) { couplesById[c.id] = c; });
+
+    // Build a set of child→parentCouple for normalization
+    var isChildOf = {};
+    Object.keys(DATA.coupleChildren).forEach(function(cid) {
+        DATA.coupleChildren[cid].forEach(function(chId) {
+            isChildOf[chId] = parseInt(cid);
+        });
+    });
+
+    // Normalize couples so the person who is a child of a parent couple
+    // is always p1 (left side). This ensures siblings appear in consistent
+    // left-to-right order matching their couple_sort.
+    DATA.couples.forEach(function(c) {
+        // If p2 is a child of some parent couple but p1 is not, swap
+        if (isChildOf[c.p2] !== undefined && isChildOf[c.p1] === undefined) {
+            var tmp = c.p1;
+            c.p1 = c.p2;
+            c.p2 = tmp;
+            couplesById[c.id] = c;
+        }
+    });
 
     // =====================================================================
     // LAYOUT: Row grouping for children
@@ -407,14 +428,12 @@ $jsonData = json_encode([
         var aboveW = 0;
         if (p1Parent) {
             aboveW += ancestorSubtreeWidth(p1Parent, Object.assign({}, visited));
-        } else {
-            aboveW += NODE_W;
         }
-        aboveW += H_GAP;
+        if (p1Parent && p2Parent) {
+            aboveW += H_GAP;
+        }
         if (p2Parent) {
             aboveW += ancestorSubtreeWidth(p2Parent, Object.assign({}, visited));
-        } else {
-            aboveW += NODE_W;
         }
 
         var w = Math.max(pairW, aboveW);
@@ -563,23 +582,27 @@ $jsonData = json_encode([
             connections.push({ from: jointNid, to: p2Nid, type: 'couple' });
         }
 
-        // Parents of p1
+        // Position ancestor branches side by side to prevent overlap
         var p1Parent = DATA.parentCouple[couple.p1];
-        if (p1Parent) {
-            var p1AncW = ancestorSubtreeWidth(p1Parent, {});
-            var p1AncLeft = pairLeft + NODE_W / 2 - p1AncW / 2;
-            layoutCoupleUp(p1Parent, p1AncLeft, top - V_GAP, visited);
-            // Connect parent couple joint to p1
-            connections.push({ from: 'cj' + p1Parent, to: p1Nid, type: 'child' });
-        }
-
-        // Parents of p2
         var p2Parent = DATA.parentCouple[couple.p2];
-        if (p2Parent) {
-            var p2AncW = ancestorSubtreeWidth(p2Parent, {});
-            var p2AncLeft = pairLeft + NODE_W + WED_W + NODE_W / 2 - p2AncW / 2;
-            layoutCoupleUp(p2Parent, p2AncLeft, top - V_GAP, visited);
-            connections.push({ from: 'cj' + p2Parent, to: p2Nid, type: 'child' });
+
+        if (p1Parent || p2Parent) {
+            var p1AncW = p1Parent ? ancestorSubtreeWidth(p1Parent, {}) : 0;
+            var p2AncW = p2Parent ? ancestorSubtreeWidth(p2Parent, {}) : 0;
+            var gap = (p1Parent && p2Parent) ? H_GAP : 0;
+            var totalAboveW = p1AncW + gap + p2AncW;
+            var aboveLeft = left + (subtreeW - totalAboveW) / 2;
+
+            if (p1Parent) {
+                layoutCoupleUp(p1Parent, aboveLeft, top - V_GAP, visited);
+                connections.push({ from: 'cj' + p1Parent, to: p1Nid, type: 'child' });
+            }
+
+            if (p2Parent) {
+                var p2Left = aboveLeft + p1AncW + gap;
+                layoutCoupleUp(p2Parent, p2Left, top - V_GAP, visited);
+                connections.push({ from: 'cj' + p2Parent, to: p2Nid, type: 'child' });
+            }
         }
     }
 
