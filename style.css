@@ -269,13 +269,59 @@ hr { border: none; border-top: 1px solid #666; }
     border-left: 1px solid #ccc;
 }
 
-/* treeP: center highlight for the focal person */
-.treep-center {
-    border-left: 3px solid #369;
-    padding-left: 0.75rem;
-    margin: 0.5rem 0;
+/* ============================================================
+ * PATTERN 4a: JSPLUMB TREE (treeP)
+ * Visual family tree with jsPlumb connectors
+ * ============================================================ */
+#treep-wrap {
+    overflow: auto;
+    position: relative;
+    border: 1px solid #ddd;
+    background: #fcfcfc;
+    min-height: 300px;
+}
+#treep-container {
+    position: relative;
+    min-width: 100%;
+    min-height: 100%;
+}
+.treep-node {
+    position: absolute;
+    background: #fff;
+    border: 1px solid #aaa;
+    border-radius: 4px;
+    padding: 4px 6px;
+    text-align: center;
+    font-size: 0.85em;
+    line-height: 1.3;
+    box-shadow: 1px 1px 3px rgba(0,0,0,0.08);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    z-index: 10;
+}
+.treep-node a { text-decoration: none; }
+.treep-node a:hover { text-decoration: underline; }
+.treep-name { display: block; font-weight: bold; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.treep-dates { display: block; font-size: 0.85em; color: #666; }
+.treep-node-root {
+    border: 2px solid #369;
     background: #f0f6ff;
 }
+.treep-joint {
+    position: absolute;
+    background: #f5efe8;
+    border: 1px solid #c9a96e;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7em;
+    color: #886;
+    z-index: 10;
+}
+.treep-joint span { white-space: nowrap; }
 
 /* ============================================================
  * PATTERN 4b: TIMELINE TREE (treeT)
