@@ -129,7 +129,8 @@ function renderAncestors(PDO $pdo, int $fid, int $personId): void
     <span class="nav-links">|
         <a href="/tree/<?= h($person['uuid']) ?>"><?= $L['classic'] ?></a> .
         <a href="/treeP/<?= h($person['uuid']) ?>"><?= $L['tree_person'] ?? 'Full Tree' ?></a> .
-        <a href="/treeT/<?= h($person['uuid']) ?>"><?= $L['tree_timeline'] ?? 'Timeline' ?></a>
+        <a href="/treeT/<?= h($person['uuid']) ?>"><?= $L['tree_timeline'] ?? 'Timeline' ?></a> .
+        <a href="/treeTr/<?= h($person['uuid']) ?>"><?= $L['tree_treant'] ?? 'Treant' ?></a>
     </span>
 </div>
 

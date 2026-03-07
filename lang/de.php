@@ -34,6 +34,7 @@ return [
     'heavy_warning'    => 'Diese Versionen erfordern schwereren Prozess.<br>Seien Sie geduldig!',
     'tree_person'      => 'Vollst&auml;ndiger Baum',
     'tree_timeline'    => 'Zeitleiste',
+    'tree_treant'      => 'Treant',
 
     'born_m'      => 'Geboren in',
     'born_f'      => 'Geboren in',

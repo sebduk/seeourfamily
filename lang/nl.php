@@ -34,6 +34,7 @@ return [
     'heavy_warning'    => 'Deze versies vereisen zwaardere verwerking.<br>Geduld a.u.b.!',
     'tree_person'      => 'Volledige boom',
     'tree_timeline'    => 'Tijdlijn',
+    'tree_treant'      => 'Treant',
 
     'born_m'      => 'Geboren in',
     'born_f'      => 'Geboren in',

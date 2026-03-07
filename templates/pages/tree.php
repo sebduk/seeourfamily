@@ -209,7 +209,8 @@ if ($coupleId) {
     <br>
     <span class="nav-links">
         <a href="/treeP/<?= h($personUuid) ?>"><?= $L['tree_person'] ?? 'Full Tree' ?></a> .
-        <a href="/treeT/<?= h($personUuid) ?>"><?= $L['tree_timeline'] ?? 'Timeline' ?></a>
+        <a href="/treeT/<?= h($personUuid) ?>"><?= $L['tree_timeline'] ?? 'Timeline' ?></a> .
+        <a href="/treeTr/<?= h($personUuid) ?>"><?= $L['tree_treant'] ?? 'Treant' ?></a>
     </span>
 </div>
 

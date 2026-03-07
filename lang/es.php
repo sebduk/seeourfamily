@@ -34,6 +34,7 @@ return [
     'heavy_warning'    => 'Versiones pesadas.<br>Sea paciente!',
     'tree_person'      => '&Aacute;rbol completo',
     'tree_timeline'    => 'Cronolog&iacute;a',
+    'tree_treant'      => 'Treant',
 
     'born_m'      => 'Nacido en',
     'born_f'      => 'Nacida en',

@@ -40,6 +40,7 @@ return [
     'heavy_warning'    => 'Versions lourdes &agrave; g&eacute;n&eacute;rer.<br>Soyez patient!',
     'tree_person'      => 'Arbre complet',
     'tree_timeline'    => 'Chronologie',
+    'tree_treant'      => 'Treant',
 
     'born_m'      => 'N&eacute; &agrave;',
     'born_f'      => 'N&eacute;e &agrave;',

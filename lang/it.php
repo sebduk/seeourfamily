@@ -34,6 +34,7 @@ return [
     'heavy_warning'    => 'Processi pesanti.<br>Sia paziente!',
     'tree_person'      => 'Albero completo',
     'tree_timeline'    => 'Cronologia',
+    'tree_treant'      => 'Treant',
 
     'born_m'      => 'Nato a',
     'born_f'      => 'Nata a',

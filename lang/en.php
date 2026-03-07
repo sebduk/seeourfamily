@@ -38,6 +38,7 @@ return [
     'heavy_warning'    => 'These versions require heavier processing.<br>Be patient!',
     'tree_person'      => 'Full Tree',
     'tree_timeline'    => 'Timeline',
+    'tree_treant'      => 'Treant',
 
     // Person detail (Prog/View/bio.asp)
     'born_m'      => 'Born in',

@@ -33,6 +33,7 @@ return [
     'full_descendance' => 'Veja todas as Crian&ccedil;as',
     'tree_person'      => '&Aacute;rvore completa',
     'tree_timeline'    => 'Cronologia',
+    'tree_treant'      => 'Treant',
 
     'born_m'      => 'Nascido em',
     'born_f'      => 'Nascida em',
