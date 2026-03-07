@@ -413,24 +413,16 @@ hr { border: none; border-top: 1px solid #666; }
  * PATTERN 4d: HYBRID TREE (treePT)
  * jsPlumb ancestors (upward) + Treant.js descendants (downward)
  * ============================================================ */
-#treept-anc-wrap {
-    overflow: auto;
-    position: relative;
-    border: 1px solid #ddd;
-    border-bottom: none;
-    background: #fcfcfc;
-    min-height: 40px;
-}
-#treept-anc-container {
-    position: relative;
-    min-width: 100%;
-}
-#treept-desc-wrap {
+#treept-wrap {
     overflow: auto;
     position: relative;
     border: 1px solid #ddd;
     background: #fcfcfc;
     min-height: 200px;
+}
+#treept-anc-container {
+    position: relative;
+    margin: 0 auto;
 }
 #treept-desc-container {
     position: relative;
@@ -448,7 +440,6 @@ hr { border: none; border-top: 1px solid #666; }
     font-size: 0.85em;
     line-height: 1.3;
 }
-.treept-couple-box,
 .treept-couple {
     background: #fff;
     border: 1px solid #aaa;

@@ -230,13 +230,9 @@ $jsonData = json_encode([
     </span>
 </div>
 
-<!-- ANCESTOR ZONE: jsPlumb renders upward from the root couple -->
-<div id="treept-anc-wrap">
+<!-- Single scrollable tree frame -->
+<div id="treept-wrap">
     <div id="treept-anc-container"></div>
-</div>
-
-<!-- DESCENDANT ZONE: Treant.js renders downward from the root couple -->
-<div id="treept-desc-wrap">
     <div id="treept-desc-container"></div>
 </div>
 
@@ -343,6 +339,9 @@ $jsonData = json_encode([
     function buildPersonHTML(p, isRoot) {
         return '<div class="treept-single-inner">' + personLine(p, isRoot) + '</div>';
     }
+
+    // Track ancestor container dimensions for centring
+    var ancContainerWidth = 0;
 
     // =====================================================================
     // PART 1: ANCESTOR TREE (jsPlumb, upward)
@@ -497,6 +496,7 @@ $jsonData = json_encode([
 
         var containerW = (maxX - minX) + PAD * 2;
         var containerH = (maxY - minY) + PAD * 2;
+        ancContainerWidth = containerW;
         ancContainer.style.width = containerW + 'px';
         ancContainer.style.height = containerH + 'px';
 
@@ -504,7 +504,7 @@ $jsonData = json_encode([
         nodes.forEach(function(n) {
             var el = document.createElement('div');
             el.id = n.id;
-            el.className = 'treept-couple-box' + (n.isRoot ? ' treept-root' : '');
+            el.className = 'treept-couple' + (n.isRoot ? ' treept-root' : '');
             el.style.position = 'absolute';
             el.style.left = n.x + 'px';
             el.style.top = n.y + 'px';
@@ -561,7 +561,7 @@ $jsonData = json_encode([
                     },
                     node: { HTMLclass: 'treept-node' },
                     padding: 20,
-                    scrollbar: 'native'
+                    scrollbar: 'None'
                 },
                 nodeStructure: rootNode
             };
@@ -628,12 +628,22 @@ $jsonData = json_encode([
                 },
                 node: { HTMLclass: 'treept-node' },
                 padding: 20,
-                scrollbar: 'native'
+                scrollbar: 'None'
             },
             nodeStructure: rootNode
         };
 
         new Treant(config);
+
+        // Centre ancestor block above the root couple in the descendant tree
+        if (ancContainerWidth > 0) {
+            var ancContainer = document.getElementById('treept-anc-container');
+            var rootEl = document.querySelector('#treept-desc-container .treept-root');
+            if (rootEl && ancContainer) {
+                var rootCentreX = rootEl.offsetLeft + rootEl.offsetWidth / 2;
+                ancContainer.style.marginLeft = (rootCentreX - ancContainerWidth / 2) + 'px';
+            }
+        }
     })();
 
 })();
