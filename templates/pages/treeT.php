@@ -312,7 +312,7 @@ unset($people);
         ?>
             <div class="treet-person<?= $isSelf ? ' treet-self' : '' ?>">
                 <span class="treet-dates">?<?= $p['death'] !== '' ? '–' . h($p['death']) : '' ?></span>
-                <?= $isSelf ? '<b>' : '' ?><a href="/tree/<?= h($p['uuid']) ?>"><?= h($p['first_name']) ?>&nbsp;<?= h($p['last_name']) ?></a><?= $isSelf ? '</b>' : '' ?>
+                <?= $isSelf ? '<b>' : '' ?><a href="/treeT/<?= h($p['uuid']) ?>"><?= h($p['first_name']) ?>&nbsp;<?= h($p['last_name']) ?></a><?= $isSelf ? '</b>' : '' ?>
                 <span class="treet-relation"><?= h($p['relation']) ?></span>
             </div>
         <?php endforeach; ?>
@@ -332,7 +332,7 @@ unset($people);
         ?>
             <div class="<?= $cls ?>">
                 <span class="treet-dates"><?= $dateDisplay ?><?= $p['death'] !== '' ? '–' . h($p['death']) : '' ?></span>
-                <?= $isSelf ? '<b>' : '' ?><a href="/tree/<?= h($p['uuid']) ?>"><?= h($p['first_name']) ?>&nbsp;<?= h($p['last_name']) ?></a><?= $isSelf ? '</b>' : '' ?>
+                <?= $isSelf ? '<b>' : '' ?><a href="/treeT/<?= h($p['uuid']) ?>"><?= h($p['first_name']) ?>&nbsp;<?= h($p['last_name']) ?></a><?= $isSelf ? '</b>' : '' ?>
                 <span class="treet-relation"><?= h($p['relation']) ?></span>
             </div>
         <?php endforeach; ?>

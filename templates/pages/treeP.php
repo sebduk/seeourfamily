@@ -699,7 +699,7 @@ $jsonData = json_encode([
         if (n.type === 'person') {
             el.className = 'treep-node' + (n.isRoot ? ' treep-node-root' : '');
             var p = n.data;
-            el.innerHTML = '<a href="/tree/' + p.uuid + '" class="treep-name">'
+            el.innerHTML = '<a href="/treeP/' + p.uuid + '" class="treep-name">'
                 + p.fn + ' ' + p.ln + '</a>'
                 + '<a href="/person/' + p.uuid + '" class="treep-dates">'
                 + (p.birth || '?') + '–' + (p.death || '') + '</a>';

@@ -438,12 +438,9 @@ $isAudioFile = \SeeOurFamily\Media::isAudio($docMime);
                 $dotClass = 'tag-status-red';
             }
             $rawName = $p['file_name'] ?? $p['original_filename'] ?? '';
-            $baseName = pathinfo($rawName, PATHINFO_FILENAME);
-            $extPart = pathinfo($rawName, PATHINFO_EXTENSION);
-            $displayName = $extPart ? $baseName . ' (.' . $extPart . ')' : $baseName;
             $isCurrent = ($editId > 0 && (int)$p['id'] === $editId);
         ?>
-            <a href="/admin/documents?id=<?= $p['uuid'] ?><?= h(substr($qs(), 1) ? '&' . substr($qs(), 1) : '') ?>"<?= $isCurrent ? ' id="currentDoc" style="font-weight:bold"' : '' ?>><span class="tag-status-dot <?= $dotClass ?>">&#9679;</span> <?= h($displayName) ?></a>
+            <a href="/admin/documents?id=<?= $p['uuid'] ?><?= h(substr($qs(), 1) ? '&' . substr($qs(), 1) : '') ?>"<?= $isCurrent ? ' id="currentDoc" style="font-weight:bold"' : '' ?>><span class="tag-status-dot <?= $dotClass ?>">&#9679;</span> <?= h($rawName) ?></a>
         <?php endforeach; ?>
     </div>
 

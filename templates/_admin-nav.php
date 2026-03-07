@@ -11,8 +11,6 @@
     <a href="/admin/comments"><?= $L['menu_comments'] ?></a> |
     <a href="/admin/documents"><?= $L['menu_documents'] ?></a> |
     <a href="/admin/folders"><?= $L['menu_folders'] ?? 'Folders' ?></a> |
-    <a href="/admin/info"><?= $L['news'] ?></a>
-    <?php if (($family['package'] ?? '') === 'Platinum'): ?>
-    | <a href="/admin/messages"><?= $L['menu_messages'] ?></a>
-    <?php endif; ?>
+    <a href="/admin/info"><?= $L['news'] ?></a> | 
+    <a href="/admin/messages"><?= $L['menu_messages'] ?></a>
 </div>
