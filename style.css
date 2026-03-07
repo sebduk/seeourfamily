@@ -378,6 +378,7 @@ hr { border: none; border-top: 1px solid #666; }
 .tretr-single-inner {
     padding: 4px 8px;
     text-align: center;
+    height: 100%;
 }
 .tretr-partner {
     text-align: center;
@@ -468,6 +469,7 @@ hr { border: none; border-top: 1px solid #666; }
 .treept-single-inner {
     padding: 4px 8px;
     text-align: center;
+    height: 100%;
 }
 .treept-partner {
     text-align: center;

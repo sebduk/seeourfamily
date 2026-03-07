@@ -403,5 +403,27 @@ $jsonData = json_encode([
 
     new Treant(config);
 
+    // Equalize single/couple node heights within the same generation row
+    setTimeout(function() {
+        var allNodes = document.querySelectorAll('#tretr-container .tretr-couple, #tretr-container .tretr-single');
+        var byRow = {};
+        allNodes.forEach(function(el) {
+            var bucket = Math.round(el.offsetTop / 5) * 5;
+            if (!byRow[bucket]) byRow[bucket] = [];
+            byRow[bucket].push(el);
+        });
+        Object.keys(byRow).forEach(function(key) {
+            var group = byRow[key];
+            if (group.length <= 1) return;
+            var maxH = 0;
+            group.forEach(function(el) { maxH = Math.max(maxH, el.offsetHeight); });
+            group.forEach(function(el) {
+                if (el.offsetHeight < maxH) {
+                    el.style.height = maxH + 'px';
+                }
+            });
+        });
+    }, 100);
+
 })();
 </script>

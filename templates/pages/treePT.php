@@ -504,7 +504,7 @@ $jsonData = json_encode([
         nodes.forEach(function(n) {
             var el = document.createElement('div');
             el.id = n.id;
-            el.className = 'treept-couple' + (n.isRoot ? ' treept-root' : '');
+            el.className = 'treept-node treept-couple' + (n.isRoot ? ' treept-root' : '');
             el.style.position = 'absolute';
             el.style.left = n.x + 'px';
             el.style.top = n.y + 'px';
@@ -634,6 +634,29 @@ $jsonData = json_encode([
         };
 
         new Treant(config);
+
+        // Equalize single/couple node heights within the same generation row
+        setTimeout(function() {
+            var allNodes = document.querySelectorAll('#treept-desc-container .treept-couple, #treept-desc-container .treept-single');
+            var byRow = {};
+            allNodes.forEach(function(el) {
+                // Group by approximate top position (same generation)
+                var bucket = Math.round(el.offsetTop / 5) * 5;
+                if (!byRow[bucket]) byRow[bucket] = [];
+                byRow[bucket].push(el);
+            });
+            Object.keys(byRow).forEach(function(key) {
+                var group = byRow[key];
+                if (group.length <= 1) return;
+                var maxH = 0;
+                group.forEach(function(el) { maxH = Math.max(maxH, el.offsetHeight); });
+                group.forEach(function(el) {
+                    if (el.offsetHeight < maxH) {
+                        el.style.height = maxH + 'px';
+                    }
+                });
+            });
+        }, 100);
 
         // Centre ancestor block above the root couple in the descendant tree
         if (ancContainerWidth > 0) {
