@@ -37,6 +37,7 @@ class Router
         'treeP',
         'treeT',
         'treeTr',
+        'treePT',
         'ascendants',
         'descendants',
         'person',

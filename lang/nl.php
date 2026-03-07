@@ -35,6 +35,10 @@ return [
     'tree_person'      => 'Volledige boom',
     'tree_timeline'    => 'Tijdlijn',
     'tree_treant'      => 'Treant',
+    'tree_hybrid'      => 'Hybride',
+    'tree_priority'    => 'Prioriteit',
+    'tree_priority_family' => 'Familie',
+    'tree_priority_patriarchal' => 'Patriarchaal',
 
     'born_m'      => 'Geboren in',
     'born_f'      => 'Geboren in',

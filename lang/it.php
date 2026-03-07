@@ -35,6 +35,10 @@ return [
     'tree_person'      => 'Albero completo',
     'tree_timeline'    => 'Cronologia',
     'tree_treant'      => 'Treant',
+    'tree_hybrid'      => 'Ibrido',
+    'tree_priority'    => 'Priorità',
+    'tree_priority_family' => 'Famiglia',
+    'tree_priority_patriarchal' => 'Patriarcale',
 
     'born_m'      => 'Nato a',
     'born_f'      => 'Nata a',

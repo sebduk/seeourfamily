@@ -39,6 +39,10 @@ return [
     'tree_person'      => 'Full Tree',
     'tree_timeline'    => 'Timeline',
     'tree_treant'      => 'Treant',
+    'tree_hybrid'      => 'Hybrid',
+    'tree_priority'    => 'Priority',
+    'tree_priority_family'      => 'Family',
+    'tree_priority_patriarchal' => 'Patriarchal',
 
     // Person detail (Prog/View/bio.asp)
     'born_m'      => 'Born in',

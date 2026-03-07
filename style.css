@@ -410,6 +410,105 @@ hr { border: none; border-top: 1px solid #666; }
 }
 
 /* ============================================================
+ * PATTERN 4d: HYBRID TREE (treePT)
+ * jsPlumb ancestors (upward) + Treant.js descendants (downward)
+ * ============================================================ */
+#treept-anc-wrap {
+    overflow: auto;
+    position: relative;
+    border: 1px solid #ddd;
+    border-bottom: none;
+    background: #fcfcfc;
+    min-height: 40px;
+}
+#treept-anc-container {
+    position: relative;
+    min-width: 100%;
+}
+#treept-desc-wrap {
+    overflow: auto;
+    position: relative;
+    border: 1px solid #ddd;
+    background: #fcfcfc;
+    min-height: 200px;
+}
+#treept-desc-container {
+    position: relative;
+    min-width: 100%;
+    min-height: 100%;
+}
+/* Override Treant.css defaults for treePT */
+#treept-desc-container .node {
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: default;
+}
+.treept-node {
+    font-size: 0.85em;
+    line-height: 1.3;
+}
+.treept-couple-box,
+.treept-couple {
+    background: #fff;
+    border: 1px solid #aaa;
+    border-radius: 4px;
+    box-shadow: 1px 1px 3px rgba(0,0,0,0.08);
+    min-width: 130px;
+}
+.treept-single {
+    background: #fff;
+    border: 1px solid #aaa;
+    border-radius: 4px;
+    box-shadow: 1px 1px 3px rgba(0,0,0,0.08);
+    min-width: 130px;
+}
+.treept-root {
+    border: 2px solid #369;
+    background: #f0f6ff;
+}
+.treept-couple-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 4px 8px;
+    gap: 1px;
+}
+.treept-single-inner {
+    padding: 4px 8px;
+    text-align: center;
+}
+.treept-partner {
+    text-align: center;
+    white-space: nowrap;
+}
+.treept-name {
+    display: block;
+    font-weight: bold;
+    color: #333;
+    text-decoration: none;
+    white-space: nowrap;
+}
+.treept-name:hover { text-decoration: underline; }
+.treept-highlight { color: #036; }
+.treept-dates {
+    display: block;
+    font-size: 0.85em;
+    color: #666;
+    text-decoration: none;
+}
+.treept-dates:hover { text-decoration: underline; }
+.treept-wy {
+    display: block;
+    font-size: 0.75em;
+    color: #886;
+    border-top: 1px solid #ddd;
+    border-bottom: 1px solid #ddd;
+    padding: 0 4px;
+    margin: 1px 0;
+}
+
+/* ============================================================
  * PATTERN 4b: TIMELINE TREE (treeT)
  * Shows all related people grouped by decade
  * ============================================================ */
