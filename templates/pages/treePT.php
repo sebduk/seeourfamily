@@ -635,9 +635,11 @@ $jsonData = json_encode([
 
         new Treant(config);
 
-        // Equalize single/couple node heights within the same generation row
+        // Equalize node heights, measure tree bounds, then centre ancestors
         setTimeout(function() {
-            var allNodes = document.querySelectorAll('#treept-desc-container .treept-couple, #treept-desc-container .treept-single');
+            var descContainer = document.getElementById('treept-desc-container');
+
+            var allNodes = descContainer.querySelectorAll('.treept-couple, .treept-single');
             var byRow = {};
             allNodes.forEach(function(el) {
                 // Group by approximate top position (same generation)
@@ -656,17 +658,46 @@ $jsonData = json_encode([
                     }
                 });
             });
-        }, 100);
 
-        // Centre ancestor block above the root couple in the descendant tree
-        if (ancContainerWidth > 0) {
-            var ancContainer = document.getElementById('treept-anc-container');
-            var rootEl = document.querySelector('#treept-desc-container .treept-root');
-            if (rootEl && ancContainer) {
-                var rootCentreX = rootEl.offsetLeft + rootEl.offsetWidth / 2;
-                ancContainer.style.marginLeft = (rootCentreX - ancContainerWidth / 2) + 'px';
+            // Measure actual descendant tree bounds from Treant .node wrappers
+            var nodeEls = descContainer.querySelectorAll('.node');
+            var descMaxRight = 0;
+            var descMaxBottom = 0;
+            nodeEls.forEach(function(el) {
+                var r = el.offsetLeft + el.offsetWidth;
+                var b = el.offsetTop + el.offsetHeight;
+                if (r > descMaxRight) descMaxRight = r;
+                if (b > descMaxBottom) descMaxBottom = b;
+            });
+            if (descMaxRight > 0) {
+                descContainer.style.width = Math.max(descContainer.clientWidth, descMaxRight + 20) + 'px';
+                descContainer.style.height = Math.max(descContainer.clientHeight, descMaxBottom + 20) + 'px';
             }
-        }
+
+            // Centre ancestor block above the root couple in the descendant tree
+            if (ancContainerWidth > 0) {
+                var ancContainer = document.getElementById('treept-anc-container');
+                var rootEl = descContainer.querySelector('.treept-root');
+                if (rootEl && ancContainer) {
+                    // Walk up to the Treant .node wrapper for the correct absolute position
+                    var nodeEl = rootEl.closest('.node') || rootEl;
+                    var rootCentreX = nodeEl.offsetLeft + nodeEl.offsetWidth / 2;
+                    var offset = rootCentreX - ancContainerWidth / 2;
+
+                    if (offset >= 0) {
+                        ancContainer.style.marginLeft = offset + 'px';
+                        ancContainer.style.marginRight = '0px';
+                    } else {
+                        // Ancestors wider than space left of root: shift desc tree right
+                        ancContainer.style.marginLeft = '0px';
+                        ancContainer.style.marginRight = '0px';
+                        descContainer.style.marginLeft = (-offset) + 'px';
+                        var curW = parseFloat(descContainer.style.width) || descContainer.clientWidth;
+                        descContainer.style.width = (curW + (-offset)) + 'px';
+                    }
+                }
+            }
+        }, 100);
     })();
 
 })();
