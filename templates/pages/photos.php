@@ -89,6 +89,7 @@ $navStmt->execute($navParams);
 $_SESSION['photo_nav_list'] = $navStmt->fetchAll(\PDO::FETCH_COLUMN, 0);
 $_SESSION['photo_nav_per_page'] = $perPage;
 $_SESSION['photo_nav_folder'] = $folderId;
+unset($_SESSION['photo_nav_gallery_url']);
 
 // Virtual folders (from DB)
 $fStmt = $pdo->prepare(

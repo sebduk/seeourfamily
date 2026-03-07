@@ -57,14 +57,18 @@ if ($navList) {
     }
 }
 // Compute gallery URL pointing to the page that contains this photo
-$navPerPage = $_SESSION['photo_nav_per_page'] ?? 50;
-$navFolder  = $_SESSION['photo_nav_folder'] ?? null;
-$galleryPage = ($pos !== false && $navPerPage > 0) ? (int)floor($pos / $navPerPage) + 1 : 1;
-$galleryQs = [];
-if ($navFolder !== null) $galleryQs['folder'] = $navFolder;
-if ($navPerPage !== 50) $galleryQs['pp'] = $navPerPage;
-if ($galleryPage > 1) $galleryQs['page'] = $galleryPage;
-$galleryUrl = '/photos' . ($galleryQs ? '?' . http_build_query($galleryQs) : '');
+if (!empty($_SESSION['photo_nav_gallery_url'])) {
+    $galleryUrl = $_SESSION['photo_nav_gallery_url'];
+} else {
+    $navPerPage = $_SESSION['photo_nav_per_page'] ?? 50;
+    $navFolder  = $_SESSION['photo_nav_folder'] ?? null;
+    $galleryPage = ($pos !== false && $navPerPage > 0) ? (int)floor($pos / $navPerPage) + 1 : 1;
+    $galleryQs = [];
+    if ($navFolder !== null) $galleryQs['folder'] = $navFolder;
+    if ($navPerPage !== 50) $galleryQs['pp'] = $navPerPage;
+    if ($galleryPage > 1) $galleryQs['page'] = $galleryPage;
+    $galleryUrl = '/photos' . ($galleryQs ? '?' . http_build_query($galleryQs) : '');
+}
 
 // Date formatting
 $dateStr = '';
