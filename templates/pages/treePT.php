@@ -661,29 +661,9 @@ $jsonData = json_encode([
 
         new Treant(config);
 
-        // Equalize node heights, measure tree bounds, then centre ancestors
+        // Measure tree bounds, then centre ancestors
         setTimeout(function() {
             var descContainer = document.getElementById('treept-desc-container');
-
-            var allNodes = descContainer.querySelectorAll('.treept-couple, .treept-single');
-            var byRow = {};
-            allNodes.forEach(function(el) {
-                // Group by approximate top position (same generation)
-                var bucket = Math.round(el.offsetTop / 5) * 5;
-                if (!byRow[bucket]) byRow[bucket] = [];
-                byRow[bucket].push(el);
-            });
-            Object.keys(byRow).forEach(function(key) {
-                var group = byRow[key];
-                if (group.length <= 1) return;
-                var maxH = 0;
-                group.forEach(function(el) { maxH = Math.max(maxH, el.offsetHeight); });
-                group.forEach(function(el) {
-                    if (el.offsetHeight < maxH) {
-                        el.style.height = maxH + 'px';
-                    }
-                });
-            });
 
             // Measure actual descendant tree bounds from Treant .node wrappers
             var nodeEls = descContainer.querySelectorAll('.node');
