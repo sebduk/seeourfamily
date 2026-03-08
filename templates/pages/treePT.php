@@ -236,9 +236,9 @@ $jsonData = json_encode([
     <div id="treept-desc-container"></div>
 </div>
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/treant-js/1.0/Treant.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/raphael/2.3.0/raphael.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/treant-js/1.0/Treant.min.js"></script>
+<link rel="stylesheet" href="/js/vendor/Treant.css">
+<script src="/js/vendor/raphael.min.js"></script>
+<script src="/js/vendor/Treant.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsPlumb/2.15.6/js/jsplumb.min.js"></script>
 <script>
 (function() {
@@ -560,6 +560,7 @@ $jsonData = json_encode([
                 chart: {
                     container: '#treept-desc-container',
                     rootOrientation: 'NORTH',
+                    nodeAlign: 'BOTTOM',
                     levelSeparation: 50,
                     siblingSeparation: 25,
                     subTeeSeparation: 35,
@@ -643,6 +644,7 @@ $jsonData = json_encode([
             chart: {
                 container: '#treept-desc-container',
                 rootOrientation: 'NORTH',
+                nodeAlign: 'BOTTOM',
                 levelSeparation: 50,
                 siblingSeparation: 25,
                 subTeeSeparation: 35,
