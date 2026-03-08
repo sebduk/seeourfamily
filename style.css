@@ -425,6 +425,8 @@ hr { border: none; border-top: 1px solid #666; }
     position: relative;
     z-index: 1;
     margin: 0 auto;
+    background: rgba(255, 0, 0, 0.1);
+    border: 2px dashed red;
 }
 /* Keep jsPlumb SVG connectors inside the ancestor stacking context */
 #treept-anc-container svg {
@@ -435,6 +437,8 @@ hr { border: none; border-top: 1px solid #666; }
     z-index: 2;
     min-width: 100%;
     min-height: 100%;
+    background: rgba(0, 0, 255, 0.1);
+    border: 2px dashed blue;
 }
 /* Override Treant.css defaults for treePT */
 #treept-desc-container .node {
