@@ -667,14 +667,34 @@ $jsonData = json_encode([
 
             // Measure actual descendant tree bounds from Treant .node wrappers
             var nodeEls = descContainer.querySelectorAll('.node');
+            var descMinTop = Infinity;
             var descMaxRight = 0;
             var descMaxBottom = 0;
             nodeEls.forEach(function(el) {
+                var t = el.offsetTop;
+                if (t < descMinTop) descMinTop = t;
                 var r = el.offsetLeft + el.offsetWidth;
                 var b = el.offsetTop + el.offsetHeight;
                 if (r > descMaxRight) descMaxRight = r;
                 if (b > descMaxBottom) descMaxBottom = b;
             });
+
+            // If any nodes overflow above the container, shift them all down
+            var PAD = 20;
+            if (descMinTop < PAD && nodeEls.length > 0) {
+                var shiftY = PAD - descMinTop;
+                nodeEls.forEach(function(el) {
+                    el.style.top = (el.offsetTop + shiftY) + 'px';
+                });
+                descMaxBottom += shiftY;
+                // Also shift any Treant SVG/canvas connectors
+                var svgs = descContainer.querySelectorAll('svg, canvas');
+                svgs.forEach(function(sv) {
+                    var curTop = parseFloat(sv.style.top) || 0;
+                    sv.style.top = (curTop + shiftY) + 'px';
+                });
+            }
+
             if (descMaxRight > 0) {
                 descContainer.style.width = Math.max(descContainer.clientWidth, descMaxRight + 20) + 'px';
                 descContainer.style.height = Math.max(descContainer.clientHeight, descMaxBottom + 20) + 'px';
