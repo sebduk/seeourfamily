@@ -268,15 +268,15 @@ $jsonData = json_encode([
     var couplesById = {};
     DATA.couples.forEach(function(c) { couplesById[c.id] = c; });
 
-    // Find the root couple (first couple containing rootId)
-    var rootCoupleId = null;
+    // Find ALL couples the root person belongs to (multiple marriages)
+    var rootCoupleIds = [];
     for (var i = 0; i < DATA.couples.length; i++) {
         var c = DATA.couples[i];
         if (c.p1 === DATA.rootId || c.p2 === DATA.rootId) {
-            rootCoupleId = c.id;
-            break;
+            rootCoupleIds.push(c.id);
         }
     }
+    var rootCoupleId = rootCoupleIds.length > 0 ? rootCoupleIds[0] : null;
 
     // Build child→parentCouple index
     var isChildOf = {};
@@ -349,15 +349,23 @@ $jsonData = json_encode([
     (function renderAncestors() {
         var ancContainer = document.getElementById('treept-anc-container');
 
-        // Only render ancestors if the root person has a parent couple
-        if (!rootCoupleId) return;
+        // Gather unique parent couples from ALL root couples (multiple marriages)
+        if (rootCoupleIds.length === 0) return;
 
-        var rootCouple = couplesById[rootCoupleId];
-        if (!rootCouple) return;
-
-        var p1Parent = DATA.parentCouple[rootCouple.p1];
-        var p2Parent = DATA.parentCouple[rootCouple.p2];
-        if (!p1Parent && !p2Parent) return; // No ancestors to show
+        var parentBranches = [];
+        var seenPC = {};
+        rootCoupleIds.forEach(function(cid) {
+            var couple = couplesById[cid];
+            if (!couple) return;
+            [couple.p1, couple.p2].forEach(function(pid) {
+                var pcid = DATA.parentCouple[pid];
+                if (pcid && !seenPC[pcid]) {
+                    seenPC[pcid] = true;
+                    parentBranches.push(pcid);
+                }
+            });
+        });
+        if (parentBranches.length === 0) return; // No ancestors to show
 
         var NODE_W = 160;
         var NODE_H = 60;
@@ -443,11 +451,10 @@ $jsonData = json_encode([
             }
         }
 
-        // Layout each parent branch
-        var p1AncW = p1Parent ? ancestorSubtreeWidth(p1Parent, {}) : 0;
-        var p2AncW = p2Parent ? ancestorSubtreeWidth(p2Parent, {}) : 0;
-        var gap = (p1Parent && p2Parent) ? H_GAP : 0;
-        var totalW = p1AncW + gap + p2AncW;
+        // Layout each parent branch (supports N branches for multiple marriages)
+        var branchWidths = parentBranches.map(function(cid) {
+            return ancestorSubtreeWidth(cid, {});
+        });
 
         // Count max ancestor depth for height calculation
         function maxAncDepth(cid, depth, visited) {
@@ -465,18 +472,19 @@ $jsonData = json_encode([
         }
 
         var maxDepth = 0;
-        if (p1Parent) maxDepth = Math.max(maxDepth, maxAncDepth(p1Parent, 1, {}));
-        if (p2Parent) maxDepth = Math.max(maxDepth, maxAncDepth(p2Parent, 1, {}));
+        parentBranches.forEach(function(cid) {
+            maxDepth = Math.max(maxDepth, maxAncDepth(cid, 1, {}));
+        });
 
         var totalH = maxDepth * (NODE_H + V_GAP) + 20;
         var bottomY = totalH;
 
-        if (p1Parent) {
-            layoutAncestorUp(p1Parent, 0, bottomY, {});
-        }
-        if (p2Parent) {
-            layoutAncestorUp(p2Parent, p1AncW + gap, bottomY, {});
-        }
+        var xOff = 0;
+        parentBranches.forEach(function(cid, idx) {
+            layoutAncestorUp(cid, xOff, bottomY, {});
+            xOff += branchWidths[idx];
+            if (idx < parentBranches.length - 1) xOff += H_GAP;
+        });
 
         if (nodes.length === 0) return;
 
@@ -540,7 +548,7 @@ $jsonData = json_encode([
     // PART 2: DESCENDANT TREE (Treant.js, downward)
     // =====================================================================
     (function renderDescendants() {
-        if (!rootCoupleId) {
+        if (rootCoupleIds.length === 0) {
             // Single person, no couples
             var rp = DATA.people[DATA.rootId];
             if (!rp) return;
@@ -609,7 +617,23 @@ $jsonData = json_encode([
             return node;
         }
 
-        var rootNode = buildCoupleNode(rootCoupleId, {});
+        var rootNode;
+        if (rootCoupleIds.length === 1) {
+            rootNode = buildCoupleNode(rootCoupleIds[0], {});
+        } else {
+            // Multiple marriages: person node as root, each couple as a child branch
+            var rp = DATA.people[DATA.rootId];
+            rootNode = {
+                innerHTML: buildPersonHTML(rp, true),
+                HTMLclass: 'treept-single treept-root',
+                children: []
+            };
+            var visited = {};
+            rootCoupleIds.forEach(function(cid) {
+                var childNode = buildCoupleNode(cid, visited);
+                if (childNode) rootNode.children.push(childNode);
+            });
+        }
         if (!rootNode) {
             document.getElementById('treept-desc-container').innerHTML = '<p>No tree data available.</p>';
             return;
