@@ -327,7 +327,7 @@ $jsonData = json_encode([
         var botP = partners[1];
         var isTopRoot = topP && topP.id === DATA.rootId;
         var isBotRoot = botP && botP.id === DATA.rootId;
-        var wy = couple.wy ? '<span class="treept-wy">' + esc(couple.wy) + '</span>' : '';
+        var wy = '<span class="treept-wy">' + (couple.wy ? esc(couple.wy) : '&nbsp;') + '</span>';
         var html = '<div class="treept-couple-inner">';
         if (topP) html += '<div class="treept-partner">' + personLine(topP, isTopRoot) + '</div>';
         html += wy;
