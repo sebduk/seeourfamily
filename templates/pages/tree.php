@@ -208,10 +208,9 @@ if ($coupleId) {
     <?php endif; ?>
     <br>
     <span class="nav-links">
-        <a href="/treeP/<?= h($personUuid) ?>"><?= $L['tree_person'] ?? 'Full Tree' ?></a> .
+        <a href="/treeDo/<?= h($personUuid) ?>"><?= $L['tree_donut'] ?? 'Donut' ?></a> .
         <a href="/treeT/<?= h($personUuid) ?>"><?= $L['tree_timeline'] ?? 'Timeline' ?></a> .
-        <a href="/treeTr/<?= h($personUuid) ?>"><?= $L['tree_treant'] ?? 'Treant' ?></a> .
-        <a href="/treePT/<?= h($personUuid) ?>"><?= $L['tree_hybrid'] ?? 'Hybrid' ?></a>
+        <a href="/treeTr/<?= h($personUuid) ?>"><?= $L['tree_treant'] ?? 'Treant' ?></a>
     </span>
 </div>
 

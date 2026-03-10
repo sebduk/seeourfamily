@@ -42,6 +42,7 @@ return [
     'tree_timeline'    => 'Chronologie',
     'tree_treant'      => 'Treant',
     'tree_hybrid'      => 'Hybride',
+    'tree_donut'       => 'Donatso',
     'tree_priority'    => 'Priorité',
     'tree_priority_family' => 'Famille',
     'tree_priority_patriarchal' => 'Patriarcale',

@@ -40,6 +40,7 @@ return [
     'tree_timeline'    => 'Timeline',
     'tree_treant'      => 'Treant',
     'tree_hybrid'      => 'Hybrid',
+    'tree_donut'       => 'Donut',
     'tree_priority'    => 'Priority',
     'tree_priority_family'      => 'Family',
     'tree_priority_patriarchal' => 'Patriarchal',

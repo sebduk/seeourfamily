@@ -551,6 +551,35 @@ hr { border: none; border-top: 1px solid #666; }
 }
 .treet-self { background: #ffffdd; }
 
+/* ============================================================
+ * PATTERN 4e: DONUT / FAN CHART TREE (treeDo)
+ * Radial ancestor chart rendered on HTML5 Canvas
+ * ============================================================ */
+#treedo-wrap {
+    position: relative;
+    overflow: auto;
+    border: 1px solid #ddd;
+    background: #fcfcfc;
+    min-height: 300px;
+    text-align: center;
+    padding: 20px;
+}
+#treedo-canvas {
+    display: inline-block;
+}
+.treedo-tooltip {
+    display: none;
+    position: absolute;
+    background: rgba(0, 0, 0, 0.85);
+    color: #fff;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    line-height: 1.4;
+    pointer-events: none;
+    z-index: 100;
+    white-space: nowrap;
+}
 
 /* ============================================================
  * PATTERN 5: PERSON BIO (CSS GRID)

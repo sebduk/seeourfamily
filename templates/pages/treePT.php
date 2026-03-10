@@ -219,7 +219,7 @@ $jsonData = json_encode([
     <?= $L['tree_hybrid'] ?? 'Hybrid' ?>
     <span class="nav-links">|
         <a href="/tree/<?= h($person['uuid']) ?>"><?= $L['classic'] ?></a> .
-        <a href="/treeP/<?= h($person['uuid']) ?>"><?= $L['tree_person'] ?? 'Full Tree' ?></a> .
+        <a href="/treeDo/<?= h($person['uuid']) ?>"><?= $L['tree_donut'] ?? 'Donut' ?></a> .
         <a href="/treeT/<?= h($person['uuid']) ?>"><?= $L['tree_timeline'] ?? 'Timeline' ?></a> .
         <a href="/treeTr/<?= h($person['uuid']) ?>"><?= $L['tree_treant'] ?? 'Treant' ?></a>
     </span>
