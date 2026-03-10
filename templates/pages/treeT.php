@@ -293,6 +293,7 @@ unset($people);
     — <?= count($collected) ?> <?= strtolower($L['individuals']) ?>
     <span class="nav-links">|
         <a href="/tree/<?= h($person['uuid']) ?>"><?= $L['classic'] ?></a> .
+        <a href="/treeFC/<?= h($person['uuid']) ?>"><?= $L['tree_fc'] ?? 'Family Chart' ?></a> .
         <a href="/treeDo/<?= h($person['uuid']) ?>"><?= $L['tree_donut'] ?? 'Donut' ?></a> .
         <a href="/treeTr/<?= h($person['uuid']) ?>"><?= $L['tree_treant'] ?? 'Treant' ?></a>
     </span>

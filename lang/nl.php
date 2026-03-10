@@ -36,6 +36,7 @@ return [
     'tree_timeline'    => 'Tijdlijn',
     'tree_treant'      => 'Treant',
     'tree_hybrid'      => 'Hybride',
+    'tree_fc'          => 'Stamboom',
     'tree_priority'    => 'Prioriteit',
     'tree_priority_family' => 'Familie',
     'tree_priority_patriarchal' => 'Patriarchaal',

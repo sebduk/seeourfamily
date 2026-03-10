@@ -36,6 +36,7 @@ return [
     'tree_timeline'    => 'Cronologia',
     'tree_treant'      => 'Treant',
     'tree_hybrid'      => 'Ibrido',
+    'tree_fc'          => 'Albero Familiare',
     'tree_priority'    => 'Priorità',
     'tree_priority_family' => 'Famiglia',
     'tree_priority_patriarchal' => 'Patriarcale',

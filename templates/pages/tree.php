@@ -208,6 +208,7 @@ if ($coupleId) {
     <?php endif; ?>
     <br>
     <span class="nav-links">
+        <a href="/treeFC/<?= h($personUuid) ?>"><?= $L['tree_fc'] ?? 'Family Chart' ?></a> .
         <a href="/treeDo/<?= h($personUuid) ?>"><?= $L['tree_donut'] ?? 'Donut' ?></a> .
         <a href="/treeT/<?= h($personUuid) ?>"><?= $L['tree_timeline'] ?? 'Timeline' ?></a> .
         <a href="/treeTr/<?= h($personUuid) ?>"><?= $L['tree_treant'] ?? 'Treant' ?></a>

@@ -41,6 +41,7 @@ return [
     'tree_treant'      => 'Treant',
     'tree_hybrid'      => 'Hybrid',
     'tree_donut'       => 'Donut',
+    'tree_fc'          => 'Family Chart',
     'tree_priority'    => 'Priority',
     'tree_priority_family'      => 'Family',
     'tree_priority_patriarchal' => 'Patriarchal',

@@ -36,6 +36,7 @@ return [
     'tree_timeline'    => 'Zeitleiste',
     'tree_treant'      => 'Treant',
     'tree_hybrid'      => 'Hybrid',
+    'tree_fc'          => 'Stammbaum',
     'tree_priority'    => 'Priorität',
     'tree_priority_family' => 'Familie',
     'tree_priority_patriarchal' => 'Patriarchalisch',
