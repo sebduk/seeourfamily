@@ -251,11 +251,11 @@ $jsonMainId = json_encode((string)$personId, JSON_HEX_TAG);
     </span>
 </div>
 
-<link rel="stylesheet" href="https://esm.sh/family-chart@0.9.0/dist/styles/family-chart.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/family-chart@0.9.0/dist/styles/family-chart.css">
 <div class="f3" id="FamilyChart"></div>
 
 <script type="module">
-import f3 from 'https://esm.sh/family-chart@0.9.0';
+import * as f3 from 'https://esm.sh/family-chart@0.9.0';
 
 (function() {
     'use strict';
