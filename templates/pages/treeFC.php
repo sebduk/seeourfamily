@@ -251,7 +251,7 @@ $jsonMainId = json_encode((string)$personId, JSON_HEX_TAG);
     </span>
 </div>
 
-<link rel="stylesheet" href="https://esm.sh/family-chart@0.9.0/styles/family-chart.css">
+<link rel="stylesheet" href="https://esm.sh/family-chart@0.9.0/dist/styles/family-chart.css">
 <div class="f3" id="FamilyChart"></div>
 
 <script type="module">
@@ -268,13 +268,19 @@ import f3 from 'https://esm.sh/family-chart@0.9.0';
         return;
     }
 
+    // Mark the main/central person in the data
+    DATA.forEach(function(d) {
+        if (d.id === MAIN_ID) {
+            d.main = true;
+        }
+    });
+
     // Create the chart
     var f3Chart = f3.createChart('#FamilyChart', DATA)
-        .setTransitionTime(800)
-        .setMainId(MAIN_ID);
+        .setTransitionTime(800);
 
     // Configure card display
-    var f3Card = f3Chart.setCard(f3.CardHtml)
+    var f3Card = f3Chart.setCardHtml()
         .setCardDisplay([['first name', 'last name'], ['birthday']]);
 
     // Click handler: navigate to that person's tree
