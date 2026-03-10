@@ -255,7 +255,7 @@ $jsonMainId = json_encode((string)$personId, JSON_HEX_TAG);
 <div class="f3" id="FamilyChart"></div>
 
 <script type="module">
-import * as f3 from 'https://esm.sh/family-chart@0.9.0';
+import f3 from 'https://esm.sh/family-chart@0.9.0';
 
 (function() {
     'use strict';
@@ -274,7 +274,7 @@ import * as f3 from 'https://esm.sh/family-chart@0.9.0';
         .setMainId(MAIN_ID);
 
     // Configure card display
-    var f3Card = f3Chart.setCardHtml()
+    var f3Card = f3Chart.setCard(f3.CardHtml)
         .setCardDisplay([['first name', 'last name'], ['birthday']]);
 
     // Click handler: navigate to that person's tree
