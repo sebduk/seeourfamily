@@ -593,9 +593,15 @@ hr { border: none; border-top: 1px solid #666; }
     border: 2px solid #b9b9b9;
 }
 
-/* Dark-on-light overrides for family-chart links & cards */
+/* Dark-on-light overrides for family-chart links & cards
+ * CDN family-chart.css loads AFTER style.css (inline in treeFC.php),
+ * so !important is needed to beat its stroke:#fff / stroke:currentColor. */
 #FamilyChart .f3 svg.main_svg {
     color: #535353;
+}
+#FamilyChart .f3 .link path,
+#FamilyChart .f3 path.link {
+    stroke: #535353 !important;
 }
 #FamilyChart .card-male .card-body-rect,
 #FamilyChart .card-male .text-overflow-mask {
