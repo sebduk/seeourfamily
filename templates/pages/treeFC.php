@@ -219,15 +219,22 @@ foreach ($fcPeople as $pid => $p) {
     ];
 
     if (!empty($personSpouses[$pid])) {
-        $node['rels']['spouses'] = array_values(array_unique(array_map('strval', $personSpouses[$pid])));
+        $spouses = array_filter(array_unique($personSpouses[$pid]), fn($id) => isset($fcPeople[$id]));
+        if ($spouses) $node['rels']['spouses'] = array_values(array_map('strval', $spouses));
     }
     if (!empty($personChildren[$pid])) {
-        $node['rels']['children'] = array_values(array_unique(array_map('strval', $personChildren[$pid])));
+        $children = array_filter(array_unique($personChildren[$pid]), fn($id) => isset($fcPeople[$id]));
+        if ($children) $node['rels']['children'] = array_values(array_map('strval', $children));
     }
     if (!empty($personParents[$pid])) {
-        $unique = array_values(array_unique(array_map('strval', $personParents[$pid])));
+        $parents = array_filter(array_unique($personParents[$pid]), fn($id) => isset($fcPeople[$id]));
         // family-chart expects max 2 parents
-        $node['rels']['parents'] = array_slice($unique, 0, 2);
+        if ($parents) $node['rels']['parents'] = array_values(array_map('strval', array_slice($parents, 0, 2)));
+    }
+
+    // Ensure rels serialises as a JSON object (not array) even when empty
+    if (empty($node['rels'])) {
+        $node['rels'] = new \stdClass();
     }
 
     $fcData[] = $node;
