@@ -1,13 +1,12 @@
 <?php
 
 /**
- * Donut / Fan-chart family tree.
+ * Descendant Donut / Fan-chart.
  *
- * Renders ancestors as concentric semicircular arcs (fan chart / donut chart).
- * The central person is in the middle; each generation forms a ring outward.
- * Clicking a segment navigates to that person's tree.
- *
- * Data collection reuses the same recursive ancestor pattern as tree.php.
+ * Renders descendants as concentric arcs radiating outward from a central person.
+ * Angular space is proportional to total descendant count (a branch with many
+ * descendants gets more room). Remarriage means a person may appear in multiple
+ * branches with separate angular portions.
  *
  * Available from index.php: $db, $auth, $router, $family, $L, $isLoggedIn
  */
@@ -30,39 +29,111 @@ if ($personUuid !== '' && !ctype_digit($personUuid)) {
 }
 
 // =========================================================================
-// DATA: Collect ancestors recursively (fan chart shows ancestors outward)
+// DATA: Collect descendants recursively into a JSON tree
 // =========================================================================
 
-$treeDoAncestors = []; // gen => [pos => {id, uuid, fn, ln, birth, death}]
-
-function treeDoCollectAncestors(PDO $pdo, int $fid, int $personId, int $gen, int $pos, array &$result, int $maxDepth = 8): void
+/**
+ * Find all couples for a person.
+ */
+function treeDoDescCouples(PDO $pdo, int $fid, int $personId): array
 {
-    if ($gen > $maxDepth) return;
     $stmt = $pdo->prepare(
-        'SELECT p.couple_id, c.id AS cid,
+        'SELECT c.id AS couple_id,
                 p1.id AS p1_id, p1.uuid AS p1_uuid, p1.first_name AS p1_fn, p1.last_name AS p1_ln,
                 IFNULL(DATE_FORMAT(p1.birth_date, "%Y"), "") AS p1_birth,
                 IFNULL(DATE_FORMAT(p1.death_date, "%Y"), "") AS p1_death,
                 p2.id AS p2_id, p2.uuid AS p2_uuid, p2.first_name AS p2_fn, p2.last_name AS p2_ln,
                 IFNULL(DATE_FORMAT(p2.birth_date, "%Y"), "") AS p2_birth,
                 IFNULL(DATE_FORMAT(p2.death_date, "%Y"), "") AS p2_death
-         FROM people p
-         JOIN couples c  ON c.id = p.couple_id AND c.family_id = ?
-         JOIN people  p1 ON c.person1_id = p1.id
-         JOIN people  p2 ON c.person2_id = p2.id
-         WHERE p.id = ? AND p.family_id = ?'
+         FROM couples c
+         JOIN people p1 ON c.person1_id = p1.id
+         JOIN people p2 ON c.person2_id = p2.id
+         WHERE (c.person1_id = ? OR c.person2_id = ?) AND c.family_id = ?
+         ORDER BY c.start_date'
     );
-    $stmt->execute([$fid, $personId, $fid]);
-    $row = $stmt->fetch();
-    if (!$row) return;
+    $stmt->execute([$personId, $personId, $fid]);
+    return $stmt->fetchAll();
+}
 
-    $fatherPos = $pos * 2;
-    $motherPos = $pos * 2 + 1;
-    $result[$gen][$fatherPos] = ['id' => (int)$row['p1_id'], 'uuid' => $row['p1_uuid'], 'fn' => $row['p1_fn'], 'ln' => $row['p1_ln'], 'birth' => $row['p1_birth'], 'death' => $row['p1_death']];
-    $result[$gen][$motherPos] = ['id' => (int)$row['p2_id'], 'uuid' => $row['p2_uuid'], 'fn' => $row['p2_fn'], 'ln' => $row['p2_ln'], 'birth' => $row['p2_birth'], 'death' => $row['p2_death']];
+/**
+ * Find children of a couple.
+ */
+function treeDoDescChildren(PDO $pdo, int $fid, int $coupleId): array
+{
+    $stmt = $pdo->prepare(
+        'SELECT id, uuid, first_name, last_name,
+                IFNULL(DATE_FORMAT(birth_date, "%Y"), "") AS birth,
+                IFNULL(DATE_FORMAT(death_date, "%Y"), "") AS death
+         FROM people WHERE couple_id = ? AND family_id = ? ORDER BY couple_sort'
+    );
+    $stmt->execute([$coupleId, $fid]);
+    return $stmt->fetchAll();
+}
 
-    treeDoCollectAncestors($pdo, $fid, (int)$row['p1_id'], $gen + 1, $fatherPos, $result, $maxDepth);
-    treeDoCollectAncestors($pdo, $fid, (int)$row['p2_id'], $gen + 1, $motherPos, $result, $maxDepth);
+/**
+ * Build a recursive descendant tree. Returns a node with:
+ *   id, uuid, fn, ln, birth, death, unions: [ {spouse: {...}, children: [node, ...]} ]
+ * Also sets 'descCount' = total number of leaf descendants (minimum 1 for leaves).
+ */
+function treeDoDescBuild(PDO $pdo, int $fid, int $personId, int $depth = 0, int $maxDepth = 12): ?array
+{
+    if ($depth > $maxDepth) return null;
+
+    $stmt = $pdo->prepare(
+        'SELECT id, uuid, first_name, last_name,
+                IFNULL(DATE_FORMAT(birth_date, "%Y"), "") AS birth,
+                IFNULL(DATE_FORMAT(death_date, "%Y"), "") AS death
+         FROM people WHERE id = ? AND family_id = ?'
+    );
+    $stmt->execute([$personId, $fid]);
+    $person = $stmt->fetch();
+    if (!$person) return null;
+
+    $node = [
+        'id' => (int)$person['id'],
+        'uuid' => $person['uuid'],
+        'fn' => $person['first_name'],
+        'ln' => $person['last_name'],
+        'birth' => $person['birth'],
+        'death' => $person['death'],
+        'unions' => [],
+        'descCount' => 0,
+    ];
+
+    $couples = treeDoDescCouples($pdo, $fid, $personId);
+    foreach ($couples as $c) {
+        $spouseId = ((int)$c['p1_id'] === $personId) ? (int)$c['p2_id'] : (int)$c['p1_id'];
+        $spouseData = ((int)$c['p1_id'] === $personId)
+            ? ['id' => (int)$c['p2_id'], 'uuid' => $c['p2_uuid'], 'fn' => $c['p2_fn'], 'ln' => $c['p2_ln'], 'birth' => $c['p2_birth'], 'death' => $c['p2_death']]
+            : ['id' => (int)$c['p1_id'], 'uuid' => $c['p1_uuid'], 'fn' => $c['p1_fn'], 'ln' => $c['p1_ln'], 'birth' => $c['p1_birth'], 'death' => $c['p1_death']];
+
+        $children = treeDoDescChildren($pdo, $fid, (int)$c['couple_id']);
+        $childNodes = [];
+        $unionDescCount = 0;
+        foreach ($children as $child) {
+            $childNode = treeDoDescBuild($pdo, $fid, (int)$child['id'], $depth + 1, $maxDepth);
+            if ($childNode) {
+                $childNodes[] = $childNode;
+                $unionDescCount += $childNode['descCount'];
+            }
+        }
+        // If no children, this union still counts as 1 (the couple itself is a leaf)
+        if ($unionDescCount === 0) $unionDescCount = 1;
+
+        $node['unions'][] = [
+            'spouse' => $spouseData,
+            'children' => $childNodes,
+            'descCount' => $unionDescCount,
+        ];
+        $node['descCount'] += $unionDescCount;
+    }
+
+    // A person with no unions is a leaf, counts as 1
+    if (empty($node['unions'])) {
+        $node['descCount'] = 1;
+    }
+
+    return $node;
 }
 
 // Central person
@@ -83,42 +154,9 @@ if (!$centralPerson) {
 $personName = $centralPerson['first_name'] . ' ' . $centralPerson['last_name'];
 $personUuid = $centralPerson['uuid'];
 
-// Collect all ancestors
-treeDoCollectAncestors($pdo, $fid, $personId, 1, 0, $treeDoAncestors);
+$tree = treeDoDescBuild($pdo, $fid, $personId);
 
-$maxGen = !empty($treeDoAncestors) ? max(array_keys($treeDoAncestors)) : 0;
-
-// Build JSON for the fan chart
-$jsonRoot = [
-    'id' => (int)$centralPerson['id'],
-    'uuid' => $centralPerson['uuid'],
-    'fn' => $centralPerson['first_name'],
-    'ln' => $centralPerson['last_name'],
-    'birth' => $centralPerson['birth'],
-    'death' => $centralPerson['death'],
-];
-
-$jsonAncestors = [];
-foreach ($treeDoAncestors as $gen => $positions) {
-    foreach ($positions as $pos => $person) {
-        $jsonAncestors[] = [
-            'gen' => $gen,
-            'pos' => $pos,
-            'id' => $person['id'],
-            'uuid' => $person['uuid'],
-            'fn' => $person['fn'],
-            'ln' => $person['ln'],
-            'birth' => $person['birth'],
-            'death' => $person['death'],
-        ];
-    }
-}
-
-$jsonData = json_encode([
-    'root' => $jsonRoot,
-    'ancestors' => $jsonAncestors,
-    'maxGen' => $maxGen,
-], JSON_HEX_TAG | JSON_HEX_AMP);
+$jsonData = json_encode($tree, JSON_HEX_TAG | JSON_HEX_AMP);
 
 // =========================================================================
 // NAVIGATION BAR
@@ -126,10 +164,11 @@ $jsonData = json_encode([
 ?>
 <div class="tree-nav">
     <strong><?= h($personName) ?></strong>
-    <?= $L['tree_donut'] ?? 'Donut' ?>
+    <?= $L['tree_donut_desc'] ?? 'Descendant Fan' ?>
     <span class="nav-links">|
         <a href="/tree/<?= h($personUuid) ?>"><?= $L['classic'] ?></a> .
-        <a href="/treeDoDesc/<?= h($personUuid) ?>"><?= $L['tree_donut_desc'] ?? 'Descendant Fan' ?></a> .
+        <a href="/treeDo/<?= h($personUuid) ?>"><?= $L['tree_donut'] ?? 'Donut' ?></a> .
+        <a href="/descendants/<?= h($personUuid) ?>"><?= $L['full_descendance'] ?></a> .
         <a href="/treeFC/<?= h($personUuid) ?>"><?= $L['tree_fc'] ?? 'Family Chart' ?></a> .
         <a href="/treeT/<?= h($personUuid) ?>"><?= $L['tree_timeline'] ?? 'Timeline' ?></a> .
         <a href="/treeTr/<?= h($personUuid) ?>"><?= $L['tree_treant'] ?? 'Treant' ?></a>
@@ -153,94 +192,107 @@ $jsonData = json_encode([
     // =====================================================================
     // CONFIGURATION
     // =====================================================================
-    var CENTER_RADIUS = 60;     // Radius of the central person circle
-    var RING_WIDTH    = 55;     // Width of each ancestor ring
-    var GAP           = 2;      // Gap between segments (in pixels)
-    var START_ANGLE   = -Math.PI;  // Full circle: -PI to PI (left to left)
+    var CENTER_RADIUS = 60;     // Central person circle radius
+    var RING_WIDTH    = 55;     // Width of each generation ring
+    var GAP           = 2;      // Gap between segments (pixels)
+    var START_ANGLE   = -Math.PI;
     var END_ANGLE     = Math.PI;
+    var TOTAL_ANGLE   = END_ANGLE - START_ANGLE;
 
-    // Generation colour palette (soft pastels)
-    var COLORS = [
-        '#e8f0fe',  // gen 0 (root) - light blue
-        '#d4e4fc',  // gen 1 - parents
-        '#b8d4f0',  // gen 2 - grandparents
-        '#f0e0c8',  // gen 3 - great-grandparents
+    // Generation colour palette
+    var GEN_COLORS = [
+        '#e8f0fe',  // gen 0 (root)
+        '#d4e4fc',  // gen 1
+        '#b8d4f0',  // gen 2
+        '#f0e0c8',  // gen 3
         '#e8d0b0',  // gen 4
         '#d8c8b0',  // gen 5
         '#c8e0c8',  // gen 6
         '#b8d8b8',  // gen 7
         '#d8c8d8',  // gen 8
-    ];
-
-    var MALE_COLORS = [
-        '#e8f0fe',
-        '#c8daf8',
-        '#a8c4f0',
-        '#d8d0b8',
-        '#c8c0a8',
-        '#b8b898',
-        '#a8c8a8',
-        '#98b898',
-        '#b8a8b8',
-    ];
-
-    var FEMALE_COLORS = [
-        '#fce8f0',
-        '#f0d0e0',
-        '#e8c0d0',
-        '#f0d8c8',
-        '#e8c8b0',
-        '#d8b8a0',
-        '#c8d8c8',
-        '#b8c8b8',
-        '#d0c0d0',
+        '#c8b8c8',  // gen 9
+        '#b8c8d8',  // gen 10
+        '#d8d8b8',  // gen 11
+        '#c8d8c8',  // gen 12
     ];
 
     // =====================================================================
-    // BUILD SEGMENT DATA
+    // FLATTEN TREE INTO SEGMENTS
     // =====================================================================
-    var segments = []; // {gen, pos, startAngle, endAngle, innerR, outerR, person, color}
+    // Each segment: {gen, startAngle, endAngle, innerR, outerR, person, color, isSpouse}
+    var segments = [];
+    var maxGenSeen = 0;
 
-    var maxGen = DATA.maxGen || 0;
-    var totalAngle = END_ANGLE - START_ANGLE;
+    /**
+     * Recursively lay out a person's descendants.
+     * @param {Object} node - tree node with unions/children
+     * @param {number} gen - generation depth (0 = root)
+     * @param {number} aStart - start angle for this node's allocation
+     * @param {number} aEnd - end angle for this node's allocation
+     */
+    function layoutNode(node, gen, aStart, aEnd) {
+        if (gen > maxGenSeen) maxGenSeen = gen;
 
-    // Index ancestors by gen+pos
-    var ancestorIndex = {};
-    DATA.ancestors.forEach(function(a) {
-        if (!ancestorIndex[a.gen]) ancestorIndex[a.gen] = {};
-        ancestorIndex[a.gen][a.pos] = a;
-    });
-
-    // Build segments for each generation
-    for (var gen = 1; gen <= maxGen; gen++) {
-        var slotsAtGen = Math.pow(2, gen);
-        var anglePerSlot = totalAngle / slotsAtGen;
-        var innerR = CENTER_RADIUS + (gen - 1) * RING_WIDTH;
+        var innerR = CENTER_RADIUS + gen * RING_WIDTH;
         var outerR = innerR + RING_WIDTH;
+        var color = GEN_COLORS[gen % GEN_COLORS.length] || '#ddd';
 
-        for (var pos = 0; pos < slotsAtGen; pos++) {
-            var sa = START_ANGLE + pos * anglePerSlot;
-            var ea = sa + anglePerSlot;
-            var person = (ancestorIndex[gen] && ancestorIndex[gen][pos]) ? ancestorIndex[gen][pos] : null;
-            // Even positions = father (male), odd = mother (female)
-            var isFemale = (pos % 2 === 1);
-            var color = person
-                ? (isFemale ? FEMALE_COLORS[gen] || '#ddd' : MALE_COLORS[gen] || '#ddd')
-                : '#f0f0f0';
+        // Add segment for this person (skip gen 0, drawn as center circle)
+        if (gen > 0) {
             segments.push({
-                gen: gen, pos: pos,
-                startAngle: sa, endAngle: ea,
-                innerR: innerR, outerR: outerR,
-                person: person, color: color,
-                isFemale: isFemale
+                gen: gen,
+                startAngle: aStart,
+                endAngle: aEnd,
+                innerR: innerR,
+                outerR: outerR,
+                person: node,
+                color: color,
+                isSpouse: false
             });
         }
+
+        // If no unions, this is a leaf — nothing more to draw
+        if (!node.unions || node.unions.length === 0) return;
+
+        // Distribute angular space among unions proportionally
+        var totalDesc = node.descCount || 1;
+        var cursor = aStart;
+
+        for (var u = 0; u < node.unions.length; u++) {
+            var union = node.unions[u];
+            var unionAngle = (union.descCount / totalDesc) * (aEnd - aStart);
+            var unionStart = cursor;
+            var unionEnd = cursor + unionAngle;
+
+            // If there are children, distribute among them proportionally
+            if (union.children.length > 0) {
+                var childCursor = unionStart;
+                var childTotalDesc = 0;
+                for (var c = 0; c < union.children.length; c++) {
+                    childTotalDesc += union.children[c].descCount || 1;
+                }
+
+                for (var c = 0; c < union.children.length; c++) {
+                    var child = union.children[c];
+                    var childAngle = ((child.descCount || 1) / childTotalDesc) * unionAngle;
+                    layoutNode(child, gen + 1, childCursor, childCursor + childAngle);
+                    childCursor += childAngle;
+                }
+            }
+
+            cursor = unionEnd;
+        }
+    }
+
+    // Layout starting from root
+    if (DATA) {
+        layoutNode(DATA, 0, START_ANGLE, END_ANGLE);
     }
 
     // =====================================================================
     // CANVAS SIZING
     // =====================================================================
-    var maxR = CENTER_RADIUS + maxGen * RING_WIDTH + 20;
+    var maxR = CENTER_RADIUS + (maxGenSeen + 1) * RING_WIDTH + 20;
     var canvasSize = maxR * 2 + 40;
     var dpr = window.devicePixelRatio || 1;
 
@@ -258,10 +310,13 @@ $jsonData = json_encode([
     // =====================================================================
     function drawSegment(seg) {
         var gapAngle = GAP / ((seg.innerR + seg.outerR) / 2);
+        var sa = seg.startAngle + gapAngle;
+        var ea = seg.endAngle - gapAngle;
+        if (ea <= sa) return; // too narrow
 
         ctx.beginPath();
-        ctx.arc(cx, cy, seg.outerR, seg.startAngle + gapAngle, seg.endAngle - gapAngle);
-        ctx.arc(cx, cy, seg.innerR, seg.endAngle - gapAngle, seg.startAngle + gapAngle, true);
+        ctx.arc(cx, cy, seg.outerR, sa, ea);
+        ctx.arc(cx, cy, seg.innerR, ea, sa, true);
         ctx.closePath();
 
         ctx.fillStyle = seg.color;
@@ -276,14 +331,14 @@ $jsonData = json_encode([
 
         var midAngle = (seg.startAngle + seg.endAngle) / 2;
         var midR = (seg.innerR + seg.outerR) / 2;
-        var arcLen = midAngle * midR; // approximate arc length per slot
         var segArcLen = (seg.endAngle - seg.startAngle) * midR;
 
-        // Only draw text if the segment is wide enough
+        // Skip text if segment is too narrow
+        if (segArcLen < 20) return;
+
         var name = seg.person.fn + ' ' + seg.person.ln;
         var dates = (seg.person.birth || '?') + '-' + (seg.person.death || '');
 
-        // Determine font size based on available space
         var availWidth = seg.outerR - seg.innerR - 6;
         var fontSize = Math.max(7, Math.min(11, availWidth / 6));
 
@@ -295,12 +350,9 @@ $jsonData = json_encode([
         var flipText = (midAngle > Math.PI / 2 || midAngle < -Math.PI / 2);
         if (flipText) {
             ctx.rotate(Math.PI);
-            ctx.textAlign = 'center';
-            var textR = -midR;
-        } else {
-            ctx.textAlign = 'center';
-            var textR = midR;
         }
+        ctx.textAlign = 'center';
+        var textR = flipText ? -midR : midR;
 
         ctx.fillStyle = '#333';
         ctx.font = 'bold ' + fontSize + 'px sans-serif';
@@ -309,10 +361,13 @@ $jsonData = json_encode([
         var maxTextW = segArcLen - 4;
         var displayName = name;
         if (ctx.measureText(displayName).width > maxTextW) {
-            // Try first initial + last name
             displayName = seg.person.fn.charAt(0) + '. ' + seg.person.ln;
             if (ctx.measureText(displayName).width > maxTextW) {
                 displayName = seg.person.fn.charAt(0) + '.';
+                if (ctx.measureText(displayName).width > maxTextW) {
+                    ctx.restore();
+                    return;
+                }
             }
         }
 
@@ -326,28 +381,27 @@ $jsonData = json_encode([
     }
 
     function drawCenter() {
-        // Central circle for root person
+        if (!DATA) return;
+
         ctx.beginPath();
         ctx.arc(cx, cy, CENTER_RADIUS, 0, Math.PI * 2);
-        ctx.fillStyle = COLORS[0];
+        ctx.fillStyle = GEN_COLORS[0];
         ctx.fill();
         ctx.strokeStyle = '#369';
         ctx.lineWidth = 2;
         ctx.stroke();
 
-        // Name
-        var name = DATA.root.fn + ' ' + DATA.root.ln;
-        var dates = (DATA.root.birth || '?') + '-' + (DATA.root.death || '');
+        var name = DATA.fn + ' ' + DATA.ln;
+        var dates = (DATA.birth || '?') + '-' + (DATA.death || '');
 
         ctx.fillStyle = '#333';
         ctx.font = 'bold 12px sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
 
-        // Wrap name if needed
         if (ctx.measureText(name).width > CENTER_RADIUS * 1.6) {
-            ctx.fillText(DATA.root.fn, cx, cy - 12);
-            ctx.fillText(DATA.root.ln, cx, cy + 2);
+            ctx.fillText(DATA.fn, cx, cy - 12);
+            ctx.fillText(DATA.ln, cx, cy + 2);
         } else {
             ctx.fillText(name, cx, cy - 6);
         }
@@ -355,6 +409,14 @@ $jsonData = json_encode([
         ctx.font = '10px sans-serif';
         ctx.fillStyle = '#666';
         ctx.fillText(dates, cx, cy + 14);
+
+        // Show total descendant count
+        ctx.font = '9px sans-serif';
+        ctx.fillStyle = '#999';
+        var total = (DATA.descCount || 1) - 1;
+        if (total > 0) {
+            ctx.fillText(total + ' desc.', cx, cy + 28);
+        }
     }
 
     // =====================================================================
@@ -362,8 +424,6 @@ $jsonData = json_encode([
     // =====================================================================
     function render() {
         ctx.clearRect(0, 0, canvasSize, canvasSize);
-
-        // Draw segments (back to front)
         segments.forEach(drawSegment);
         segments.forEach(drawSegmentText);
         drawCenter();
@@ -380,33 +440,24 @@ $jsonData = json_encode([
         var dist = Math.sqrt(dx * dx + dy * dy);
         var angle = Math.atan2(dy, dx);
 
-        // Check center
         if (dist <= CENTER_RADIUS) {
-            return { type: 'root', person: DATA.root };
+            return { type: 'root', person: DATA };
         }
 
-        // Check segments
         for (var i = 0; i < segments.length; i++) {
             var seg = segments[i];
             if (dist >= seg.innerR && dist <= seg.outerR) {
-                // Normalize angle to match segment range
                 var a = angle;
-                // Handle angle wrapping
                 var sa = seg.startAngle;
                 var ea = seg.endAngle;
                 if (a >= sa && a <= ea) {
                     return { type: 'segment', segment: seg, person: seg.person };
                 }
-                // Handle wrap-around for angles near -PI/PI
-                if (sa < -Math.PI) {
-                    if (a + Math.PI * 2 >= sa && a + Math.PI * 2 <= ea) {
-                        return { type: 'segment', segment: seg, person: seg.person };
-                    }
+                if (sa < -Math.PI && a + Math.PI * 2 >= sa && a + Math.PI * 2 <= ea) {
+                    return { type: 'segment', segment: seg, person: seg.person };
                 }
-                if (ea > Math.PI) {
-                    if (a - Math.PI * 2 >= sa && a - Math.PI * 2 <= ea) {
-                        return { type: 'segment', segment: seg, person: seg.person };
-                    }
+                if (ea > Math.PI && a - Math.PI * 2 >= sa && a - Math.PI * 2 <= ea) {
+                    return { type: 'segment', segment: seg, person: seg.person };
                 }
             }
         }
@@ -425,7 +476,9 @@ $jsonData = json_encode([
             var p = hit.person;
             var name = p.fn + ' ' + p.ln;
             var dates = (p.birth || '?') + ' - ' + (p.death || '');
-            tooltip.innerHTML = '<b>' + name + '</b><br>' + dates;
+            var desc = (p.descCount || 1) - 1;
+            var descText = desc > 0 ? '<br>' + desc + ' descendant' + (desc > 1 ? 's' : '') : '';
+            tooltip.innerHTML = '<b>' + name + '</b><br>' + dates + descText;
             tooltip.style.display = 'block';
             tooltip.style.left = (e.clientX - rect.left + 12) + 'px';
             tooltip.style.top = (e.clientY - rect.top - 10) + 'px';
@@ -440,6 +493,7 @@ $jsonData = json_encode([
         tooltip.style.display = 'none';
     });
 
+    // Left-click: re-center the fan chart on this person
     canvas.addEventListener('click', function(e) {
         var rect = canvas.getBoundingClientRect();
         var mx = e.clientX - rect.left;
@@ -447,11 +501,11 @@ $jsonData = json_encode([
 
         var hit = hitTest(mx, my);
         if (hit && hit.person && hit.person.uuid) {
-            window.location.href = '/treeDo/' + hit.person.uuid;
+            window.location.href = '/treeDoDesc/' + hit.person.uuid;
         }
     });
 
-    // Right-click to go to person page
+    // Right-click: go to person page
     canvas.addEventListener('contextmenu', function(e) {
         var rect = canvas.getBoundingClientRect();
         var mx = e.clientX - rect.left;

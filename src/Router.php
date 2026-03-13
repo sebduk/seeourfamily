@@ -39,6 +39,7 @@ class Router
         'treeTr',
         'treePT',
         'treeDo',
+        'treeDoDesc',
         'treeFC',
         'ascendants',
         'descendants',
