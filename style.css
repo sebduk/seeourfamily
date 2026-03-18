@@ -190,7 +190,7 @@ hr { border: none; border-top: 1px solid #666; }
 .tree-gen-2     { grid-column: span 1; }   /* great-grandparents: 8 slots */
 .tree-gen-1     { grid-column: span 2; }   /* grandparents: 4 slots */
 .tree-gen-0     { grid-column: span 3; }   /* parents (level 0): 2 slots + wedding year */
-.tree-gen-0-wed { grid-column: span 2; text-align: center; align-self: center; font-size: 0.85em; color: #666; padding: 4px 0; }
+.tree-gen-0-wed { grid-column: span 2; text-align: center; align-self: stretch; display: flex; align-items: center; justify-content: center; font-size: 0.85em; color: #666; padding: 4px 0; }
 .tree-children  { grid-column: 1 / -1; }   /* children row: full width */
 .tree-grid .align-r { text-align: right; }
 .tree-grid .align-l { text-align: left; }

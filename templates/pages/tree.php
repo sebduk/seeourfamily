@@ -414,7 +414,7 @@ elseif ($style === 'horizontal'):
                     $s = $coupleInfo['spouse'];
                     $wy = !empty($coupleInfo['wedding_year']) ? ' ' . h($coupleInfo['wedding_year']) : '';
                     echo '<tr><td style="padding:2px 6px; color:#666; font-size:9pt;">';
-                    echo '&amp;' . $wy . ' ' . personCell($s['first_name'], $s['last_name'], $s['birth'], $s['death'], $s['uuid']);
+                    echo '&#x26AD;' . $wy . ' ' . personCell($s['first_name'], $s['last_name'], $s['birth'], $s['death'], $s['uuid']);
                     echo '</td></tr>';
                 endif;
                 foreach ($coupleInfo['children'] as $child) {
@@ -529,7 +529,7 @@ function renderSlot(int $slot, bool $withWeddingYear = false): string
         $html = unknownCell();
     }
     if ($withWeddingYear && !empty($weddingYears[$slot])) {
-        $html .= '<br><span class="wedding-year">&amp; ' . h($weddingYears[$slot]) . '</span>';
+        $html .= '<br><span class="wedding-year">&#x26AD; ' . h($weddingYears[$slot]) . '</span>';
     }
     return $html;
 }
@@ -552,9 +552,9 @@ if ($hasSpouse):
     <!-- Generation 0 (central couple): 2 cells + wedding year -->
     <div class="person-cell tree-gen-0 align-r"><b><?= renderSlot(21) ?></b></div>
     <?php if (!empty($weddingYears[21])): ?>
-        <div class="person-cell tree-gen-0-wed">&amp; <?= h($weddingYears[21]) ?></div>
+        <div class="person-cell tree-gen-0-wed">&#x26AD; <?= h($weddingYears[21]) ?></div>
     <?php else: ?>
-        <div class="person-cell tree-gen-0-wed">&amp;</div>
+        <div class="person-cell tree-gen-0-wed">&#x26AD;</div>
     <?php endif; ?>
     <div class="person-cell tree-gen-0 align-l"><b><?= renderSlot(22) ?></b></div>
 
@@ -564,7 +564,7 @@ if ($hasSpouse):
         <?php if ($hasChildren): ?>
         <div class="children-row">
             <?php foreach ($children as $child):
-                // Find if child has a spouse
+                // Find all couples for this child (supports remarriage)
                 $cStmt = $pdo->prepare(
                     'SELECT c.id AS couple_id,
                             IFNULL(DATE_FORMAT(c.start_date, "%Y"), "") AS wedding_year,
@@ -578,20 +578,21 @@ if ($hasSpouse):
                      JOIN people p1 ON c.person1_id = p1.id
                      JOIN people p2 ON c.person2_id = p2.id
                      WHERE (c.person1_id = ? OR c.person2_id = ?) AND c.family_id = ?
-                     LIMIT 1'
+                     ORDER BY c.start_date'
                 );
                 $cStmt->execute([$child['id'], $child['id'], $fid]);
-                $childCouple = $cStmt->fetch();
+                $childCouples = $cStmt->fetchAll();
             ?>
-            <div class="child-family">
-                <?php if ($childCouple): ?>
+            <?php if (!empty($childCouples)): ?>
+                <?php foreach ($childCouples as $childCouple): ?>
+                <div class="child-family">
                     <div class="couple">
                         <span class="align-r"><?= personCell($childCouple['p1_fn'], $childCouple['p1_ln'], $childCouple['p1_birth'], $childCouple['p1_death'], $childCouple['p1_uuid']) ?></span>
-                        <span class="wedding-year">&amp;<?= !empty($childCouple['wedding_year']) ? ' ' . h($childCouple['wedding_year']) : '' ?></span>
+                        <span class="wedding-year">&#x26AD;<?= !empty($childCouple['wedding_year']) ? ' ' . h($childCouple['wedding_year']) : '' ?></span>
                         <span><?= personCell($childCouple['p2_fn'], $childCouple['p2_ln'], $childCouple['p2_birth'], $childCouple['p2_death'], $childCouple['p2_uuid']) ?></span>
                     </div>
                     <?php
-                    // Grandchildren
+                    // Grandchildren for this couple
                     $gcStmt = $pdo->prepare(
                         'SELECT id, uuid, first_name, last_name,
                                 IFNULL(DATE_FORMAT(birth_date, "%Y"), "") AS birth,
@@ -607,10 +608,13 @@ if ($hasSpouse):
                         <?php endforeach; ?>
                     </div>
                     <?php endif; ?>
-                <?php else: ?>
-                    <?= personCell($child['first_name'], $child['last_name'], $child['birth'], $child['death'], $child['uuid']) ?>
-                <?php endif; ?>
+                </div>
+                <?php endforeach; ?>
+            <?php else: ?>
+            <div class="child-family">
+                <?= personCell($child['first_name'], $child['last_name'], $child['birth'], $child['death'], $child['uuid']) ?>
             </div>
+            <?php endif; ?>
             <?php endforeach; ?>
         </div>
         <?php endif; ?>
