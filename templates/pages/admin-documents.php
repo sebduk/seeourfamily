@@ -35,6 +35,12 @@ $genUuid = function(): string {
 
 // Handle POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Detect post_max_size exceeded: $_POST and $_FILES are empty but content length was sent
+    if (empty($_POST) && empty($_FILES) && isset($_SERVER['CONTENT_LENGTH']) && (int)$_SERVER['CONTENT_LENGTH'] > 0) {
+        $maxPost = ini_get('post_max_size');
+        $msg = "Upload failed — the file exceeds the server limit of {$maxPost}. Please use a smaller file.";
+    }
+
     $todo = $_POST['todo'] ?? '';
     $id   = (int)($_POST['id'] ?? 0);
     $val  = fn(string $k) => (isset($_POST[$k]) && $_POST[$k] !== '') ? $_POST[$k] : null;
@@ -46,8 +52,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $msg = 'Document deleted.';
         $id = 0;
     } elseif ($todo === 'upload' && !empty($_FILES['upload_file']['name'])) {
-        $result = $media->storeUpload($_FILES['upload_file'], $fid);
-        if ($result === null) {
+        $uploadErr = $_FILES['upload_file']['error'] ?? UPLOAD_ERR_OK;
+        if ($uploadErr === UPLOAD_ERR_INI_SIZE || $uploadErr === UPLOAD_ERR_FORM_SIZE) {
+            $maxSize = ini_get('upload_max_filesize');
+            $msg = "Upload failed — the file exceeds the maximum upload size of {$maxSize}.";
+        } elseif ($uploadErr !== UPLOAD_ERR_OK) {
+            $msg = 'Upload failed — PHP upload error code ' . $uploadErr . '.';
+        } else {
+            $result = $media->storeUpload($_FILES['upload_file'], $fid);
+        }
+        if (!isset($result)) {
+            // $msg already set above, or fall through
+        } elseif ($result === null) {
             $ext = strtolower(pathinfo($_FILES['upload_file']['name'], PATHINFO_EXTENSION));
             if (!in_array($ext, $allowedExt, true)) {
                 $msg = 'File type not allowed. Accepted: ' . implode(', ', $allowedExt);

@@ -5,6 +5,10 @@
 #
 # Static files (Image/, style.css, favicon.ico) are served directly.
 
+# Allow uploads up to 64 MB
+php_value upload_max_filesize 64M
+php_value post_max_size 72M
+
 RewriteEngine On
 
 # If the request is for an existing file or directory, serve it directly
