@@ -306,11 +306,11 @@ $jsonData = json_encode([
             }
         }
 
-        ctx.fillText(displayName, 0, textR - 3);
+        ctx.fillText(displayName, textR, -3);
 
         ctx.font = fontSize * 0.85 + 'px sans-serif';
         ctx.fillStyle = '#666';
-        ctx.fillText(dates, 0, textR + fontSize - 1);
+        ctx.fillText(dates, textR, fontSize - 1);
 
         ctx.restore();
     }

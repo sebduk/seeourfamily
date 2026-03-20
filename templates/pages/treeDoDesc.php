@@ -181,7 +181,7 @@ $jsonData = json_encode($tree, JSON_HEX_TAG | JSON_HEX_AMP);
     // =====================================================================
     // CONFIGURATION
     // =====================================================================
-    var CENTER_RADIUS = 60;     // Central person circle radius
+    var CENTER_RADIUS = 80;     // Central person circle radius (enlarged for couple)
     var RING_WIDTH    = 55;     // Width of each generation ring
     var GAP           = 2;      // Gap between segments (pixels)
     var START_ANGLE   = -Math.PI;
@@ -360,11 +360,11 @@ $jsonData = json_encode($tree, JSON_HEX_TAG | JSON_HEX_AMP);
             }
         }
 
-        ctx.fillText(displayName, 0, textR - 3);
+        ctx.fillText(displayName, textR, -3);
 
         ctx.font = fontSize * 0.85 + 'px sans-serif';
         ctx.fillStyle = '#666';
-        ctx.fillText(dates, 0, textR + fontSize - 1);
+        ctx.fillText(dates, textR, fontSize - 1);
 
         ctx.restore();
     }
@@ -380,31 +380,81 @@ $jsonData = json_encode($tree, JSON_HEX_TAG | JSON_HEX_AMP);
         ctx.lineWidth = 2;
         ctx.stroke();
 
-        var name = DATA.fn + ' ' + DATA.ln;
-        var dates = (DATA.birth || '?') + '-' + (DATA.death || '');
-
-        ctx.fillStyle = '#333';
-        ctx.font = 'bold 12px sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
 
-        if (ctx.measureText(name).width > CENTER_RADIUS * 1.6) {
-            ctx.fillText(DATA.fn, cx, cy - 12);
-            ctx.fillText(DATA.ln, cx, cy + 2);
-        } else {
-            ctx.fillText(name, cx, cy - 6);
-        }
-
-        ctx.font = '10px sans-serif';
-        ctx.fillStyle = '#666';
-        ctx.fillText(dates, cx, cy + 14);
-
-        // Show total descendant count
-        ctx.font = '9px sans-serif';
-        ctx.fillStyle = '#999';
+        var spouse = (DATA.unions && DATA.unions.length > 0) ? DATA.unions[0].spouse : null;
         var total = (DATA.descCount || 1) - 1;
-        if (total > 0) {
-            ctx.fillText(total + ' desc.', cx, cy + 28);
+
+        if (spouse) {
+            // --- Couple display ---
+            var name1 = DATA.fn + ' ' + DATA.ln;
+            var dates1 = (DATA.birth || '?') + '-' + (DATA.death || '');
+            var name2 = spouse.fn + ' ' + spouse.ln;
+            var dates2 = (spouse.birth || '?') + '-' + (spouse.death || '');
+
+            // Person 1 (top half)
+            ctx.fillStyle = '#333';
+            ctx.font = 'bold 11px sans-serif';
+            var maxW = CENTER_RADIUS * 1.6;
+            if (ctx.measureText(name1).width > maxW) {
+                ctx.fillText(DATA.fn, cx, cy - 32);
+                ctx.fillText(DATA.ln, cx, cy - 19);
+            } else {
+                ctx.fillText(name1, cx, cy - 26);
+            }
+            ctx.font = '9px sans-serif';
+            ctx.fillStyle = '#666';
+            ctx.fillText(dates1, cx, cy - 11);
+
+            // Separator
+            ctx.fillStyle = '#999';
+            ctx.font = '9px sans-serif';
+            ctx.fillText('&', cx, cy + 1);
+
+            // Person 2 (bottom half)
+            ctx.fillStyle = '#333';
+            ctx.font = 'bold 11px sans-serif';
+            if (ctx.measureText(name2).width > maxW) {
+                ctx.fillText(spouse.fn, cx, cy + 14);
+                ctx.fillText(spouse.ln, cx, cy + 27);
+            } else {
+                ctx.fillText(name2, cx, cy + 18);
+            }
+            ctx.font = '9px sans-serif';
+            ctx.fillStyle = '#666';
+            ctx.fillText(dates2, cx, cy + 33);
+
+            // Descendant count
+            if (total > 0) {
+                ctx.font = '9px sans-serif';
+                ctx.fillStyle = '#999';
+                ctx.fillText(total + ' desc.', cx, cy + 47);
+            }
+        } else {
+            // --- Single person display ---
+            var name = DATA.fn + ' ' + DATA.ln;
+            var dates = (DATA.birth || '?') + '-' + (DATA.death || '');
+
+            ctx.fillStyle = '#333';
+            ctx.font = 'bold 12px sans-serif';
+
+            if (ctx.measureText(name).width > CENTER_RADIUS * 1.6) {
+                ctx.fillText(DATA.fn, cx, cy - 12);
+                ctx.fillText(DATA.ln, cx, cy + 2);
+            } else {
+                ctx.fillText(name, cx, cy - 6);
+            }
+
+            ctx.font = '10px sans-serif';
+            ctx.fillStyle = '#666';
+            ctx.fillText(dates, cx, cy + 14);
+
+            if (total > 0) {
+                ctx.font = '9px sans-serif';
+                ctx.fillStyle = '#999';
+                ctx.fillText(total + ' desc.', cx, cy + 28);
+            }
         }
     }
 
