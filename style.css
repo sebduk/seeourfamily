@@ -245,8 +245,8 @@ hr { border: none; border-top: 1px solid #666; }
     flex-wrap: wrap;
     margin-bottom: 1rem;
 }
-.tree-nav strong { margin-right: 0.5rem; }
-.tree-nav .nav-links a { margin: 0 2px; }
+.tree-nav > strong { margin-right: 0.5rem; }
+.tree-nav .nav-links a, .tree-nav .nav-links strong { margin: 0 2px; }
 
 /* Multiple marriages */
 .tree-marriages { text-align: center; margin-top: 2rem; }

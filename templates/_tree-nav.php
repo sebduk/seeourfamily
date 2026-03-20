@@ -3,44 +3,43 @@
  * Shared tree navigation bar.
  * Included by all tree page templates via:
  *   $treeNavUuid    = h($personUuid) or h($person['uuid'])
- *   $treeNavCurrent = 'classic' | 'ascendants' | 'descendants' | 'donut' | 'donut_desc'
- *                   | 'family_chart' | 'full_tree' | 'hybrid' | 'timeline' | 'treant'
+ *   $treeNavCurrent = 'classic' | 'family_chart' | 'timeline' | 'treant'
+ *                   | 'full_tree' | 'donut' | 'donut_desc'
  *   $treeNavExtra   = (optional) extra HTML to display after the person name line
  *   require __DIR__ . '/../_tree-nav.php';
  */
 
 $treeNavExtra  = $treeNavExtra ?? '';
 
+// Fixed order: tree, treeFC, treeT, treeTr, treeP, treeDo, treeDoDesc
 $treeNavLinks = [
-    'classic'      => ['url' => "/tree/{$treeNavUuid}",      'label' => $L['classic']],
-    'family_chart' => ['url' => "/treeFC/{$treeNavUuid}",    'label' => $L['tree_fc'] ?? 'Family Chart'],
-    'donut'        => ['url' => "/treeDo/{$treeNavUuid}",    'label' => $L['tree_donut'] ?? 'Donut'],
-    'donut_desc'   => ['url' => "/treeDoDesc/{$treeNavUuid}",'label' => $L['tree_donut_desc'] ?? 'Descendant Fan'],
-    'ascendants'   => ['url' => "/ascendants/{$treeNavUuid}",'label' => $L['full_ascendance']],
-    'descendants'  => ['url' => "/descendants/{$treeNavUuid}",'label' => $L['full_descendance']],
-    'full_tree'    => ['url' => "/treeP/{$treeNavUuid}",     'label' => $L['tree_person'] ?? 'Full Tree'],
-    'hybrid'       => ['url' => "/treePT/{$treeNavUuid}",    'label' => $L['tree_hybrid'] ?? 'Hybrid'],
-    'timeline'     => ['url' => "/treeT/{$treeNavUuid}",     'label' => $L['tree_timeline'] ?? 'Timeline'],
-    'treant'       => ['url' => "/treeTr/{$treeNavUuid}",    'label' => $L['tree_treant'] ?? 'Treant'],
+    'classic'      => ['url' => "/tree/{$treeNavUuid}",       'label' => $L['classic']],
+    'family_chart' => ['url' => "/treeFC/{$treeNavUuid}",     'label' => $L['tree_fc'] ?? 'Family Chart'],
+    'timeline'     => ['url' => "/treeT/{$treeNavUuid}",      'label' => $L['tree_timeline'] ?? 'Timeline'],
+    'treant'       => ['url' => "/treeTr/{$treeNavUuid}",     'label' => $L['tree_treant'] ?? 'Treant'],
+    'full_tree'    => ['url' => "/treeP/{$treeNavUuid}",      'label' => $L['tree_person'] ?? 'Full Tree'],
+    'donut'        => ['url' => "/treeDo/{$treeNavUuid}",     'label' => $L['tree_donut'] ?? 'Donut'],
+    'donut_desc'   => ['url' => "/treeDoDesc/{$treeNavUuid}", 'label' => $L['tree_donut_desc'] ?? 'Descendant Fan'],
 ];
-
-// Current view label
-$currentLabel = $treeNavLinks[$treeNavCurrent]['label'] ?? '';
 ?>
 <div class="tree-nav">
     <strong><?= h($personName) ?></strong>
-    <?= $currentLabel ?>
     <?= $treeNavExtra ?>
-    <span class="nav-links">|
+    <span class="nav-links">
 <?php
 $first = true;
 foreach ($treeNavLinks as $key => $link):
-    if ($key === $treeNavCurrent) continue;
     if (!$first) echo ' . ';
     $first = false;
+    if ($key === $treeNavCurrent):
 ?>
+        <strong><?= $link['label'] ?></strong>
+<?php else: ?>
         <a href="<?= $link['url'] ?>"><?= $link['label'] ?></a>
-<?php endforeach; ?>
+<?php
+    endif;
+endforeach;
+?>
     </span>
 <?php if ($treeNavCurrent === 'classic' && !empty($hasChildren)): ?>
     <br>
@@ -67,13 +66,6 @@ foreach ($treeNavLinks as $key => $link):
         <a href="/tree/<?= $treeNavUuid ?>?dir=asc&amp;style=horizontal"><?= $L['horizontal'] ?></a> .
         <a href="/tree/<?= $treeNavUuid ?>?dir=asc&amp;style=table"><?= $L['table'] ?></a> .
         <a href="/tree/<?= $treeNavUuid ?>?dir=asc&amp;style=excel"><?= $L['excel'] ?></a>
-    </span>
-<?php endif; ?>
-<?php if ($treeNavCurrent === 'hybrid'): ?>
-    <span class="nav-links" style="margin-left:12px">
-        | <?= $L['tree_priority'] ?? 'Priority' ?>:
-        <a href="#" onclick="setTreePriority('family',event)" id="treept-btn-family"><?= $L['tree_priority_family'] ?? 'Family' ?></a> .
-        <a href="#" onclick="setTreePriority('patriarchal',event)" id="treept-btn-patriarchal"><?= $L['tree_priority_patriarchal'] ?? 'Patriarchal' ?></a>
     </span>
 <?php endif; ?>
 </div>
