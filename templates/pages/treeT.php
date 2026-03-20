@@ -287,17 +287,7 @@ unset($people);
 // NAVIGATION BAR
 // =========================================================================
 ?>
-<div class="tree-nav">
-    <strong><?= h($personName) ?></strong>
-    <?= $L['tree_timeline'] ?? 'Timeline' ?>
-    — <?= count($collected) ?> <?= strtolower($L['individuals']) ?>
-    <span class="nav-links">|
-        <a href="/tree/<?= h($person['uuid']) ?>"><?= $L['classic'] ?></a> .
-        <a href="/treeFC/<?= h($person['uuid']) ?>"><?= $L['tree_fc'] ?? 'Family Chart' ?></a> .
-        <a href="/treeDo/<?= h($person['uuid']) ?>"><?= $L['tree_donut'] ?? 'Donut' ?></a> .
-        <a href="/treeTr/<?= h($person['uuid']) ?>"><?= $L['tree_treant'] ?? 'Treant' ?></a>
-    </span>
-</div>
+<?php $treeNavUuid = h($person['uuid']); $treeNavCurrent = 'timeline'; $treeNavExtra = '— ' . count($collected) . ' ' . strtolower($L['individuals']); require __DIR__ . '/../_tree-nav.php'; ?>
 
 <?php
 // =========================================================================

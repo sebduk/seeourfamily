@@ -247,16 +247,7 @@ $jsonMainId = json_encode((string)$personId, JSON_HEX_TAG);
 // NAVIGATION BAR
 // =========================================================================
 ?>
-<div class="tree-nav">
-    <strong><?= h($personName) ?></strong>
-    <?= $L['tree_fc'] ?? 'Family Chart' ?>
-    <span class="nav-links">|
-        <a href="/tree/<?= h($person['uuid']) ?>"><?= $L['classic'] ?></a> .
-        <a href="/treeDo/<?= h($person['uuid']) ?>"><?= $L['tree_donut'] ?? 'Donut' ?></a> .
-        <a href="/treeTr/<?= h($person['uuid']) ?>"><?= $L['tree_treant'] ?? 'Treant' ?></a> .
-        <a href="/treeT/<?= h($person['uuid']) ?>"><?= $L['tree_timeline'] ?? 'Timeline' ?></a>
-    </span>
-</div>
+<?php $treeNavUuid = h($person['uuid']); $treeNavCurrent = 'family_chart'; require __DIR__ . '/../_tree-nav.php'; ?>
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/family-chart@0.9.0/dist/styles/family-chart.css">
 <div class="f3" id="FamilyChart"></div>

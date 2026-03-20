@@ -214,22 +214,7 @@ $jsonData = json_encode([
 // NAVIGATION BAR
 // =========================================================================
 ?>
-<div class="tree-nav">
-    <strong><?= h($personName) ?></strong>
-    <?= $L['tree_hybrid'] ?? 'Hybrid' ?>
-    <span class="nav-links">|
-        <a href="/tree/<?= h($person['uuid']) ?>"><?= $L['classic'] ?></a> .
-        <a href="/treeFC/<?= h($person['uuid']) ?>"><?= $L['tree_fc'] ?? 'Family Chart' ?></a> .
-        <a href="/treeDo/<?= h($person['uuid']) ?>"><?= $L['tree_donut'] ?? 'Donut' ?></a> .
-        <a href="/treeT/<?= h($person['uuid']) ?>"><?= $L['tree_timeline'] ?? 'Timeline' ?></a> .
-        <a href="/treeTr/<?= h($person['uuid']) ?>"><?= $L['tree_treant'] ?? 'Treant' ?></a>
-    </span>
-    <span class="nav-links" style="margin-left:12px">
-        | <?= $L['tree_priority'] ?? 'Priority' ?>:
-        <a href="#" onclick="setTreePriority('family',event)" id="treept-btn-family"><?= $L['tree_priority_family'] ?? 'Family' ?></a> .
-        <a href="#" onclick="setTreePriority('patriarchal',event)" id="treept-btn-patriarchal"><?= $L['tree_priority_patriarchal'] ?? 'Patriarchal' ?></a>
-    </span>
-</div>
+<?php $treeNavUuid = h($person['uuid']); $treeNavCurrent = 'hybrid'; require __DIR__ . '/../_tree-nav.php'; ?>
 
 <!-- Single scrollable tree frame -->
 <div id="treept-wrap">

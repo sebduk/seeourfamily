@@ -185,35 +185,7 @@ if ($coupleId) {
 // TREE NAVIGATION BAR (was arbre.out.asp)
 // =========================================================================
 ?>
-<div class="tree-nav">
-    <strong><?= h($personName) ?></strong>
-    <?= $L['full_ascendance'] ?>
-    <span class="nav-links">|
-        <a href="/tree/<?= h($personUuid) ?>"><?= $L['classic'] ?></a> .
-        <a href="/tree/<?= h($personUuid) ?>?dir=asc&amp;style=horizontal"><?= $L['horizontal'] ?></a> .
-        <a href="/ascendants/<?= h($personUuid) ?>"><?= $L['vertical'] ?></a> .
-        <a href="/tree/<?= h($personUuid) ?>?dir=asc&amp;style=table"><?= $L['table'] ?></a> .
-        <a href="/tree/<?= h($personUuid) ?>?dir=asc&amp;style=excel"><?= $L['excel'] ?></a>
-    </span>
-    <?php if ($hasChildren): ?>
-    <br>
-    <strong>&nbsp;</strong>
-    <?= $L['full_descendance'] ?>
-    <span class="nav-links">|
-        <a href="/tree/<?= h($personUuid) ?>?dir=desc&amp;style=horizontal"><?= $L['horizontal'] ?></a> .
-        <a href="/descendants/<?= h($personUuid) ?>"><?= $L['vertical'] ?></a> .
-        <a href="/tree/<?= h($personUuid) ?>?dir=desc&amp;style=table"><?= $L['table'] ?></a> .
-        <a href="/tree/<?= h($personUuid) ?>?dir=desc&amp;style=excel"><?= $L['excel'] ?></a>
-    </span>
-    <?php endif; ?>
-    <br>
-    <span class="nav-links">
-        <a href="/treeFC/<?= h($personUuid) ?>"><?= $L['tree_fc'] ?? 'Family Chart' ?></a> .
-        <a href="/treeDo/<?= h($personUuid) ?>"><?= $L['tree_donut'] ?? 'Donut' ?></a> .
-        <a href="/treeT/<?= h($personUuid) ?>"><?= $L['tree_timeline'] ?? 'Timeline' ?></a> .
-        <a href="/treeTr/<?= h($personUuid) ?>"><?= $L['tree_treant'] ?? 'Treant' ?></a>
-    </span>
-</div>
+<?php $treeNavUuid = h($personUuid); $treeNavCurrent = 'classic'; require __DIR__ . '/../_tree-nav.php'; ?>
 
 <?php
 // =========================================================================

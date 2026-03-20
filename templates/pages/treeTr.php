@@ -206,16 +206,7 @@ $jsonData = json_encode([
 // NAVIGATION BAR
 // =========================================================================
 ?>
-<div class="tree-nav">
-    <strong><?= h($personName) ?></strong>
-    <?= $L['tree_treant'] ?? 'Treant' ?>
-    <span class="nav-links">|
-        <a href="/tree/<?= h($person['uuid']) ?>"><?= $L['classic'] ?></a> .
-        <a href="/treeFC/<?= h($person['uuid']) ?>"><?= $L['tree_fc'] ?? 'Family Chart' ?></a> .
-        <a href="/treeDo/<?= h($person['uuid']) ?>"><?= $L['tree_donut'] ?? 'Donut' ?></a> .
-        <a href="/treeT/<?= h($person['uuid']) ?>"><?= $L['tree_timeline'] ?? 'Timeline' ?></a>
-    </span>
-</div>
+<?php $treeNavUuid = h($person['uuid']); $treeNavCurrent = 'treant'; require __DIR__ . '/../_tree-nav.php'; ?>
 
 <div id="tretr-wrap">
     <div id="tretr-container"></div>

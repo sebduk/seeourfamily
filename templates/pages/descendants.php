@@ -156,18 +156,7 @@ function renderDescendants(PDO $pdo, int $fid, int $coupleId): void
 // NAVIGATION BAR (same as tree view)
 // =========================================================================
 ?>
-<div class="tree-nav">
-    <strong><?= h($personName) ?></strong>
-    <?= $L['full_descendance'] ?>
-    <span class="nav-links">|
-        <a href="/tree/<?= h($person['uuid']) ?>"><?= $L['classic'] ?></a> .
-        <a href="/treeDoDesc/<?= h($person['uuid']) ?>"><?= $L['tree_donut_desc'] ?? 'Descendant Fan' ?></a> .
-        <a href="/treeFC/<?= h($person['uuid']) ?>"><?= $L['tree_fc'] ?? 'Family Chart' ?></a> .
-        <a href="/treeP/<?= h($person['uuid']) ?>"><?= $L['tree_person'] ?? 'Full Tree' ?></a> .
-        <a href="/treeT/<?= h($person['uuid']) ?>"><?= $L['tree_timeline'] ?? 'Timeline' ?></a> .
-        <a href="/treeTr/<?= h($person['uuid']) ?>"><?= $L['tree_treant'] ?? 'Treant' ?></a>
-    </span>
-</div>
+<?php $treeNavUuid = h($person['uuid']); $treeNavCurrent = 'descendants'; require __DIR__ . '/../_tree-nav.php'; ?>
 
 <?php
 // =========================================================================

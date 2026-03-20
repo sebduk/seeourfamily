@@ -162,18 +162,7 @@ $jsonData = json_encode($tree, JSON_HEX_TAG | JSON_HEX_AMP);
 // NAVIGATION BAR
 // =========================================================================
 ?>
-<div class="tree-nav">
-    <strong><?= h($personName) ?></strong>
-    <?= $L['tree_donut_desc'] ?? 'Descendant Fan' ?>
-    <span class="nav-links">|
-        <a href="/tree/<?= h($personUuid) ?>"><?= $L['classic'] ?></a> .
-        <a href="/treeDo/<?= h($personUuid) ?>"><?= $L['tree_donut'] ?? 'Donut' ?></a> .
-        <a href="/descendants/<?= h($personUuid) ?>"><?= $L['full_descendance'] ?></a> .
-        <a href="/treeFC/<?= h($personUuid) ?>"><?= $L['tree_fc'] ?? 'Family Chart' ?></a> .
-        <a href="/treeT/<?= h($personUuid) ?>"><?= $L['tree_timeline'] ?? 'Timeline' ?></a> .
-        <a href="/treeTr/<?= h($personUuid) ?>"><?= $L['tree_treant'] ?? 'Treant' ?></a>
-    </span>
-</div>
+<?php $treeNavUuid = h($personUuid); $treeNavCurrent = 'donut_desc'; require __DIR__ . '/../_tree-nav.php'; ?>
 
 <div id="treedo-wrap">
     <canvas id="treedo-canvas"></canvas>
