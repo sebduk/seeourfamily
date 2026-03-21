@@ -185,7 +185,23 @@ if ($coupleId) {
 // TREE NAVIGATION BAR (was arbre.out.asp)
 // =========================================================================
 ?>
-<?php $treeNavUuid = h($personUuid); $treeNavCurrent = 'classic'; require __DIR__ . '/../_tree-nav.php'; ?>
+<?php
+$treeNavUuid = h($personUuid);
+$_style = $_GET['style'] ?? '';
+$_dir   = $_GET['dir']   ?? '';
+if ($_style === 'horizontal' && $_dir === 'asc') {
+    $treeNavCurrent = 'asc_horizontal';
+} elseif ($_style === 'horizontal' && $_dir === 'desc') {
+    $treeNavCurrent = 'desc_horizontal';
+} elseif ($_style === 'table' && $_dir === 'asc') {
+    $treeNavCurrent = 'asc_table';
+} elseif ($_style === 'table' && $_dir === 'desc') {
+    $treeNavCurrent = 'desc_table';
+} else {
+    $treeNavCurrent = 'classic';
+}
+require __DIR__ . '/../_tree-nav.php';
+?>
 
 <?php
 // =========================================================================

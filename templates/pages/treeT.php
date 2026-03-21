@@ -287,7 +287,7 @@ unset($people);
 // NAVIGATION BAR
 // =========================================================================
 ?>
-<?php $treeNavUuid = h($person['uuid']); $treeNavCurrent = 'timeline'; $treeNavExtra = '— ' . count($collected) . ' ' . strtolower($L['individuals']); require __DIR__ . '/../_tree-nav.php'; ?>
+<?php $treeNavUuid = h($person['uuid']); $treeNavCurrent = 'timeline'; require __DIR__ . '/../_tree-nav.php'; ?>
 
 <?php
 // =========================================================================
