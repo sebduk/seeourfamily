@@ -1,148 +1,1007 @@
-BODY
-{
-    FONT-SIZE: 8pt;
-    COLOR: #000000;
-    FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif
+/* ============================================================
+ * See Our Family - Shared Stylesheet
+ *
+ * Replaces the original style.css (Verdana 8pt + table-era classes)
+ * and the inline table-based layouts from the ASP site.
+ *
+ * Organised by layout pattern.
+ * ============================================================ */
+
+/* ------- RESET & BASE (preserves original Verdana 8pt look) ------- */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: Verdana, Arial, Helvetica, sans-serif;
+    font-size: 10pt;
+    color: #000;
+    background: #fff;
 }
-P
-{
-    FONT-SIZE: 8pt;
-    COLOR: #000000;
-    FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif
+a        { color: #000; text-decoration: none; }
+a:hover  { text-decoration: underline; }
+h1 { font: bold 18pt "Arial Narrow", "Helvetica Condensed", Swiss, sans-serif; }
+h2 { font: bold 16pt "Arial Narrow", "Helvetica Condensed", Swiss, sans-serif; }
+h3 { font: bold 14pt "Arial Narrow", "Helvetica Condensed", Swiss, sans-serif; }
+h4 { font: bold 12pt "Arial Narrow", "Helvetica Condensed", Swiss, sans-serif; }
+h5 { font: bold 10pt "Arial Narrow", "Helvetica Condensed", Swiss, sans-serif; }
+h6 { font: bold 8pt  "Arial Narrow", "Helvetica Condensed", Swiss, sans-serif; }
+hr { border: none; border-top: 1px solid #666; }
+
+/* Legacy classes (used by old markup and admin pages) */
+.box, .Box   { border: 1px solid #666; font: 8pt Verdana, Arial, Helvetica, sans-serif; }
+.text, .Text  { font: 8pt Verdana, Arial, Helvetica, sans-serif; }
+.Button       { width: 50pt; }
+.Login        { border: 1px solid #666; font: 8pt Verdana, Arial, Helvetica, sans-serif; width: 100pt; }
+.Title        { font: bold 14pt Arial, Helvetica, sans-serif; color: silver; }
+
+
+/* ============================================================
+ * PATTERN 1: CENTERED PAGE WRAPPER
+ * Replaces: <table width="80%" align="center">
+ * Used by:  home, messages, login, help
+ * ============================================================ */
+.page-wrap {
+    max-width: 800px;
+    margin: 0 auto;
 }
-TD
-{
-    FONT-SIZE: 8pt;
-    COLOR: #000000;
-    FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif
+
+
+/* ============================================================
+ * PATTERN 2: MULTI-COLUMN NAME LIST
+ * Replaces: <table> with 3 cols + spacer <td>&nbsp;</td>
+ * Used by:  list-names (lstNomDate.asp)
+ * ============================================================ */
+.name-list {
+    columns: 3 200px;
+    column-gap: 2rem;
+    width: 80%;
+    margin: 0 auto;
 }
-.Text
-{
-    FONT-SIZE: 8pt;
-    COLOR: #000000;
-    FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif
+.name-list-item {
+    break-inside: avoid;
+    padding: 1px 0;
+    white-space: nowrap;
 }
-H1
-{
-    FONT-WEIGHT: bold;
-    FONT-SIZE: 18pt;
-    COLOR: #000000;
-    FONT-FAMILY: Arial Narrow, Helvetica Condensed, Swiss
+.name-list-item img { vertical-align: middle; border: 0; }
+.name-list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid #666;
+    width: 80%;
+    margin-left: auto;
+    margin-right: auto;
 }
-H2
-{
-    FONT-WEIGHT: bold;
-    FONT-SIZE: 16pt;
-    COLOR: #000000;
-    FONT-FAMILY: Arial Narrow, Helvetica Condensed, Swiss
+.name-list-footer {
+    text-align: center;
+    padding-top: 0.5rem;
+    margin-top: 0.5rem;
+    border-top: 1px solid #666;
+    width: 80%;
+    margin-left: auto;
+    margin-right: auto;
 }
-H3
-{
-    FONT-WEIGHT: bold;
-    FONT-SIZE: 14pt;
-    COLOR: #000000;
-    FONT-FAMILY: Arial Narrow, Helvetica Condensed, Swiss
+
+
+/* ============================================================
+ * PATTERN 3: PHOTO THUMBNAIL GRID
+ * Replaces: <table> with kCol=4, kRow=5, width=100 cells
+ * Used by:  photos (lstPhotos.asp)
+ * ============================================================ */
+.photo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 4px;
+    background: silver;
+    border: 1px solid silver;
+    padding: 4px;
 }
-H4
-{
-    FONT-WEIGHT: bold;
-    FONT-SIZE: 12pt;
-    COLOR: #000000;
-    FONT-FAMILY: Arial Narrow, Helvetica Condensed, Swiss
+.photo-grid .thumb {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: silver;
+    overflow: hidden;
 }
-H5
-{
-    FONT-WEIGHT: bold;
-    FONT-SIZE: 10pt;
-    COLOR: #000000;
-    FONT-FAMILY: Arial Narrow, Helvetica Condensed, Swiss
+.photo-grid .thumb img {
+    max-width: 100%;
+    max-height: 100%;
+    border: 0;
 }
-H6
-{
-    FONT-WEIGHT: bold;
-    FONT-SIZE: 8pt;
-    COLOR: #000000;
-    FONT-FAMILY: Arial Narrow, Helvetica Condensed, Swiss
+.photo-pagination {
+    text-align: center;
+    padding: 4px 8px;
+    background: silver;
+    border: 1px solid silver;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
 }
-A
-{
-    COLOR: #000000;
-    TEXT-DECORATION: none
+.photo-pagination .media-type-tag {
+    font-weight: bold;
+    font-size: 0.85em;
+    color: #333;
 }
-A:link
-{
-    COLOR: #000000;
-    TEXT-DECORATION: none
+.photo-pagination .pager a,
+.photo-pagination .pager .pager-disabled {
+    display: inline-block;
+    padding: 1px 6px;
+    margin: 0 1px;
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 1.1em;
 }
-A:visited
-{
-    COLOR: #000000;
-    TEXT-DECORATION: none
+.photo-pagination .pager a { color: #000; }
+.photo-pagination .pager a:hover { text-decoration: underline; }
+.photo-pagination .pager .pager-disabled { color: #999; }
+.photo-pagination .pager .pager-info {
+    display: inline-block;
+    padding: 0 4px;
+    font-size: 0.9em;
 }
-A:hover
-{
-    COLOR: #000000;
-    TEXT-DECORATION: underline
+.photo-pagination .per-page-wrap {
+    font-size: 0.85em;
+    color: #333;
 }
-A:active
-{
-    COLOR: #000000;
-    TEXT-DECORATION: none
+.photo-pagination .per-page-select {
+    border: 1px solid #999;
+    background: #f5f5f5;
+    padding: 1px 2px;
+    font-size: 0.95em;
 }
-.Button
-{
-    WIDTH: 50pt
+.photo-folders {
+    text-align: center;
+    padding: 4px;
+    background: silver;
+    border: 1px solid silver;
 }
-.Box
-{
-    BORDER-RIGHT: #666666 1pt solid;
-    BORDER-TOP: #666666 1pt solid;
-    FONT-SIZE: 8pt;
-    BORDER-LEFT: #666666 1pt solid;
-    BORDER-BOTTOM: #666666 1pt solid;
-    FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif
+.photo-folders .active-folder { font-weight: bold; }
+.thumb-badge {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    background: rgba(0,0,0,.6);
+    color: #fff;
+    font-size: .7rem;
+    padding: 1px 4px;
+    border-radius: 2px;
 }
-.Login
-{
-    BORDER-RIGHT: #666666 1pt solid;
-    BORDER-TOP: #666666 1pt solid;
-    FONT-SIZE: 8pt;
-    BORDER-LEFT: #666666 1pt solid;
-    WIDTH: 100pt;
-    BORDER-BOTTOM: #666666 1pt solid;
-    FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif
+
+
+/* ============================================================
+ * PATTERN 4: FAMILY TREE (CSS GRID)
+ * Replaces: <table> with colspan=8/4/2 for generations
+ * Used by:  tree (arbre.asp)
+ * ============================================================ */
+.tree-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 0;
+    text-align: center;
 }
-.Title
-{
-    FONT-WEIGHT: bold;
-    FONT-SIZE: 14pt;
-    COLOR: silver;
-    FONT-FAMILY: Arial, Helvetica, sans-serif
+.tree-grid .person-cell {
+    padding: 4px 2px;
+    border-top: 1px solid #666;
 }
-.WizardDropBox
-{
-    BORDER-RIGHT: #666666 1pt solid;
-    BORDER-TOP: #666666 1pt solid;
-    FONT-SIZE: 8pt;
-    BORDER-LEFT: #666666 1pt solid;
-    WIDTH: 100pt;
-    BORDER-BOTTOM: #666666 1pt solid;
-    FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif;
-    BACKGROUND-COLOR: greenyellow
+.tree-grid .person-cell a { white-space: nowrap; }
+.tree-gen-2     { grid-column: span 1; }   /* great-grandparents: 8 slots */
+.tree-gen-1     { grid-column: span 2; }   /* grandparents: 4 slots */
+.tree-gen-0     { grid-column: span 3; }   /* parents (level 0): 2 slots + wedding year */
+.tree-gen-0-wed { grid-column: span 2; text-align: center; align-self: stretch; display: flex; align-items: center; justify-content: center; font-size: 0.85em; color: #666; padding: 4px 0; }
+.tree-children  { grid-column: 1 / -1; overflow-x: auto; }   /* children row: full width */
+.tree-grid .align-r { text-align: right; }
+.tree-grid .align-l { text-align: left; }
+
+/* Wedding year indicator (used in grid cells and children row) */
+.wedding-year { font-size: 0.85em; color: #666; white-space: nowrap; }
+.child-family .couple .wedding-year { align-self: center; }
+
+/* Single-person tree (no spouse): 4-column variant */
+.tree-grid-single {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    text-align: center;
+    max-width: 600px;
+    margin: 0 auto;
 }
-.Box150
-{
-    BORDER-RIGHT: #666666 1pt solid;
-    BORDER-TOP: #666666 1pt solid;
-    FONT-SIZE: 8pt;
-    BORDER-LEFT: #666666 1pt solid;
-    WIDTH: 150pt;
-    BORDER-BOTTOM: #666666 1pt solid;
-    FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif
+.tree-grid-single .person-cell { padding: 4px 2px; border-top: 1px solid #666; }
+.tree-single-gen-2 { grid-column: span 1; }
+.tree-single-gen-1 { grid-column: span 2; }
+.tree-single-gen-0 { grid-column: 1 / -1; }
+
+/* Children display (flexbox under the tree grid) */
+.children-row {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: nowrap;
+    padding-top: 8px;
+    width: fit-content;
+    margin: 0 auto;
 }
-.Status
-{
-    COLOR: white;
-    BACKGROUND-COLOR: #669900;
-    TEXT-ALIGN: center
+.child-family { text-align: center; flex-shrink: 0; }
+.child-family .couple {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+}
+.grandchildren {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    flex-wrap: nowrap;
+    padding-top: 4px;
+    border-top: 1px solid #666;
+}
+
+/* Tree navigation bar (was arbre.out.asp) */
+.tree-nav {
+    display: flex;
+    gap: 0.5rem;
+    align-items: baseline;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+.tree-nav > strong { margin-right: 0.5rem; }
+.tree-nav .nav-links a, .tree-nav .nav-links strong { margin: 0 2px; }
+
+/* Multiple marriages */
+.tree-marriages { text-align: center; margin-top: 2rem; }
+
+/* Descendants tree (nested indented layout) */
+.desc-tree { max-width: 960px; margin: 0 auto; }
+.desc-couple { padding: 2px 0; }
+.desc-root > .desc-pair,
+.desc-root > .desc-single { font-size: 1.1em; }
+.desc-pair {
+    display: flex;
+    gap: 0.3rem;
+    align-items: baseline;
+    flex-wrap: wrap;
+}
+.desc-sep { color: #666; }
+.desc-single { padding: 1px 0; }
+.desc-children {
+    margin-left: 2rem;
+    padding-left: 0.75rem;
+    border-left: 1px solid #ccc;
+}
+
+/* ============================================================
+ * PATTERN 4a: JSPLUMB TREE (treeP)
+ * Visual family tree with jsPlumb connectors
+ * ============================================================ */
+#treep-wrap {
+    overflow: auto;
+    position: relative;
+    border: 1px solid #ddd;
+    background: #fcfcfc;
+    min-height: 300px;
+}
+#treep-container {
+    position: relative;
+    min-width: 100%;
+    min-height: 100%;
+}
+.treep-node {
+    position: absolute;
+    background: #fff;
+    border: 1px solid #aaa;
+    border-radius: 4px;
+    padding: 4px 6px;
+    text-align: center;
+    font-size: 0.85em;
+    line-height: 1.3;
+    box-shadow: 1px 1px 3px rgba(0,0,0,0.08);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    z-index: 10;
+}
+.treep-node a { text-decoration: none; }
+.treep-node a:hover { text-decoration: underline; }
+.treep-name { display: block; font-weight: bold; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.treep-dates { display: block; font-size: 0.85em; color: #666; }
+.treep-node-root {
+    border: 2px solid #369;
+    background: #f0f6ff;
+}
+.treep-joint {
+    position: absolute;
+    background: #f5efe8;
+    border: 1px solid #c9a96e;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7em;
+    color: #886;
+    z-index: 10;
+}
+.treep-joint span { white-space: nowrap; }
+
+/* ============================================================
+ * PATTERN 4c: TREANT.JS TREE (treeTr)
+ * Family tree rendered with Treant.js + Raphael SVG
+ * ============================================================ */
+#tretr-wrap {
+    overflow: auto;
+    position: relative;
+    border: 1px solid #ddd;
+    background: #fcfcfc;
+    min-height: 300px;
+}
+#tretr-container {
+    position: relative;
+    min-width: 100%;
+    min-height: 100%;
+    padding-top: 75px !important;
+}
+/* Override Treant.css defaults */
+#tretr-container .node {
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: default;
+}
+.tretr-node {
+    font-size: 0.85em;
+    line-height: 1.3;
+}
+.tretr-couple {
+    background: #fff;
+    border: 1px solid #aaa;
+    border-radius: 4px;
+    box-shadow: 1px 1px 3px rgba(0,0,0,0.08);
+    min-width: 130px;
+}
+.tretr-single {
+    background: #fff;
+    border: 1px solid #aaa;
+    border-radius: 4px;
+    box-shadow: 1px 1px 3px rgba(0,0,0,0.08);
+    min-width: 130px;
+}
+.tretr-root {
+    border: 2px solid #369;
+    background: #f0f6ff;
+}
+.tretr-couple-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 4px 8px;
+    gap: 1px;
+}
+.tretr-single-inner {
+    padding: 4px 8px;
+    text-align: center;
+    height: 100%;
+}
+.tretr-partner {
+    text-align: center;
+    white-space: nowrap;
+}
+.tretr-name {
+    display: block;
+    font-weight: bold;
+    color: #333;
+    text-decoration: none;
+    white-space: nowrap;
+}
+.tretr-name:hover { text-decoration: underline; }
+.tretr-highlight { color: #036; }
+.tretr-dates {
+    display: block;
+    font-size: 0.85em;
+    color: #666;
+    text-decoration: none;
+}
+.tretr-dates:hover { text-decoration: underline; }
+.tretr-wy {
+    display: block;
+    font-size: 0.75em;
+    color: #886;
+    border-top: 1px solid #ddd;
+    border-bottom: 1px solid #ddd;
+    padding: 0 4px;
+    margin: 1px 0;
+}
+
+/* ============================================================
+ * PATTERN 4d: HYBRID TREE (treePT)
+ * jsPlumb ancestors (upward) + Treant.js descendants (downward)
+ * ============================================================ */
+#treept-wrap {
+    overflow: auto;
+    position: relative;
+    border: 1px solid #ddd;
+    background: #fcfcfc;
+    min-height: 200px;
+}
+#treept-anc-container {
+    position: relative;
+    z-index: 1;
+    margin: 0 auto;
+    background: rgba(255, 0, 0, 0.1);
+    border: 2px dashed red;
+}
+/* Keep jsPlumb SVG connectors inside the ancestor stacking context */
+#treept-anc-container svg {
+    z-index: auto !important;
+}
+#treept-desc-container {
+    position: relative;
+    z-index: 2;
+    min-width: 100%;
+    min-height: 100%;
+    background: rgba(0, 0, 255, 0.1);
+    border: 2px dashed blue;
+}
+/* Override Treant.css defaults for treePT */
+#treept-desc-container .node {
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: default;
+}
+.treept-node {
+    font-size: 0.85em;
+    line-height: 1.3;
+    z-index: 1;
+}
+.treept-couple {
+    background: #fff;
+    border: 1px solid #aaa;
+    border-radius: 4px;
+    box-shadow: 1px 1px 3px rgba(0,0,0,0.08);
+    min-width: 130px;
+}
+.treept-single {
+    background: #fff;
+    border: 1px solid #aaa;
+    border-radius: 4px;
+    box-shadow: 1px 1px 3px rgba(0,0,0,0.08);
+    min-width: 130px;
+}
+.treept-root {
+    border: 2px solid #369;
+    background: #f0f6ff;
+}
+.treept-couple-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 4px 8px;
+    gap: 1px;
+}
+.treept-single-inner {
+    padding: 4px 8px;
+    text-align: center;
+    height: 100%;
+}
+.treept-partner {
+    text-align: center;
+    white-space: nowrap;
+}
+.treept-name {
+    display: block;
+    font-weight: bold;
+    color: #333;
+    text-decoration: none;
+    white-space: nowrap;
+}
+.treept-name:hover { text-decoration: underline; }
+.treept-highlight { color: #036; }
+.treept-dates {
+    display: block;
+    font-size: 0.85em;
+    color: #666;
+    text-decoration: none;
+}
+.treept-dates:hover { text-decoration: underline; }
+.treept-wy {
+    display: block;
+    font-size: 0.75em;
+    color: #886;
+    border-top: 1px solid #ddd;
+    border-bottom: 1px solid #ddd;
+    padding: 0 4px;
+    margin: 1px 0;
+}
+
+/* ============================================================
+ * PATTERN 4b: TIMELINE TREE (treeT)
+ * Shows all related people grouped by decade
+ * ============================================================ */
+.treet-timeline { max-width: 960px; margin: 0 auto; }
+.treet-decade {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 0.25rem;
+}
+.treet-decade-label {
+    flex: 0 0 50px;
+    font-weight: bold;
+    color: #369;
+    text-align: right;
+    padding-top: 2px;
+    border-right: 2px solid #369;
+    padding-right: 0.5rem;
+}
+.treet-decade-people { flex: 1; }
+.treet-person {
+    padding: 2px 0;
+    display: flex;
+    gap: 0.5rem;
+    align-items: baseline;
+    flex-wrap: wrap;
+}
+.treet-dates {
+    color: #666;
+    font-size: 0.9em;
+    min-width: 70px;
+}
+.treet-relation {
+    color: #999;
+    font-size: 0.8em;
+    font-style: italic;
+}
+.treet-self { background: #ffffdd; }
+
+/* ============================================================
+ * PATTERN 4e: DONUT / FAN CHART TREE (treeDo)
+ * Radial ancestor chart rendered on HTML5 Canvas
+ * ============================================================ */
+#treedo-wrap {
+    position: relative;
+    overflow: auto;
+    border: 1px solid #ddd;
+    background: #fcfcfc;
+    min-height: 300px;
+    text-align: center;
+    padding: 20px;
+}
+#treedo-canvas {
+    display: inline-block;
+}
+.treedo-tooltip {
+    display: none;
+    position: absolute;
+    background: rgba(0, 0, 0, 0.85);
+    color: #fff;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    line-height: 1.4;
+    pointer-events: none;
+    z-index: 100;
+    white-space: nowrap;
+}
+
+/* ============================================================
+ * PATTERN 4f: FAMILY CHART (treeFC)
+ * Interactive D3-based tree using donatso/family-chart
+ * ============================================================ */
+#FamilyChart {
+    width: 100%;
+    height: 700px;
+    background-color: #e6e6e6;
+    color: #535353;
+    border: 2px solid #b9b9b9;
+}
+
+/* Dark-on-light overrides for family-chart links & cards
+ * CDN family-chart.css loads AFTER style.css (inline in treeFC.php),
+ * so !important is needed to beat its stroke:#fff / stroke:currentColor. */
+#FamilyChart .f3 svg.main_svg {
+    color: #535353;
+}
+#FamilyChart .f3 .link path,
+#FamilyChart .f3 path.link {
+    stroke: #535353 !important;
+}
+#FamilyChart .card-male .card-body-rect,
+#FamilyChart .card-male .text-overflow-mask {
+    fill: rgb(120, 159, 172);
+}
+#FamilyChart .card-female .card-body-rect,
+#FamilyChart .card-female .text-overflow-mask {
+    fill: rgb(196, 138, 146);
+}
+#FamilyChart .card-main-outline {
+    stroke: #535353;
+}
+
+/* ============================================================
+ * PATTERN 5: PERSON BIO (CSS GRID)
+ * Replaces: <table> with colspan=4, width=150 sidebar
+ * Used by:  person (bio.asp)
+ * ============================================================ */
+.bio-header { text-align: center; margin-bottom: 1rem; }
+.bio-nav    { font-weight: bold; margin-bottom: 0.5rem; }
+.bio-section { margin-bottom: 1.5rem; }
+.bio-section h2 { margin-bottom: 0.5rem; }
+
+.bio-item {
+    display: grid;
+    grid-template-columns: 150px 1fr;
+    gap: 0 1rem;
+    margin-bottom: 0.75rem;
+}
+.bio-item-label   { font-weight: bold; }
+.bio-item-full    { grid-column: 1 / -1; }
+
+.bio-photo-item {
+    display: grid;
+    grid-template-columns: 150px 1fr;
+    gap: 0 1rem;
+    margin-bottom: 0.75rem;
+    align-items: start;
+}
+.bio-photo-item .thumb { text-align: center; }
+.bio-photo-item .thumb img { max-width: 150px; max-height: 100px; border: 0; }
+
+.to-top { color: red; }
+
+
+/* ============================================================
+ * PATTERN 6: DATA TABLES
+ * Replaces: <table> with bgcolor, spacer cells
+ * Used by:  documents (lstDocs.asp), birthdays (lstCalendrier.asp)
+ * ============================================================ */
+.data-table {
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+    border-collapse: collapse;
+}
+.data-table th {
+    background: #ccc;
+    padding: 4px 8px;
+    text-align: left;
+    font-weight: bold;
+}
+.data-table th a { font-weight: bold; }
+.data-table td   { padding: 4px 8px; vertical-align: top; }
+.data-table tr:nth-child(even) { background: #f5f5f5; }
+
+.doc-icon { text-align: center; width: 30px; }
+.doc-name { font-weight: bold; }
+.doc-meta { color: #666; font-size: 7pt; padding-left: 38px; }
+
+/* Birthday calendar */
+.cal-table {
+    width: 70%;
+    max-width: 900px;
+    margin: 0 auto;
+    border-collapse: collapse;
+    border: 1px solid #666;
+}
+.cal-table th {
+    background: #ccc;
+    padding: 2px 4px;
+    text-align: center;
+    font-weight: bold;
+}
+.cal-table td       { padding: 2px 4px; vertical-align: top; border: 1px solid #ddd; }
+.cal-table .day-num { background: #ccc; text-align: right; width: 25px; }
+.cal-table .today   { background: #999; }
+.cal-note           { text-align: center; margin-top: 0.5rem; }
+
+
+/* ============================================================
+ * SINGLE PHOTO VIEW
+ * ============================================================ */
+.photo-detail     { text-align: center; }
+.photo-detail img { max-width: 100%; max-height: 80vh; border: 0; image-rendering: smooth; }
+.photo-detail .photo-info   { margin-top: 0.5rem; }
+.photo-detail .photo-people { font-style: italic; margin-top: 0.25rem; }
+.photo-detail .photo-nav-links { margin-bottom: 0.5rem; }
+.photo-detail .photo-nav-links a { font-weight: bold; }
+.photo-detail .photo-nav-disabled { color: #999; }
+
+/* Visitor: hover-reveal face tags */
+.photo-tags-container { position: relative; display: inline-block; }
+.photo-tags-container img { max-width: none !important; max-height: none; height: auto; border: 0; image-rendering: smooth; }
+.photo-tag {
+    position: absolute; transform: translate(-50%, -100%);
+    background: rgba(0,0,0,0.75); color: #fff;
+    padding: 2px 8px; border-radius: 3px;
+    white-space: nowrap; font-size: 0.85em;
+    text-decoration: none;
+    opacity: 0; transition: opacity 0.2s;
+    pointer-events: none;
+}
+.photo-tags-container:hover .photo-tag { opacity: 1; pointer-events: auto; }
+.photo-tag:hover { background: rgba(0,0,0,0.95); color: #fff; text-decoration: none; }
+
+/* Clickable prev/next overlay areas on left/right 10% of photo */
+.photo-nav-overlay {
+    position: absolute; top: 0; width: 10%; height: 100%;
+    cursor: pointer; z-index: 5; text-decoration: none;
+}
+.photo-nav-overlay-prev { left: 0; }
+.photo-nav-overlay-next { right: 0; }
+
+/* ============================================================
+ * PHOTO TAGGING (Admin)
+ * ============================================================ */
+.tag-container { position: relative; display: inline-block; margin-bottom: 4px; }
+.tag-container img { max-width: 100%; max-height: 80vh; cursor: crosshair; image-rendering: smooth; }
+.tag-dot {
+    position: absolute; width: 22px; height: 22px;
+    border-radius: 50%; background: rgba(0,180,0,0.6);
+    border: 2px solid #fff; transform: translate(-50%, -50%);
+    cursor: pointer; z-index: 10;
+}
+.tag-dot:hover { background: rgba(220,0,0,0.7); }
+.tag-dot-label {
+    display: none; position: absolute; bottom: 100%; left: 50%;
+    transform: translateX(-50%); margin-bottom: 4px;
+    background: rgba(0,0,0,0.85); color: #fff;
+    padding: 2px 6px; border-radius: 3px;
+    white-space: nowrap; font-size: 0.8em;
+    pointer-events: none;
+}
+.tag-dot:hover .tag-dot-label { display: block; }
+
+.tag-instruction { color: #666; font-size: 0.9em; margin: 4px 0 8px; }
+.tag-people { margin: 4px 0 12px; }
+.tag-chip {
+    display: inline-block; padding: 3px 10px; margin: 2px;
+    border: 1px solid #ccc; border-radius: 14px; cursor: pointer;
+    font-size: 0.9em; user-select: none;
+}
+.tag-chip:hover { background: #f0f0f0; }
+.tag-chip.active { background: #d0e8ff; border-color: #69c; }
+.tag-chip .tag-indicator { font-weight: bold; }
+.tag-chip.tagged .tag-indicator { color: #0a0; }
+.tag-chip:not(.tagged) .tag-indicator { color: #aaa; }
+
+
+/* ============================================================
+ * LOGIN
+ * ============================================================ */
+.login-form { text-align: center; padding: 2rem 0; }
+.login-form input[type="text"],
+.login-form input[type="password"] {
+    border: 1px solid #666;
+    font: 8pt Verdana, Arial, Helvetica, sans-serif;
+    padding: 2px 4px;
+}
+.login-form input[type="submit"] {
+    border: 1px solid #666;
+    font: 8pt Verdana, Arial, Helvetica, sans-serif;
+    cursor: pointer;
+}
+
+
+/* ============================================================
+ * MESSAGES / FORUM
+ * ============================================================ */
+.forum-section { margin-bottom: 1rem; }
+.forum-header {
+    background: #ccc;
+    padding: 4px 8px;
+    font-weight: bold;
+}
+.forum-header-personal {
+    background: #999;
+    padding: 4px 8px;
+    font-weight: bold;
+}
+.forum-header-personal a,
+.forum-header-personal b { color: #fff; }
+.forum-item        { padding: 4px 8px; }
+.forum-item-header { background: #eee; padding: 4px 8px; font-weight: bold; }
+.forum-form {
+    background: #999;
+    padding: 8px;
+}
+.forum-form label { color: #fff; }
+.forum-form input[type="text"],
+.forum-form textarea,
+.forum-form select { font: 8pt Verdana, Arial, Helvetica, sans-serif; border: 1px solid #666; }
+
+
+/* ============================================================
+ * ADMIN LAYOUT
+ * Replaces frameset (left=list, right=form) with CSS Grid sidebar.
+ * ============================================================ */
+.admin-layout {
+    display: grid;
+    grid-template-columns: 250px 1fr;
+    gap: 1rem;
+    min-height: 60vh;
+}
+.admin-sidebar {
+    border-right: 1px solid #ccc;
+    padding-right: 1rem;
+    overflow-y: auto;
+    max-height: 80vh;
+    font-size: 8pt;
+}
+.admin-sidebar a { display: block; padding: 1px 0; }
+.admin-sidebar .section-title { font-weight: bold; margin-bottom: 0.5rem; }
+.admin-sidebar .sidebar-links { margin-bottom: 0.5rem; }
+.admin-sidebar .sidebar-links a { font-weight: bold; }
+.admin-main { padding: 0; }
+
+/* Tag status dots in photo sidebar */
+.tag-status-dot { font-size: 8px; }
+.tag-status-green { color: #2e7d32; }
+.tag-status-yellow { color: #f9a825; }
+.tag-status-red { color: #c62828; }
+
+/* Sidebar filter/sort controls */
+.sidebar-filter { margin: 0.4rem 0; }
+.sidebar-filter select { width: 100%; font-size: 7pt; margin-bottom: 2px; }
+
+/* Admin navigation bar (replaces admin menu.asp) */
+.admin-nav {
+    background: #ccc;
+    padding: 4px 8px;
+    margin-bottom: 1rem;
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+.admin-nav a { font-weight: bold; }
+
+/* Admin form styling */
+.admin-form { max-width: 700px; }
+.admin-form .form-row {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 4px 8px;
+    margin-bottom: 4px;
+    align-items: start;
+}
+.admin-form .form-row label { text-align: right; padding-top: 2px; }
+.admin-form .form-row-full { grid-column: 1 / -1; }
+.admin-form .form-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    padding-left: 148px;
+}
+.admin-form input[type="text"],
+.admin-form input[type="date"],
+.admin-form input[type="number"],
+.admin-form textarea,
+.admin-form select {
+    border: 1px solid #666;
+    font: 8pt Verdana, Arial, Helvetica, sans-serif;
+    padding: 1px 3px;
+}
+.admin-form input[type="submit"] {
+    border: 1px solid #666;
+    font: 8pt Verdana, Arial, Helvetica, sans-serif;
+    cursor: pointer;
+}
+
+/* Admin dual-list (for linking people to comments/photos) */
+.dual-list {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 8px;
+    align-items: start;
+}
+.dual-list select { width: 100%; height: 200px; font: 8pt Verdana, Arial, Helvetica, sans-serif; }
+.dual-list .dual-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-top: 40px;
+}
+.dual-list .dual-buttons button {
+    font: 8pt Verdana, Arial, Helvetica, sans-serif;
+    cursor: pointer;
+    padding: 2px 8px;
+}
+
+/* Admin status message */
+.admin-msg { padding: 4px 8px; background: #dfd; margin-bottom: 0.5rem; }
+.admin-err { padding: 4px 8px; background: #fdd; margin-bottom: 0.5rem; }
+.admin-warnings { padding: 4px 8px; background: #fff3cd; border: 1px solid #ffc107; margin-bottom: 0.5rem; font-size: 8pt; }
+.admin-warnings ul { margin: 2px 0 0 1.2em; padding: 0; }
+.admin-warnings li { margin: 1px 0; }
+
+
+/* ============================================================
+ * PUBLIC LANDING PAGE
+ * ============================================================ */
+.landing { max-width: 700px; margin: 0 auto; padding: 20px; }
+.landing-hero { text-align: center; padding: 40px 0 10px; }
+.landing-hero h1 { font-size: 28pt; margin-bottom: 8px; }
+.landing-tagline { font-size: 12pt; color: #555; margin-bottom: 0; }
+.landing-sep { border: none; border-top: 1px solid #ccc; margin: 16px 0; }
+.landing-feature { padding: 8px 0 16px; }
+.landing-feature h2 { margin: 0 0 4px; }
+.landing-feature h2 a { color: #000; text-decoration: none; }
+.landing-feature h2 a:hover { text-decoration: underline; }
+
+.landing-blog { padding-top: 8px; }
+.landing-blog h2 { margin-bottom: 12px; }
+
+/* ============================================================
+ * BLOG
+ * ============================================================ */
+.blog-listing h1 { margin-bottom: 16px; }
+.blog-card { border-bottom: 1px solid #ddd; padding: 16px 0; }
+.blog-card:last-of-type { border-bottom: none; }
+.blog-card h2, .blog-card h3 { margin: 0 0 4px; }
+.blog-card h2 a, .blog-card h3 a { color: #000; text-decoration: none; }
+.blog-card h2 a:hover, .blog-card h3 a:hover { text-decoration: underline; }
+.blog-date { color: #888; font-size: 9pt; display: block; margin-bottom: 6px; }
+.blog-excerpt { color: #444; margin: 0; }
+
+.blog-pagination { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-top: 1px solid #ddd; margin-top: 8px; }
+.blog-pagination a { color: #000; }
+
+.blog-post-view h1 { margin-bottom: 4px; }
+.blog-back { margin-bottom: 12px; }
+.blog-back a { color: #666; font-size: 9pt; }
+.blog-body { line-height: 1.6; margin: 16px 0; }
+.blog-body p { margin-bottom: 1em; }
+.blog-body img { max-width: 100%; height: auto; }
+
+.blog-post-nav { display: flex; justify-content: space-between; border-top: 1px solid #ddd; padding-top: 16px; margin-top: 24px; font-size: 9pt; }
+.blog-nav-prev { text-align: left; }
+.blog-nav-next { text-align: right; }
+
+
+/* ============================================================
+ * RICH TEXT EDITOR
+ * ============================================================ */
+.rt-wrap { border: 1px solid #999; margin-bottom: .5rem; }
+.rt-toolbar {
+    display: flex; flex-wrap: wrap; gap: 2px; padding: 3px 4px;
+    background: #f0f0f0; border-bottom: 1px solid #ccc;
+}
+.rt-toolbar button {
+    padding: 2px 6px; border: 1px solid #bbb; background: #fff;
+    cursor: pointer; font-size: 8pt; font-family: inherit; line-height: 1.4;
+}
+.rt-toolbar button:hover { background: #ddd; }
+.rt-toolbar select {
+    padding: 1px 2px; border: 1px solid #bbb; background: #fff;
+    cursor: pointer; font-size: 8pt; font-family: inherit;
+}
+.rt-sep { width: 1px; background: #ccc; margin: 0 3px; }
+.rt-editor {
+    padding: 6px 8px; overflow-y: auto; max-height: 60vh;
+    font-family: inherit; font-size: inherit; line-height: 1.5;
+    outline: none;
+}
+.rt-editor:focus { background: #fffff8; }
+.rt-editor ul, .rt-editor ol { margin: .3em 0 .3em 1.5em; padding: 0; }
+.rt-editor a { color: #0066cc; }
+
+
+/* ============================================================
+ * RESPONSIVE
+ * ============================================================ */
+@media (max-width: 1024px) {
+    .name-list { columns: 2; }
+}
+@media (max-width: 768px) {
+    .landing-hero { padding: 20px 0 16px; }
+    .landing-hero h1 { font-size: 20pt; }
+    .name-list { columns: 1; width: 100%; }
+    .name-list-header, .name-list-footer { width: 100%; }
+    .bio-item,
+    .bio-photo-item { grid-template-columns: 1fr; }
+    .bio-photo-item .thumb { margin: 0 auto 0.5rem; }
+    .tree-grid,
+    .tree-grid-single { font-size: 7pt; }
+    .cal-table { width: 100%; }
+    .data-table { font-size: 7pt; }
+    .admin-layout { grid-template-columns: 1fr; }
+    .admin-sidebar { border-right: none; border-bottom: 1px solid #ccc; max-height: none; }
 }

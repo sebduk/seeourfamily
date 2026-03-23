@@ -3,7 +3,7 @@
 migrate_access_to_mariadb.py
 
 Migrates data from the old See Our Family Access databases (.mdb files)
-into the new MariaDB schema.
+into the new MariaDB schema (with UUIDs and all modern tables).
 
 Sources:
   - Data/user.mdb        -> families, users, user_family_link
@@ -12,18 +12,24 @@ Sources:
                             forum_items, infos
 
 Requirements:
-  pip install pyodbc mysql-connector-python
+  pip install mysql-connector-python bcrypt
 
   For .mdb access on Linux you also need mdbtools:
-    sudo apt-get install mdbtools odbc-mdbtools
+    sudo apt-get install mdbtools
 
 Usage:
-  1. Edit the configuration section below (MariaDB credentials, .mdb paths)
-  2. Run: python3 migrate_access_to_mariadb.py
-  3. Check the output for any warnings or errors
+  1. Run createDB.sql first to create the schema:
+       mysql < createDB.sql
+  2. Edit the MARIADB_CONFIG and WANTED_FAMILIES below
+  3. Run: python3 migrate_access_to_mariadb.py
+  4. Check the output for any warnings or errors
+  5. Optionally run: python3 cli/create-superadmin.php  (to create an admin)
 
 The script is idempotent: it will TRUNCATE all tables before inserting.
-Run createDB.sql first to create the schema.
+Each row gets a fresh UUIDv4 for use in public-facing URLs.
+
+To list available families in user.mdb:
+  python3 migrate_access_to_mariadb.py --list-families
 """
 
 import os
@@ -31,6 +37,7 @@ import sys
 import subprocess
 import csv
 import io
+import uuid as uuid_mod
 from datetime import datetime, date
 
 try:
@@ -40,6 +47,35 @@ except ImportError:
     print("  pip install mysql-connector-python")
     sys.exit(1)
 
+try:
+    import bcrypt
+except ImportError:
+    bcrypt = None
+    print("WARNING: bcrypt not installed. Passwords will be hashed with a fallback.")
+    print("  For production use: pip install bcrypt")
+
+
+def new_uuid() -> str:
+    """Generate a UUIDv4 string."""
+    return str(uuid_mod.uuid4())
+
+
+def hash_password(plain: str) -> str:
+    """Hash a plaintext password using bcrypt (PHP password_hash compatible).
+
+    The old ASP site stored passwords in plaintext and compared with UCase().
+    The new PHP site uses password_verify() which expects bcrypt ($2y$) hashes.
+    """
+    if not plain or plain.strip() == "":
+        return ""
+    if bcrypt is not None:
+        hashed = bcrypt.hashpw(plain.encode("utf-8"), bcrypt.gensalt(rounds=10))
+        # bcrypt returns $2b$, PHP password_verify also accepts $2y$
+        return hashed.decode("utf-8").replace("$2b$", "$2y$", 1)
+    else:
+        # Fallback: store plaintext with a marker so you know to re-hash later
+        return "PLAINTEXT:" + plain
+
 
 # =========================================================================
 # CONFIGURATION - Edit these values for your environment
@@ -48,23 +84,27 @@ except ImportError:
 MARIADB_CONFIG = {
     "host": "localhost",
     "port": 3306,
-    "user": "root",
+    "user": "",
     "password": "",
     "database": "seeourfamily",
+    # Uncomment the next line if your local MySQL/MariaDB uses unix socket auth
+    # (i.e. you can connect by just typing "mysql" with no password).
+    # Common socket paths:
+    #   Linux:  /var/run/mysqld/mysqld.sock
+    #   macOS:  /tmp/mysql.sock
+    "unix_socket": "/tmp/mysql.sock",
 }
 
 # Path to the common user.mdb (Domain, User, LkDomainUser tables)
 COMMON_MDB = "Data/user.mdb"
 
-# Family .mdb files to migrate.
-# Each entry maps a family name to its .mdb path.
-# The family name must match what's in the Domain table's DomainName field.
-# If you're unsure, run the script with --list-families to see what's in user.mdb.
-FAMILY_MDB_FILES = {
-    # "Tajan": "Data/some-tajan.mdb",
-    # "Ducos": "Data/some-ducos.mdb",
-    # "Moeskops": "Data/some-moeskops.mdb",
-}
+# Families to migrate.  The .mdb filename for each family is read
+# automatically from the DomainDB column in user.mdb's Domain table,
+# and looked up under DATA_DIR.
+# Only families listed here will be imported from user.mdb.
+WANTED_FAMILIES = {"Tajan", "Ducos", "Moeskops", "Arntz", "Gouzon"}
+
+DATA_DIR = "Data"
 
 # =========================================================================
 # MDB READING UTILITIES (uses mdbtools command-line)
@@ -81,14 +121,26 @@ def mdb_list_tables(mdb_path):
 
 
 def mdb_export_table(mdb_path, table_name):
-    """Export a table from an .mdb file as a list of dicts using mdb-export."""
+    """Export a table from an .mdb file as a list of dicts using mdb-export.
+
+    Access .mdb files typically use CP1252 (Windows-1252) encoding.
+    We read raw bytes and decode as CP1252 to get proper Unicode strings,
+    which mysql.connector then sends to MariaDB as UTF-8.
+    """
     result = subprocess.run(
         ["mdb-export", mdb_path, table_name],
-        capture_output=True, text=True, check=True
+        capture_output=True, check=True
     )
     if not result.stdout.strip():
         return []
-    reader = csv.DictReader(io.StringIO(result.stdout))
+    # Decode as CP1252 (the native Access encoding for Western European data).
+    # If mdb-export already converted to UTF-8, try that first.
+    raw = result.stdout
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError:
+        text = raw.decode("cp1252")
+    reader = csv.DictReader(io.StringIO(text))
     return list(reader)
 
 
@@ -120,36 +172,31 @@ def safe_bool(val):
 
 
 def parse_access_date(date_str):
-    """Parse an Access date string into a Python date, or None."""
+    """Parse an Access date string into a Python date, or None.
+
+    mdb-export outputs dates as 'mm/dd/yy HH:MM:SS' (American, 2-digit year).
+    Access zero-dates ('01/00/00 00:00:00') mean null.
+    """
     if not date_str or date_str.strip() in ("", "null"):
         return None
     date_str = date_str.strip()
-    for fmt in ("%m/%d/%Y %H:%M:%S", "%m/%d/%Y", "%Y-%m-%d %H:%M:%S",
-                "%Y-%m-%d", "%d/%m/%Y", "%m/%d/%y"):
+    # Access zero-date: no actual date stored
+    if '/00/' in date_str or date_str.startswith('00/'):
+        return None
+    for fmt in ("%m/%d/%y %H:%M:%S", "%m/%d/%y",
+                "%m/%d/%Y %H:%M:%S", "%m/%d/%Y",
+                "%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
         try:
             return datetime.strptime(date_str, fmt).date()
         except ValueError:
             continue
-    return None
-
-
-def parse_access_datetime(dt_str):
-    """Parse an Access datetime string into a Python datetime, or None."""
-    if not dt_str or dt_str.strip() in ("", "null"):
-        return None
-    dt_str = dt_str.strip()
-    for fmt in ("%m/%d/%Y %H:%M:%S", "%m/%d/%Y", "%Y-%m-%d %H:%M:%S",
-                "%Y-%m-%d"):
-        try:
-            return datetime.strptime(dt_str, fmt)
-        except ValueError:
-            continue
+    print(f"    WARNING: could not parse date: '{date_str}'")
     return None
 
 
 def compute_date_and_precision(year_val, full_date_val, month_val=None, day_val=None):
     """
-    Combine the old Access DtNaiss (year) + DateNaiss (full date mm/dd/yyyy)
+    Combine the old Access DtNaiss (year) + DateNaiss (full date dd/mm/yyyy)
     into a proper DATE + precision string.
 
     Returns (date_obj_or_None, precision_str_or_None).
@@ -160,6 +207,18 @@ def compute_date_and_precision(year_val, full_date_val, month_val=None, day_val=
     day = safe_int(day_val)
 
     if full_date:
+        # Fix century: %y gives 2039 for '39' but DtNaiss says 1939
+        if year and full_date.year != year:
+            try:
+                full_date = full_date.replace(year=year)
+            except ValueError:
+                pass
+        # No DtNaiss year available — for a genealogy DB, future dates are wrong
+        elif not year and full_date.year > date.today().year:
+            try:
+                full_date = full_date.replace(year=full_date.year - 100)
+            except ValueError:
+                pass
         return full_date, "ymd"
     if year and month and day:
         try:
@@ -184,45 +243,72 @@ def compute_date_and_precision(year_val, full_date_val, month_val=None, day_val=
 # =========================================================================
 
 
-def migrate_common_db(cursor, mdb_path):
-    """Migrate Domain, User, LkDomainUser from user.mdb."""
+def migrate_common_db(cursor, mdb_path, wanted_families=None, data_dir="Data"):
+    """Migrate Domain, User, LkDomainUser from user.mdb.
+
+    If wanted_families is provided (a set/list of family names), only
+    Domain rows whose DomainName is in that set will be imported.
+
+    Returns (domain_id_map, family_mdb_files):
+        domain_id_map:   {old IDDomain -> new families.id}
+        family_mdb_files: {family_name -> mdb_path}  (built from DomainDB column)
+    """
     print(f"\n--- Migrating common DB: {mdb_path} ---")
 
     if not os.path.exists(mdb_path):
         print(f"  WARNING: {mdb_path} not found, skipping common DB migration.")
-        return {}
+        return {}, {}
 
     tables = mdb_list_tables(mdb_path)
     print(f"  Tables found: {tables}")
 
     # --- families (from Domain table) ---
-    domain_id_map = {}  # old IDDomain -> new families.id
+    domain_id_map = {}      # old IDDomain -> new families.id
+    family_mdb_files = {}   # family_name -> path to its .mdb file
     if "Domain" in tables:
         rows = mdb_export_table(mdb_path, "Domain")
         print(f"  Domain: {len(rows)} rows")
+        seen_names = set()
         for row in rows:
-            if not safe_bool(row.get("DomainIsOnline", "1")):
+            name = safe_str(row.get("DomainName"))
+            if not name or name.strip() == "":
                 continue
+            if wanted_families and name not in wanted_families:
+                continue
+            if not safe_bool(row.get("DomainIsOnline", "1")):
+                print(f"    SKIP: offline '{name}' (IDDomain={row.get('IDDomain')})")
+                continue
+            if name in seen_names:
+                print(f"    SKIP: duplicate '{name}' (IDDomain={row.get('IDDomain')})")
+                continue
+            seen_names.add(name)
+
+            # Build the .mdb path from the DomainDB column
+            domain_db = safe_str(row.get("DomainDB"))
+            if domain_db:
+                family_mdb_files[name] = os.path.join(data_dir, domain_db)
+
             cursor.execute("""
-                INSERT INTO families (name, title, language, date_format, package,
+                INSERT INTO families (uuid, name, title, language, date_format, package,
                                      url, hash, guest_password, admin_password, is_online)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 1)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 1)
             """, (
-                safe_str(row.get("DomainName")),
+                new_uuid(),
+                name,
                 safe_str(row.get("DomainHeadTitle")),
                 safe_str(row.get("DomainLanguage")) or "ENG",
                 safe_str(row.get("DomainDateFormat")) or "dmy",
                 safe_str(row.get("DomainPackage")) or "Starter",
                 safe_str(row.get("DomainURL")),
                 safe_str(row.get("DomainRNDKey")),
-                safe_str(row.get("DomainPwdGuest")),
-                safe_str(row.get("DomainPwdAdmin")),
+                hash_password(safe_str(row.get("DomainPwdGuest")) or ""),
+                hash_password(safe_str(row.get("DomainPwdAdmin")) or ""),
             ))
             new_id = cursor.lastrowid
             old_id = safe_int(row.get("IDDomain"))
             if old_id is not None:
                 domain_id_map[old_id] = new_id
-            print(f"    Family: {row.get('DomainName')} (old ID {old_id} -> new ID {new_id})")
+            print(f"    Family: {name} (old ID {old_id} -> new ID {new_id}, db={domain_db})")
     else:
         print("  WARNING: No 'Domain' table found in user.mdb")
 
@@ -233,11 +319,12 @@ def migrate_common_db(cursor, mdb_path):
         print(f"  User: {len(rows)} rows")
         for row in rows:
             cursor.execute("""
-                INSERT INTO users (login, password, name, email, is_online)
-                VALUES (%s, %s, %s, %s, %s)
+                INSERT INTO users (uuid, login, password, name, email, is_online)
+                VALUES (%s, %s, %s, %s, %s, %s)
             """, (
+                new_uuid(),
                 safe_str(row.get("UserLogin")) or "unknown",
-                safe_str(row.get("UserPassword")) or "changeme",
+                hash_password(safe_str(row.get("UserPassword")) or "changeme"),
                 safe_str(row.get("UserName")),
                 safe_str(row.get("UserEmail")),
                 safe_bool(row.get("UserIsOnline", "1")),
@@ -268,7 +355,7 @@ def migrate_common_db(cursor, mdb_path):
                     safe_str(row.get("Status")) or "Guest",
                 ))
 
-    return domain_id_map
+    return domain_id_map, family_mdb_files
 
 
 def migrate_family_db(cursor, mdb_path, family_id, family_name):
@@ -287,6 +374,12 @@ def migrate_family_db(cursor, mdb_path, family_id, family_name):
     if "Personne" in tables:
         rows = mdb_export_table(mdb_path, "Personne")
         print(f"  Personne: {len(rows)} rows")
+        # Show raw date fields from first 3 rows so we can verify the format
+        for i, sample in enumerate(rows[:3]):
+            print(f"    Sample row {i}: DtNaiss={sample.get('DtNaiss')!r}  "
+                  f"DateNaiss={sample.get('DateNaiss')!r}  "
+                  f"DtDec={sample.get('DtDec')!r}  "
+                  f"DateDec={sample.get('DateDec')!r}")
         for row in rows:
             birth_date, birth_prec = compute_date_and_precision(
                 row.get("DtNaiss"), row.get("DateNaiss"))
@@ -294,13 +387,14 @@ def migrate_family_db(cursor, mdb_path, family_id, family_name):
                 row.get("DtDec"), row.get("DateDec"))
 
             cursor.execute("""
-                INSERT INTO people (family_id, first_name, first_names, last_name,
+                INSERT INTO people (uuid, family_id, first_name, first_names, last_name,
                                     is_male, birth_date, birth_precision, birth_place,
                                     death_date, death_precision, death_place,
                                     email, biography, links, is_online,
                                     updated_by, updated_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 1, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 1, %s, %s)
             """, (
+                new_uuid(),
                 family_id,
                 safe_str(row.get("Prenom")),
                 safe_str(row.get("Prenoms")),
@@ -316,7 +410,7 @@ def migrate_family_db(cursor, mdb_path, family_id, family_name):
                 safe_str(row.get("Comm")),
                 safe_str(row.get("Link")),
                 safe_int(row.get("LastUpdateWho")),
-                parse_access_datetime(row.get("LastUpdateWhen")),
+                parse_access_date(row.get("LastUpdateWhen")),
             ))
             new_id = cursor.lastrowid
             old_id = safe_int(row.get("IDPersonne"))
@@ -336,11 +430,12 @@ def migrate_family_db(cursor, mdb_path, family_id, family_name):
             old_fem = safe_int(row.get("IDPersFem"))
 
             cursor.execute("""
-                INSERT INTO couples (family_id, person1_id, person2_id,
+                INSERT INTO couples (uuid, family_id, person1_id, person2_id,
                                      start_date, start_precision, start_place,
                                      is_online, updated_by, updated_at)
-                VALUES (%s, %s, %s, %s, %s, %s, 1, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, 1, %s, %s)
             """, (
+                new_uuid(),
                 family_id,
                 person_id_map.get(old_masc),
                 person_id_map.get(old_fem),
@@ -348,7 +443,7 @@ def migrate_family_db(cursor, mdb_path, family_id, family_name):
                 start_prec,
                 safe_str(row.get("LieuCouple")),
                 safe_int(row.get("LastUpdateWho")),
-                parse_access_datetime(row.get("LastUpdateWhen")),
+                parse_access_date(row.get("LastUpdateWhen")),
             ))
             new_id = cursor.lastrowid
             old_id = safe_int(row.get("IDCouple"))
@@ -381,18 +476,19 @@ def migrate_family_db(cursor, mdb_path, family_id, family_name):
                 row.get("DtMonth"), row.get("DtDay"))
 
             cursor.execute("""
-                INSERT INTO photos (family_id, file_name, description,
+                INSERT INTO photos (uuid, family_id, file_name, description,
                                     photo_date, photo_precision, is_online,
                                     updated_by, updated_at)
-                VALUES (%s, %s, %s, %s, %s, 1, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, 1, %s, %s)
             """, (
+                new_uuid(),
                 family_id,
                 safe_str(row.get("NomPhoto")),
                 safe_str(row.get("DescrPhoto")),
                 photo_date,
                 photo_prec,
                 safe_int(row.get("LastUpdateWho")),
-                parse_access_datetime(row.get("LastUpdateWhen")),
+                parse_access_date(row.get("LastUpdateWhen")),
             ))
             new_id = cursor.lastrowid
             old_id = safe_int(row.get("IDPhoto"))
@@ -423,16 +519,17 @@ def migrate_family_db(cursor, mdb_path, family_id, family_name):
         print(f"  Commentaire: {len(rows)} rows")
         for row in rows:
             cursor.execute("""
-                INSERT INTO comments (family_id, title, event_date, body,
+                INSERT INTO comments (uuid, family_id, title, event_date, body,
                                       is_online, updated_by, updated_at)
-                VALUES (%s, %s, %s, %s, 1, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, 1, %s, %s)
             """, (
+                new_uuid(),
                 family_id,
                 safe_str(row.get("Titre")),
                 safe_str(row.get("DtVecu")),
                 safe_str(row.get("Comm")),
                 safe_int(row.get("LastUpdateWho")),
-                parse_access_datetime(row.get("LastUpdateWhen")),
+                parse_access_date(row.get("LastUpdateWhen")),
             ))
             new_id = cursor.lastrowid
             old_id = safe_int(row.get("IDCommentaire"))
@@ -463,10 +560,11 @@ def migrate_family_db(cursor, mdb_path, family_id, family_name):
         print(f"  Forum: {len(rows)} rows")
         for row in rows:
             cursor.execute("""
-                INSERT INTO forums (family_id, parent_id, sort_order, admin_name,
+                INSERT INTO forums (uuid, family_id, parent_id, sort_order, admin_name,
                                     title, is_online, updated_by, updated_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             """, (
+                new_uuid(),
                 family_id,
                 safe_int(row.get("IdDad")) if safe_int(row.get("IdDad")) else None,
                 safe_int(row.get("ForumSort")) or 0,
@@ -474,7 +572,7 @@ def migrate_family_db(cursor, mdb_path, family_id, family_name):
                 safe_str(row.get("ForumTitle")),
                 safe_bool(row.get("ForumIsOnline", "1")),
                 safe_int(row.get("LastUpdateWho")),
-                parse_access_datetime(row.get("LastUpdateWhen")),
+                parse_access_date(row.get("LastUpdateWhen")),
             ))
             new_id = cursor.lastrowid
             old_id = safe_int(row.get("IDForum"))
@@ -488,12 +586,13 @@ def migrate_family_db(cursor, mdb_path, family_id, family_name):
         for row in rows:
             new_forum_id = forum_id_map.get(safe_int(row.get("IdForum")))
             if new_forum_id:
-                posted = parse_access_datetime(row.get("ForumItemDate"))
+                posted = parse_access_date(row.get("ForumItemDate"))
                 cursor.execute("""
-                    INSERT INTO forum_items (forum_id, title, author_name,
+                    INSERT INTO forum_items (uuid, forum_id, title, author_name,
                                              author_email, body, posted_at, is_online)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 """, (
+                    new_uuid(),
                     new_forum_id,
                     safe_str(row.get("ForumItemTitle")),
                     safe_str(row.get("ForumItemFrom")),
@@ -509,16 +608,17 @@ def migrate_family_db(cursor, mdb_path, family_id, family_name):
         print(f"  Info: {len(rows)} rows")
         for row in rows:
             cursor.execute("""
-                INSERT INTO infos (family_id, location, content, is_online,
+                INSERT INTO infos (uuid, family_id, location, content, is_online,
                                    updated_by, updated_at)
-                VALUES (%s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
             """, (
+                new_uuid(),
                 family_id,
                 safe_str(row.get("InfoLocation")),
                 safe_str(row.get("InfoContent")),
                 safe_bool(row.get("InfoIsOnline", "1")),
                 safe_int(row.get("LastUpdateWho")),
-                parse_access_datetime(row.get("LastUpdateWhen")),
+                parse_access_date(row.get("LastUpdateWhen")),
             ))
 
     print(f"  Done. Migrated: {len(person_id_map)} people, {len(couple_id_map)} couples, "
@@ -557,7 +657,18 @@ def main():
 
     # --- Connect to MariaDB ---
     print("Connecting to MariaDB...")
-    conn = mysql.connector.connect(**MARIADB_CONFIG)
+    config = dict(MARIADB_CONFIG)
+    # Clean up config: remove empty strings (mysql.connector rejects empty user/password)
+    for key in list(config.keys()):
+        if config[key] == "":
+            del config[key]
+    # When using unix_socket, host/port are not needed
+    if "unix_socket" in config:
+        config.pop("host", None)
+        config.pop("port", None)
+    # Explicit charset ensures Python↔MariaDB encoding is unambiguous
+    config.setdefault("charset", "utf8mb4")
+    conn = mysql.connector.connect(**config)
     cursor = conn.cursor()
 
     # Disable FK checks during migration
@@ -565,27 +676,30 @@ def main():
 
     # Truncate all tables (idempotent migration)
     print("Truncating existing data...")
-    for table in ["forum_items", "forums", "infos",
+    for table in ["invitations", "password_resets", "blog_posts",
+                   "forum_items", "forums", "infos",
                    "comment_person_link", "comments",
-                   "photo_person_link", "photos",
+                   "photo_tags", "photo_person_link", "folders", "photos",
                    "couples", "people",
                    "user_family_link", "users", "families"]:
         cursor.execute(f"TRUNCATE TABLE `{table}`")
 
     # --- Step 1: Migrate common DB ---
-    domain_id_map = migrate_common_db(cursor, COMMON_MDB)
+    # Returns domain_id_map AND the family .mdb paths read from DomainDB column
+    domain_id_map, family_mdb_files = migrate_common_db(
+        cursor, COMMON_MDB,
+        wanted_families=WANTED_FAMILIES,
+        data_dir=DATA_DIR)
 
     # --- Step 2: Build family name -> new family_id lookup ---
     cursor.execute("SELECT id, name FROM families")
     family_name_to_id = {name: fid for fid, name in cursor.fetchall()}
 
     # --- Step 3: Migrate each family DB ---
-    if not FAMILY_MDB_FILES:
-        print("\n*** WARNING: No family .mdb files configured in FAMILY_MDB_FILES. ***")
-        print("*** Edit this script to add your family .mdb file paths.          ***")
-        print("*** Use --list-families to see what's in user.mdb.                ***")
+    if not family_mdb_files:
+        print("\n*** WARNING: No family .mdb files discovered from Domain table. ***")
     else:
-        for family_name, mdb_path in FAMILY_MDB_FILES.items():
+        for family_name, mdb_path in family_mdb_files.items():
             family_id = family_name_to_id.get(family_name)
             if family_id is None:
                 print(f"\n  WARNING: Family '{family_name}' not found in families table. "
@@ -602,8 +716,10 @@ def main():
 
     # Summary
     for table in ["families", "users", "user_family_link", "people", "couples",
-                   "photos", "photo_person_link", "comments", "comment_person_link",
-                   "forums", "forum_items", "infos"]:
+                   "photos", "photo_person_link", "photo_tags", "folders",
+                   "comments", "comment_person_link",
+                   "forums", "forum_items", "infos",
+                   "blog_posts", "password_resets", "invitations"]:
         cursor.execute(f"SELECT COUNT(*) FROM `{table}`")
         count = cursor.fetchone()[0]
         print(f"  {table}: {count} rows")

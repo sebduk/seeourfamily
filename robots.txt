@@ -1,0 +1,30 @@
+# See Our Family - robots.txt
+#
+# Allow public pages (home, blog) to be indexed.
+# Block private family data, admin, and system pages.
+
+User-agent: *
+
+# Public pages
+Allow: /$
+Allow: /home
+Allow: /blog
+
+# Block all family data and private pages
+Disallow: /tree
+Disallow: /person
+Disallow: /ascendants
+Disallow: /descendants
+Disallow: /list-names
+Disallow: /birthdays
+Disallow: /photos
+Disallow: /photo
+Disallow: /documents
+Disallow: /messages
+Disallow: /admin
+Disallow: /system-admin
+Disallow: /login
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /register
+Disallow: /Gene/
