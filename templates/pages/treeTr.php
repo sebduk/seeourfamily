@@ -387,7 +387,7 @@ $jsonData = json_encode([
             node: {
                 HTMLclass: 'tretr-node'
             },
-            padding: 20,
+            padding: 75,
             scrollbar: 'native'
         },
         nodeStructure: rootNode
