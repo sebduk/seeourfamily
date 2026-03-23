@@ -339,6 +339,7 @@ hr { border: none; border-top: 1px solid #666; }
     position: relative;
     min-width: 100%;
     min-height: 100%;
+    padding-top: 75px !important;
 }
 /* Override Treant.css defaults */
 #tretr-container .node {

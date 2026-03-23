@@ -387,13 +387,23 @@ $jsonData = json_encode([
             node: {
                 HTMLclass: 'tretr-node'
             },
-            padding: 75,
+            padding: 20,
             scrollbar: 'native'
         },
         nodeStructure: rootNode
     };
 
     new Treant(config);
+
+    // The container has CSS padding-top: 75px to prevent the root couple
+    // from being hidden behind the menu bar. This padding shifts the Raphael
+    // SVG (flow content) down, but absolutely-positioned node divs are
+    // unaffected. Shift all nodes down by the same amount to stay aligned.
+    var PAD_TOP = 75;
+    var allNodeEls = document.querySelectorAll('#tretr-container .node');
+    allNodeEls.forEach(function(n) {
+        n.style.top = (parseInt(n.style.top, 10) + PAD_TOP) + 'px';
+    });
 
     // Equalize single/couple node heights within the same generation row
     setTimeout(function() {
